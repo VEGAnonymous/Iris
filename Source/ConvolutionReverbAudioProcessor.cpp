@@ -2,10 +2,10 @@
 
 /* PRIVATE */
 
-void ConvolutionReverbAudioProcessor::advancePhase(int n) {
-    float freq = motionRate * 2.0f; // rate 0-1 -> 0-2 Hz
-    float phaseIncrement = juce::MathConstants<float>::twoPi * freq / CONTROL_RATE;
-    t += phaseIncrement * n;
+void ConvolutionReverbAudioProcessor::advancePhase() {
+    float freq = motionRate * 0.2f;
+    float phaseIncrement = juce::MathConstants<float>::twoPi * freq * (getBlockSize() / getSampleRate());
+    t += phaseIncrement;
 }
 
 PolarCoordinate ConvolutionReverbAudioProcessor::computeDistanceDirection(PolarCoordinate p1, PolarCoordinate p2, Axis reference) {
@@ -37,7 +37,7 @@ void ConvolutionReverbAudioProcessor::updatePosition() {
             float r = b * sinf(static_cast<float>(p) * t);
             float theta = phi * sinf((static_cast<float>(q) * t) + phi);
             position = { r, theta };
-            DBG("Position: " << r << ", " << theta);
+            // DBG("Position: " << r << ", " << theta);
             newWeights = true;
             break;
         }
@@ -102,8 +102,13 @@ void ConvolutionReverbAudioProcessor::prepareToPlay(double sampleRate, int maxBl
 
     mixer.setMixingRule(juce::dsp::DryWetMixingRule::sin3dB);
     mixer.setWetLatency(HOP_SIZE);
-    mixer.setWetMixProportion(1.0f); // TEMP: Test
+    mixer.setWetMixProportion(mix);
     mixer.prepare(spec);
+
+    updateParameters();
+    updateIRCoordinates();
+    updatePosition();
+    updateWeights();
 }
 
 void ConvolutionReverbAudioProcessor::releaseResources() {
@@ -117,11 +122,12 @@ void ConvolutionReverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buf
     }
 
     updateParameters();
-    advancePhase(buffer.getNumSamples());
+    advancePhase();
 
     // Control rate updates
     controlCounter += buffer.getNumSamples();
     if (controlCounter >= static_cast<int>(getSampleRate() / CONTROL_RATE)) {
+        updateIRCoordinates();
         updatePosition();
         updateWeights();
         controlCounter = 0;

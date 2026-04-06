@@ -5,7 +5,7 @@
 // Defines
 static constexpr auto sqrt2_2 = juce::MathConstants<float>::sqrt2 / 2.0f;
 
-static constexpr auto CONTROL_RATE = 10.0f; // Hz
+static constexpr auto CONTROL_RATE = 25.0f; // Hz
 
 static constexpr auto N_CHANNELS = 2; // Stereo
 static constexpr auto MAX_IR_COUNT = 8;

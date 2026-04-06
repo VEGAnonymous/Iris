@@ -11,7 +11,7 @@ void ConvolutionReverb::updateMaxIRPartitionCount() {
 
 	for (int channel = 0; channel < inputChannels; ++channel) mixedSpectra[channel].resize(maxIRPartitionCount);
 	irEnvelopes.resize(maxIRPartitionCount);
-	DBG("Max partition count: " << maxIRPartitionCount);
+	// DBG("Max partition count: " << maxIRPartitionCount);
 }
 
 void ConvolutionReverb::updateIRFFT(int irIndex) {
@@ -36,7 +36,7 @@ void ConvolutionReverb::updateIRFFT(int irIndex) {
 		}
 	}
 	updateMaxIRPartitionCount();
-	DBG("Computed FFT for buffer " << irIndex);
+	// DBG("Computed FFT for buffer " << irIndex);
 }
 
 void ConvolutionReverb::mixSpectrum() {
@@ -60,7 +60,7 @@ void ConvolutionReverb::mixSpectrum() {
 			}
 		}
 	}
-	DBG("Mixed spectrum");
+	// DBG("Mixed spectrum");
 }
 
 /* PUBLIC */
@@ -101,7 +101,7 @@ void ConvolutionReverb::setIRBuffer(int index, juce::AudioBuffer<float> irBuffer
 
 void ConvolutionReverb::setUniformWeights() { 
 	for (int channel = 0; channel < irWeights.size(); ++channel) irWeights[channel].fill(1.0f / MAX_IR_COUNT);
-	DBG("Set uniform weights");
+	// DBG("Set uniform weights");
 	mixSpectrum();
 }
 
@@ -111,19 +111,19 @@ void ConvolutionReverb::setWeights(std::vector<std::array<float, MAX_IR_COUNT>> 
 		jassert(std::abs(std::accumulate(weights[channel].begin(), weights[channel].end(), 0.0f) - 1.0f) < 1e-6f);
 	
 	irWeights = weights;
-	DBG("Set weights");
+	// DBG("Set weights");
 	mixSpectrum();
 }
 
 void ConvolutionReverb::setDecay(float decay) {
-	const float minDB = -30.0f, maxDB = -120.0f;
+	const float minDB = -180.0f, maxDB = -30.0f;
 	float totalDB = minDB + (decay * (maxDB - minDB));
 
 	float alpha = totalDB / static_cast<float>(maxIRPartitionCount); // dB
 	float envelope = powf(10.0f, alpha / 20.0f); // Linear
 	for (int partition = 0; partition < maxIRPartitionCount; ++partition)
 		irEnvelopes[partition] = powf(envelope, partition);
-	DBG("Set decay: " << decay);
+	// DBG("Set decay: " << decay);
 }
 
 void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {

@@ -22,7 +22,7 @@ private:
 	std::array<PolarCoordinate, MAX_IR_COUNT> irCoordinates {}; // Location of each IR
 
 	PolarCoordinate computeDistanceDirection(PolarCoordinate p1, PolarCoordinate p2, Axis reference = Axis::Y_AXIS);
-	void advancePhase(int n);
+	void advancePhase();
 	void updateIRCoordinates();
 	void updatePosition();
 	void updateWeights();
