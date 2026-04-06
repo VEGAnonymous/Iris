@@ -17,10 +17,20 @@ private:
     int maxIRPartitionCount = 0;
     
     // Audio buffers
-    std::vector<std::array<float, FFT_SIZE>> inputBuffers {};
-    std::vector<std::array<float, FFT_SIZE/2>> overlapBuffers{};
-    std::vector<std::deque<float>> outputQueues;
-    std::vector<int> writeIndex = {0};
+    std::vector<std::array<float, PARTITION_SIZE>> inputBuffers {}; 
+    std::vector<int> inputWriteIndex = {0};
+
+    std::vector<std::array<float, FFT_SIZE*2>> inputPartitions;
+
+    std::vector<std::array<std::array<float, PARTITION_SIZE>, 2>> overlapBuffersA {};
+    std::vector<std::array<float, HOP_SIZE>> overlapBuffersB {};
+    int convSaveCount = 0;
+    int hopCounter = 0;
+
+    std::vector<std::vector<float>> outputBuffers;
+    std::vector<int> outputWriteIndex = {0};
+    std::vector<int> outputReadIndex = {0};
+    const int outputSize = 4 * L;
 
     // FFT and spectra
     juce::dsp::WindowingFunction<float> hannWindow;
@@ -29,32 +39,30 @@ private:
     std::vector<int> spectraIndex = {0};
     std::vector< // Channels
         std::vector< // Partitions
-        std::array<float, FFT_SIZE*2> // Packed FFT output
+        std::array<float, FFT_SIZE> // Packed FFT output
         >
     > inputSpectra;
 
-    std::array<float, FFT_SIZE*2> partitionBuffer;
+    std::array<float, FFT_SIZE*2> irPartition;
     std::array< // IRs 
         std::vector< // Channels
             std::vector< // Partitions
-                std::array<float, FFT_SIZE*2> // Packed FFT output
+                std::array<float, FFT_SIZE> // Packed FFT output
             >
         >, MAX_IR_COUNT
     > irSpectra;
 
     std::vector< // Channels
         std::vector< // Partitions
-            std::array<float, FFT_SIZE*2> // Packed FFT output
+            std::array<float, FFT_SIZE> // Packed FFT output
         >
     > mixedSpectra;
 
-    // M (input block size) = buffer.getNumSamples, P (IR partition size in samples) = power of 2, N (FFT size) = 2 * P
+    std::vector<std::array<float, FFT_SIZE*2>> accumulators;
 
     void updateIRFFT(int index);
 
     void mixSpectrum();
-
-    void processInput(std::array<float, FFT_SIZE*2>& partition);
 
 public:
     ConvolutionReverb(int channels);

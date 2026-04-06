@@ -62,8 +62,8 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     }
     auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
     if (convProcessor != nullptr)
-        convProcessor->getConvolutionReverb()->setUniformWeights();
-        // convProcessor->getConvolutionReverb()->setWeights(std::array<float, MAX_IR_COUNT> {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}); // Init weights
+        // convProcessor->getConvolutionReverb()->setUniformWeights();
+        convProcessor->getConvolutionReverb()->setWeights(std::array<float, MAX_IR_COUNT> {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}); // Init weights
 }
 
 bool MareverbAudioProcessor::loadRandomIR(int irIndex) {
