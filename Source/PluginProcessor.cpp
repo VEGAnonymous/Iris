@@ -43,11 +43,13 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     audioOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioOutputNode));
 
     // Load IRs
-    juce::File srcDirectory = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory().getParentDirectory();
+    // HACK: Should store IRs in common directory
+    juce::File srcDirectory = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
+    while (srcDirectory.getFileName() != "Debug" && srcDirectory.getParentDirectory() != srcDirectory)
+        srcDirectory = srcDirectory.getParentDirectory();
     irDirectory = srcDirectory.getChildFile("IR Samples");
     irFiles = irDirectory.findChildFiles(juce::File::findFiles, true, "*");
-    irFileCount = irFiles.size();
-    jassert(irFileCount != 0);
+    jassert(irFiles.size() != 0);
 
     formatManager.registerBasicFormats();
     // formatManager.registerFormat(new juce::FlacAudioFormat(), true);
@@ -58,6 +60,10 @@ MareverbAudioProcessor::MareverbAudioProcessor()
         bool loaded = loadRandomIR(i);
         jassert(loaded);
     }
+    auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
+    if (convProcessor != nullptr)
+        convProcessor->getConvolutionReverb()->setUniformWeights();
+        // convProcessor->getConvolutionReverb()->setWeights(std::array<float, MAX_IR_COUNT> {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}); // Init weights
 }
 
 bool MareverbAudioProcessor::loadRandomIR(int irIndex) {
@@ -83,7 +89,7 @@ bool MareverbAudioProcessor::loadIR(int irIndex, int fileIndex) {
         // Set IR buffer in convolution processor
         auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
         if (convProcessor != nullptr) {
-            convProcessor->getConvolutionReverb().setIRBuffer(irIndex, activeIRBuffers[irIndex]);
+            convProcessor->getConvolutionReverb()->setIRBuffer(irIndex, activeIRBuffers[irIndex]);
             return true; }
     } return false;
 }

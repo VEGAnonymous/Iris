@@ -8,9 +8,7 @@
 
 class MareverbAudioProcessor : public juce::AudioProcessor {
 private:
-
     // Parameters
-
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     juce::AudioProcessorValueTreeState apvts {*this, nullptr, "Parameters", createParameterLayout()};
 
@@ -27,7 +25,7 @@ private:
     juce::Random irRNG;
 
     juce::File irDirectory;
-    juce::Array<juce::File> irFiles; int irFileCount;
+    juce::Array<juce::File> irFiles;
 
     juce::AudioFormatManager formatManager;
 

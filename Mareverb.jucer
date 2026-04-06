@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="Zdvz2w" name="Mareverb" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" defines="JUCE_USE_FLAC=1">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" defines="JUCE_USE_FLAC=1"
+              bundleIdentifier="lol.pony.Mareverb" companyEmail="lyranonymous@protonmail.com"
+              companyName="Eponymous DSP" pluginManufacturerCode="Mare">
   <MAINGROUP id="uSBxoM" name="Mareverb">
     <GROUP id="{52C29717-2BB5-4F62-25D3-FC09807A17AA}" name="Source">
       <FILE id="BGxNhP" name="ConvolutionReverb.cpp" compile="1" resource="0"

@@ -6,7 +6,20 @@
 
 class ConvolutionReverbAudioProcessor : public juce::AudioProcessor {
 private:
-	ConvolutionReverb convolutionReverb {};
+	// DSP
+	ConvolutionReverb convolutionReverb;
+	juce::dsp::DryWetMixer<float> mixer;
+	// Parameters
+	juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+	juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
+
+	struct Settings {
+		float globalMix;
+
+		Settings() : globalMix(0.5f) { }
+	};
+
+	Settings getSettings(juce::AudioProcessorValueTreeState& apvts);
 
 public:
 	ConvolutionReverbAudioProcessor();
@@ -37,8 +50,8 @@ public:
 	bool hasEditor() const override { return false; }
 
 	// STATE
-	void getStateInformation(juce::MemoryBlock&) override {}
-	void setStateInformation(const void*, int) override {}
+    void getStateInformation (juce::MemoryBlock& destData) override {}
+	void setStateInformation(const void* data, int sizeInBytes) override {}
 
-	ConvolutionReverb getConvolutionReverb();
+	ConvolutionReverb* getConvolutionReverb();
 };
