@@ -9,17 +9,29 @@ private:
 	// DSP
 	ConvolutionReverb convolutionReverb;
 	juce::dsp::DryWetMixer<float> mixer;
+	float t = 0.0f; // Time
+	int controlCounter = 0;
+
 	// Parameters
-	juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-	juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
+	juce::AudioProcessorValueTreeState* parameters = nullptr;
+	float mix = 0.5f, decay = 0.5f;
+	float positionR = 0.0f, positionTheta = 0.0f;
 
-	struct Settings {
-		float globalMix;
+	// Weights
+	PolarCoordinate position = {0.0f, 0.0f};
+	std::array<PolarCoordinate, MAX_IR_COUNT> irCoordinates {}; // Location of each IR
 
-		Settings() : globalMix(0.5f) { }
-	};
+	PolarCoordinate computeDistanceDirection(PolarCoordinate p1, PolarCoordinate p2, Axis reference = Axis::Y_AXIS);
+	void advancePhase(int n);
+	void updateIRCoordinates();
+	void updatePosition();
+	void updateWeights();
+	bool newWeights = false;
 
-	Settings getSettings(juce::AudioProcessorValueTreeState& apvts);
+	
+	MotionPattern motionPattern = MotionPattern::LISSAJOUS;
+	float motionRate = 0.5f;
+	
 
 public:
 	ConvolutionReverbAudioProcessor();
@@ -52,6 +64,10 @@ public:
 	// STATE
     void getStateInformation (juce::MemoryBlock& destData) override {}
 	void setStateInformation(const void* data, int sizeInBytes) override {}
+
+	void setAPVTS(juce::AudioProcessorValueTreeState* apvts);
+
+	void updateParameters();
 
 	ConvolutionReverb* getConvolutionReverb();
 };

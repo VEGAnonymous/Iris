@@ -8,7 +8,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Global Mix", "Global Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Decay", "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    
+    const juce::StringArray motionPatterns {"Random Walk", "Lissajous"};
+    layout.add(std::make_unique<juce::AudioParameterChoice>("Motion Pattern", "Motion Pattern", motionPatterns, MotionPattern::LISSAJOUS));
+    
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Motion Rate", "Motion Rate", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.0f));
+    
     return layout;
 }
 
@@ -16,6 +22,9 @@ MareverbAudioProcessor::Settings MareverbAudioProcessor::getSettings(juce::Audio
     MareverbAudioProcessor::Settings settings;
 
     settings.globalMix = parameters.getRawParameterValue("Global Mix")->load();
+    settings.decay = parameters.getRawParameterValue("Decay")->load();
+
+    // TODO: Fill this out
 
     return settings;
 }
@@ -60,10 +69,15 @@ MareverbAudioProcessor::MareverbAudioProcessor()
         bool loaded = loadRandomIR(i);
         jassert(loaded);
     }
+
+    // Init convolution reverb
     auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
-    if (convProcessor != nullptr)
-        // convProcessor->getConvolutionReverb()->setUniformWeights();
-        convProcessor->getConvolutionReverb()->setWeights(std::array<float, MAX_IR_COUNT> {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}); // Init weights
+    jassert(convProcessor != nullptr);
+    convProcessor->setAPVTS(&apvts); // Pass parameter layout down
+    auto& reverb = *convProcessor->getConvolutionReverb();
+    reverb.setDecay(0.5f);
+    reverb.setUniformWeights();
+    // reverb.setWeights(std::array<float, MAX_IR_COUNT> {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}); // Init weights
 }
 
 bool MareverbAudioProcessor::loadRandomIR(int irIndex) {

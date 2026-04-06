@@ -4,6 +4,16 @@
 
 /* PRIVATE */
 
+void ConvolutionReverb::updateMaxIRPartitionCount() {
+	// Find # partitions in longest IR
+	maxIRPartitionCount = 0;
+	for (const auto& ir : irSpectra) if (!ir.empty()) maxIRPartitionCount = std::max(maxIRPartitionCount, static_cast<int>(ir[0].size()));
+
+	for (int channel = 0; channel < inputChannels; ++channel) mixedSpectra[channel].resize(maxIRPartitionCount);
+	irEnvelopes.resize(maxIRPartitionCount);
+	DBG("Max partition count: " << maxIRPartitionCount);
+}
+
 void ConvolutionReverb::updateIRFFT(int irIndex) {
 	const auto& irBuffer = irBuffers[irIndex];
 	const int channelCount = irBuffer.getNumChannels();
@@ -25,19 +35,18 @@ void ConvolutionReverb::updateIRFFT(int irIndex) {
 			juce::FloatVectorOperations::copy(irSpectra[irIndex][channel][partitionIndex].data(), irPartition.data(), FFT_SIZE); // Store FFT spectra
 		}
 	}
+	updateMaxIRPartitionCount();
 	DBG("Computed FFT for buffer " << irIndex);
 }
 
 void ConvolutionReverb::mixSpectrum() {
-	// Find # partitions in longest IR
-	maxIRPartitionCount = 0;
-	for (const auto& ir : irSpectra) if (!ir.empty()) maxIRPartitionCount = std::max(maxIRPartitionCount, static_cast<int>(ir[0].size()));
-	
 	mixedSpectra.resize(inputChannels);
 	for (int channel = 0; channel < inputChannels; ++channel) { // Each channel
-		mixedSpectra[channel].assign(maxIRPartitionCount, std::array<float, FFT_SIZE>{});
+		juce::FloatVectorOperations::clear(mixedSpectra[channel].data()->data(), maxIRPartitionCount * FFT_SIZE);
 
 		for (int partition = 0; partition < maxIRPartitionCount; ++partition) { // Each partition
+			float envelope = irEnvelopes[partition];
+
 			for (int ir = 0; ir < MAX_IR_COUNT; ++ir) { // Each IR
 				if (irSpectra[ir].empty()) continue;
 				int irChannel = std::min(channel, static_cast<int>(irSpectra[ir].size()) - 1); // Use only existing IR channels
@@ -46,7 +55,8 @@ void ConvolutionReverb::mixSpectrum() {
 				// Store weighted sum of IRs in irSpectra to mixedSpectra
 				const float* irSrc = irSpectra[ir][irChannel][partition].data();
 				float* irMix = mixedSpectra[channel][partition].data();
-				juce::FloatVectorOperations::addWithMultiply(irMix, irSrc, irWeights[ir], FFT_SIZE);
+				float weight = irWeights[channel][ir] * envelope;
+				juce::FloatVectorOperations::addWithMultiply(irMix, irSrc, weight, FFT_SIZE);
 			}
 		}
 	}
@@ -62,6 +72,8 @@ ConvolutionReverb::ConvolutionReverb(int channels) : irBuffers(), fft(FFT_ORDER)
 
 void ConvolutionReverb::setInputChannels(int n) {
 	inputChannels = n;
+
+	irWeights.assign(n, std::array<float, MAX_IR_COUNT> {0.0f});
 
 	inputBuffers.assign(n, std::array<float, PARTITION_SIZE> {0.0f});
 	inputWriteIndex.resize(n);
@@ -88,18 +100,34 @@ void ConvolutionReverb::setIRBuffer(int index, juce::AudioBuffer<float> irBuffer
 }
 
 void ConvolutionReverb::setUniformWeights() { 
-	irWeights.fill(1.0f / MAX_IR_COUNT);
+	for (int channel = 0; channel < irWeights.size(); ++channel) irWeights[channel].fill(1.0f / MAX_IR_COUNT);
+	DBG("Set uniform weights");
 	mixSpectrum();
 }
 
-void ConvolutionReverb::setWeights(std::array<float, MAX_IR_COUNT> weights) {
-	float sum = std::accumulate(weights.begin(), weights.end(), 0.0f);
-	jassert(std::abs(sum - 1.0f) < 1e-6f);
+void ConvolutionReverb::setWeights(std::vector<std::array<float, MAX_IR_COUNT>> weights) {
+	// Weights should sum to 1
+	for (int channel = 0; channel < weights.size(); ++channel)
+		jassert(std::abs(std::accumulate(weights[channel].begin(), weights[channel].end(), 0.0f) - 1.0f) < 1e-6f);
+	
 	irWeights = weights;
+	DBG("Set weights");
 	mixSpectrum();
+}
+
+void ConvolutionReverb::setDecay(float decay) {
+	const float minDB = -30.0f, maxDB = -120.0f;
+	float totalDB = minDB + (decay * (maxDB - minDB));
+
+	float alpha = totalDB / static_cast<float>(maxIRPartitionCount); // dB
+	float envelope = powf(10.0f, alpha / 20.0f); // Linear
+	for (int partition = 0; partition < maxIRPartitionCount; ++partition)
+		irEnvelopes[partition] = powf(envelope, partition);
+	DBG("Set decay: " << decay);
 }
 
 void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {
+	// TODO: Break into smaller functions
 	const int bufSize = in.getNumSamples();
 	if (in.getNumChannels() != inputChannels) setInputChannels(in.getNumChannels());
 
@@ -155,7 +183,7 @@ void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {
 
 				// IFFT in-place
 				fft.performRealOnlyInverseTransform(accumulator.data());
-				juce::FloatVectorOperations::multiply(accumulator.data(), 0.025f, FFT_SIZE); // Scale // HACK: Stop hardcoding this
+				juce::FloatVectorOperations::multiply(accumulator.data(), 0.15f, FFT_SIZE); // Scale // HACK: Stop hardcoding this
 
 				// Overlap-add
 				auto& outputFrame = accumulator;

@@ -14,8 +14,13 @@ private:
 
     struct Settings {
         float globalMix;
+        float decay;
+        MotionPattern motionPattern;
+        float motionRate;
 
-        Settings() : globalMix(0.5f) { }
+        Settings() : globalMix(0.5f), decay(0.5f),
+            motionPattern(MotionPattern::LISSAJOUS), motionRate(0.2f)
+        {}
     };
 
     Settings getSettings(juce::AudioProcessorValueTreeState& apvts);

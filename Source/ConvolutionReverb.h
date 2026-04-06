@@ -13,7 +13,8 @@ private:
 
     // IRs
     std::array<juce::AudioBuffer<float>, MAX_IR_COUNT> irBuffers {};
-    std::array<float, MAX_IR_COUNT> irWeights {1.0f / MAX_IR_COUNT};
+    std::vector<std::array<float, MAX_IR_COUNT>> irWeights {};
+    std::vector<float> irEnvelopes {};
     int maxIRPartitionCount = 0;
     
     // Audio buffers
@@ -60,12 +61,12 @@ private:
 
     std::vector<std::array<float, FFT_SIZE*2>> accumulators;
 
+    void updateMaxIRPartitionCount();
     void updateIRFFT(int index);
-
     void mixSpectrum();
 
 public:
-    ConvolutionReverb(int channels);
+    ConvolutionReverb(int channels = 2);
     ~ConvolutionReverb() = default;
 
     void setInputChannels(int n);
@@ -73,7 +74,9 @@ public:
     void setIRBuffer(int index, juce::AudioBuffer<float> irBuffer);
 
     void setUniformWeights();
-    void setWeights(std::array<float, MAX_IR_COUNT> weights);
+    void setWeights(std::vector<std::array<float, MAX_IR_COUNT>> weights);
+
+    void setDecay(float decay);
 
     void process(juce::AudioBuffer<float>& in);
 };
