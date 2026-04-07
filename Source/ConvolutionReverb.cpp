@@ -62,6 +62,84 @@ void ConvolutionReverb::mixSpectrum() {
 	// DBG("Mixed spectrum");
 }
 
+void ConvolutionReverb::accumulateSpectra(int channel) {
+	// Store spectra in circular buffer
+	int historySize = 2 * maxIRPartitionCount;
+	if (inputSpectra[channel].size() != historySize) inputSpectra[channel].assign(historySize, std::array<float, FFT_SIZE>{0.0f});
+	juce::FloatVectorOperations::copy(inputSpectra[channel][spectraIndex[channel]].data(), inputPartitions[channel].data(), FFT_SIZE);
+
+	// Accumulate in frequency domain
+	auto& accumulator = accumulators[channel];
+	std::fill(accumulator.begin(), accumulator.end(), 0.0f);
+
+	for (int partitionIndex = 0; partitionIndex < maxIRPartitionCount; ++partitionIndex) { // Each partition
+		// Multiply *every second* past input spectrum with mixedSpectra
+		int pastIndex = spectraIndex[channel] - 2 * partitionIndex;
+		if (pastIndex < 0) pastIndex += historySize * ((-pastIndex / historySize) + 1);
+		pastIndex %= historySize;
+
+		auto& pastSpectra = inputSpectra[channel][pastIndex];
+		auto& mixSpectra = mixedSpectra[channel][partitionIndex];
+
+		// Complex multiply Re-Im pairs
+		// TODO: Optimize with SIMD
+		for (int k = 0; k < 2; ++k) accumulator[k] += pastSpectra[k] * mixSpectra[k]; // DC & Nyquist
+		for (int k = 2; k < FFT_SIZE; k += 2) {
+			float reX = pastSpectra[k], imX = pastSpectra[k + 1];
+			float reH = mixSpectra[k], imH = mixSpectra[k + 1];
+			accumulator[k] += (reX * reH) - (imX * imH);
+			accumulator[k + 1] += (reX * imH) + (imX * reH);
+		}
+	} spectraIndex[channel] = (spectraIndex[channel] + 1) % historySize;
+}
+
+void ConvolutionReverb::overlapAdd(int channel) {
+	auto& outputFrame = accumulators[channel];
+	// Paritition overlap
+	// OLA IFFT block (4L samples) with previous IFFT block -> produces intermediate block (2L samples) per hop (every L samples)
+	juce::FloatVectorOperations::add(outputFrame.data(), overlapBuffersA[channel][convSaveCount].data(), PARTITION_SIZE);
+	juce::FloatVectorOperations::copy(overlapBuffersA[channel][convSaveCount].data(), outputFrame.data() + PARTITION_SIZE, PARTITION_SIZE);
+	// Hop overlap
+	// OLA intermediate block with previous intermediate block -> produces L samples for output
+	juce::FloatVectorOperations::add(outputFrame.data(), overlapBuffersB[channel].data(), HOP_SIZE);
+	juce::FloatVectorOperations::copy(overlapBuffersB[channel].data(), outputFrame.data() + HOP_SIZE, PARTITION_SIZE - HOP_SIZE);
+
+	// Emit the final HOP_SIZE = L samples to output
+	int& writeIndex = outputWriteIndex[channel];
+	for (int j = 0; j < HOP_SIZE; ++j) {
+		outputBuffers[channel][writeIndex] = outputFrame[j];
+		writeIndex = (writeIndex + 1) & (outputSize - 1);
+	}
+}
+
+void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
+	// Copy 2L samples to partition buffer
+	auto& partition = inputPartitions[channel];
+	std::fill(partition.begin(), partition.end(), 0.0f);
+
+	int tailStart = inputWriteIndex[channel], headStart = PARTITION_SIZE - tailStart;
+	juce::FloatVectorOperations::copy(partition.data(), inputBuffers[channel].data() + tailStart, headStart);
+	juce::FloatVectorOperations::copy(partition.data() + headStart, inputBuffers[channel].data(), tailStart);
+
+	// Analysis windowing
+	hannWindow.multiplyWithWindowingTable(partition.data(), PARTITION_SIZE);
+
+	// Forward FFT in-place
+	fft.performRealOnlyForwardTransform(partition.data());
+
+	// Accumulate convolution
+	accumulateSpectra(channel);
+
+	// IFFT in-place
+	fft.performRealOnlyInverseTransform(accumulators[channel].data());
+	juce::FloatVectorOperations::multiply(accumulators[channel].data(), 0.15f, FFT_SIZE); // Scale // HACK: Stop hardcoding this
+
+	// Overlap-add and output
+	overlapAdd(channel);
+
+	if (channel == 0) hopCounter++;
+}
+
 /* PUBLIC */
 
 ConvolutionReverb::ConvolutionReverb(int channels) : irBuffers(), fft(FFT_ORDER), 
@@ -119,7 +197,6 @@ void ConvolutionReverb::setDecay(float decay) {
 }
 
 void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {
-	// TODO: Break into smaller functions
 	const int bufSize = in.getNumSamples();
 	if (in.getNumChannels() != inputChannels) setInputChannels(in.getNumChannels());
 
@@ -128,74 +205,8 @@ void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {
 		for (int i = 0; i < bufSize; ++i) { // Each sample in input buffer
 			inputBuffers[channel][inputWriteIndex[channel]] = *start++; // Write to circular buffer
 			inputWriteIndex[channel] = (inputWriteIndex[channel] + 1) % PARTITION_SIZE;
-
-			if (inputWriteIndex[channel] % HOP_SIZE == 0) { // Every L samples (hop)
-				// Copy 2L samples to partition buffer
-				auto& partition = inputPartitions[channel];
-				std::fill(partition.begin(), partition.end(), 0.0f);
-
-				int tailStart = inputWriteIndex[channel], headStart = PARTITION_SIZE - tailStart;
-				juce::FloatVectorOperations::copy(partition.data(), inputBuffers[channel].data() + tailStart, headStart);
-				juce::FloatVectorOperations::copy(partition.data() + headStart, inputBuffers[channel].data(), tailStart);
-
-				// Analysis windowing
-				hannWindow.multiplyWithWindowingTable(partition.data(), PARTITION_SIZE);
-
-				// Forward FFT in-place
-				fft.performRealOnlyForwardTransform(partition.data());
-
-				// Store spectra in circular buffer
-				int historySize = 2 * maxIRPartitionCount;
-				if (inputSpectra[channel].size() != historySize) inputSpectra[channel].assign(historySize, std::array<float, FFT_SIZE>{0.0f});
-				juce::FloatVectorOperations::copy(inputSpectra[channel][spectraIndex[channel]].data(), partition.data(), FFT_SIZE);
-
-				// Accumulate in frequency domain
-				auto& accumulator = accumulators[channel];
-				std::fill(accumulator.begin(), accumulator.end(), 0.0f);
-
-				for (int partitionIndex = 0; partitionIndex < maxIRPartitionCount; ++partitionIndex) { // Each partition
-					// Multiply *every second* past input spectrum with mixedSpectra
-					int pastIndex = spectraIndex[channel] - 2 * partitionIndex;
-					if (pastIndex < 0) pastIndex += historySize * ((-pastIndex / historySize) + 1);
-					pastIndex %= historySize;
-
-					auto& pastSpectra = inputSpectra[channel][pastIndex];
-					auto& mixSpectra = mixedSpectra[channel][partitionIndex];
-
-					// Complex multiply Re-Im pairs
-					// TODO: Optimize with SIMD
-					for (int k = 0; k < 2; ++k) accumulator[k] += pastSpectra[k] * mixSpectra[k]; // DC & Nyquist
-					for (int k = 2; k < FFT_SIZE; k += 2) {
-						float reX = pastSpectra[k], imX = pastSpectra[k + 1];
-						float reH = mixSpectra[k], imH = mixSpectra[k + 1];
-						accumulator[k] += (reX * reH) - (imX * imH);
-						accumulator[k + 1] += (reX * imH) + (imX * reH);
-					}
-				} spectraIndex[channel] = (spectraIndex[channel] + 1) % historySize;
-
-				// IFFT in-place
-				fft.performRealOnlyInverseTransform(accumulator.data());
-				juce::FloatVectorOperations::multiply(accumulator.data(), 0.15f, FFT_SIZE); // Scale // HACK: Stop hardcoding this
-
-				// Overlap-add
-				auto& outputFrame = accumulator;
-				// OLA IFFT block (4L samples) with previous IFFT block -> produces intermediate block (2L samples) per hop (every L samples)
-				juce::FloatVectorOperations::add(outputFrame.data(), overlapBuffersA[channel][convSaveCount].data(), PARTITION_SIZE);
-				juce::FloatVectorOperations::copy(overlapBuffersA[channel][convSaveCount].data(), outputFrame.data() + PARTITION_SIZE, PARTITION_SIZE);
-				// OLA intermediate block with previous intermediate block -> produces L samples for output
-				juce::FloatVectorOperations::add(outputFrame.data(), overlapBuffersB[channel].data(), HOP_SIZE);
-				juce::FloatVectorOperations::copy(overlapBuffersB[channel].data(), outputFrame.data() + HOP_SIZE, PARTITION_SIZE - HOP_SIZE);
-				
-				// Emit the final HOP_SIZE = L samples to output
-				int& writeIndex = outputWriteIndex[channel];
-				for (int j = 0; j < HOP_SIZE; ++j) {
-					outputBuffers[channel][writeIndex] = outputFrame[j];
-					writeIndex = (writeIndex + 1) & (outputSize - 1);
-				}
-
-				if (channel == 0) hopCounter++;
-			} // if (hop)
-		} // for (buffer)
+			if (inputWriteIndex[channel] % HOP_SIZE == 0) processHop(channel); // Process a hop every L samples
+		}
 
 		// Write output
 		auto* outPtr = in.getWritePointer(channel);

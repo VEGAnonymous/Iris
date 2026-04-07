@@ -61,21 +61,24 @@ private:
 
     std::vector<std::array<float, FFT_SIZE*2>> accumulators;
 
+    // Preprocessing
     void updateMaxIRPartitionCount();
     void updateIRFFT(int index);
     void mixSpectrum();
+
+    // Hot path
+    void accumulateSpectra(int channel);
+    void overlapAdd(int channel);
+    void processHop(int channel);
 
 public:
     ConvolutionReverb(int channels = 2);
     ~ConvolutionReverb() = default;
 
     void setInputChannels(int n);
-
     void setIRBuffer(int index, juce::AudioBuffer<float> irBuffer);
-
     void setUniformWeights();
     void setWeights(std::vector<std::array<float, MAX_IR_COUNT>> weights);
-
     void setDecay(float decay);
 
     void process(juce::AudioBuffer<float>& in);

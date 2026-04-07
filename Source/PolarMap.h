@@ -15,8 +15,8 @@ public:
 	~PolarMap() = default;
 
 	void setPosition(PolarCoordinate pos);
-	void setCoordinate(int index, PolarCoordinate coordinate, bool setRelative = false);
-	void setCoordinates(std::vector<PolarCoordinate> coords);
+	void setCoordinate(int index, PolarCoordinate coordinate, bool setRelative = true);
+	void setCoordinates(std::vector<PolarCoordinate> coords, bool setRelatives = true);
 
 	PolarCoordinate getPosition() const;
 	PolarCoordinate getCoordinate(int index) const;

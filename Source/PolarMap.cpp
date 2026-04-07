@@ -21,7 +21,9 @@ void PolarMap::setCoordinate(int index, PolarCoordinate coordinate, bool setRela
     if (index >= coordinates.size()) { coordinates.push_back(coordinate); relatives.push_back(rel); }
     else { coordinates[index] = coordinate; relatives[index] = rel; }
 }
-void PolarMap::setCoordinates(std::vector<PolarCoordinate> coords) { coordinates = coords; }
+void PolarMap::setCoordinates(std::vector<PolarCoordinate> coords, bool setRelatives) { 
+    coordinates = coords; if (setRelatives) computeRelatives();
+}
 
 PolarCoordinate PolarMap::getPosition() const { return position; }
 PolarCoordinate PolarMap::getCoordinate(int index) const {

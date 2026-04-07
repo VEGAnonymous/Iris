@@ -103,6 +103,12 @@ void MotionController::updatePosition() {
 
 void MotionController::updateCoordinates() {
     // TODO
+    /*
+    std::vector<PolarCoordinate> coords;
+    // Update them with some algorithm or pattern
+    polarMap->setCoordinates(coords, false); // setRelatives = false - top level will call computeRelatives() later
+    updated = true;
+    */
 }
 
 void MotionController::setPolarMap(PolarMap* nPolarMap) { polarMap = nPolarMap; }
