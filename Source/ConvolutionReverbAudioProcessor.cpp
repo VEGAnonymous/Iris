@@ -5,7 +5,8 @@
 
 void ConvolutionReverbAudioProcessor::advancePhase() {
     float freq = motionRate * 0.2f;
-    float phaseIncrement = juce::MathConstants<float>::twoPi * freq * (getBlockSize() / getSampleRate());
+    float phaseIncrement = juce::MathConstants<float>::twoPi * freq 
+        * (static_cast<float>(getBlockSize()) / static_cast<float>(getSampleRate()));
     t += phaseIncrement;
 }
 
@@ -111,7 +112,7 @@ void ConvolutionReverbAudioProcessor::updateWeights() {
 
     const float distanceFactor = 2.0f;
     for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
-        PolarCoordinate rel = computeDistanceDirection(position, irCoordinates[ir], Axis::Y_AXIS, false);
+        PolarCoordinate rel = computeDistanceDirection(position, irCoordinates[ir], Axis::Y_AXIS, true);
         tempWeights[ir] = 1.0f / powf(rel.r + 1e-6f, distanceFactor); // Inverse-distance weights
         // TODO: Do binaural stuff here
     }

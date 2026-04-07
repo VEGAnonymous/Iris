@@ -5,7 +5,8 @@
 // Defines
 static constexpr auto sqrt2_2 = juce::MathConstants<float>::sqrt2 / 2.0f;
 
-static constexpr auto CONTROL_RATE = 25.0f; // Hz
+static constexpr auto REFRESH_RATE = 60;
+static constexpr auto CONTROL_RATE = 25.0f;
 
 static constexpr auto N_CHANNELS = 2; // Stereo
 static constexpr auto MAX_IR_COUNT = 8;
@@ -18,6 +19,7 @@ static constexpr auto HOP_SIZE = FFT_SIZE / 4; // L
 
 // Aliases
 using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
+using Attachment = juce::AudioProcessorValueTreeState::SliderAttachment;
 
 // Enums
 enum Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis

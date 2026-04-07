@@ -147,18 +147,24 @@ void MareverbAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
 // GUI
 
 juce::AudioProcessorEditor* MareverbAudioProcessor::createEditor() { 
-    return new juce::GenericAudioProcessorEditor(*this); // TEMP
-    // return new MareverbAudioProcessorEditor (*this);
+    // return new juce::GenericAudioProcessorEditor(*this); // TEMP
+    return new MareverbAudioProcessorEditor (*this);
 }
 
 // State
 
 void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) { 
-
+    juce::MemoryOutputStream mos(destData, true);
+    apvts.state.writeToStream(mos);
 }
 
 void MareverbAudioProcessor::setStateInformation (const void* data, int sizeInBytes) { 
-
+    auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
+    if (tree.isValid()) {
+        apvts.replaceState(tree);
+        auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
+        if (convProcessor != nullptr) convProcessor->updateParameters();
+    }
 }
 
 // INSTANCING
