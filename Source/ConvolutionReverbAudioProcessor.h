@@ -20,18 +20,19 @@ private:
 	// Weights
 	PolarCoordinate position = {0.0f, 0.0f};
 	std::array<PolarCoordinate, MAX_IR_COUNT> irCoordinates {}; // Location of each IR
+	bool newWeights = false;
 
-	PolarCoordinate computeDistanceDirection(PolarCoordinate p1, PolarCoordinate p2, Axis reference = Axis::Y_AXIS);
+	// Motion
+	MotionPattern motionPattern = MotionPattern::LISSAJOUS;
+	float motionRate = 0.5f;
+	float motionModA = 0.5f, motionModB = 0.5f;
+	PolarCoordinate randomTarget {0.0f, 0.0f};
+	
+	// Methods
 	void advancePhase();
 	void updateIRCoordinates();
 	void updatePosition();
 	void updateWeights();
-	bool newWeights = false;
-
-	
-	MotionPattern motionPattern = MotionPattern::LISSAJOUS;
-	float motionRate = 0.5f;
-	
 
 public:
 	ConvolutionReverbAudioProcessor();

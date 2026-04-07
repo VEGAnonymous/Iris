@@ -1,3 +1,4 @@
+#include "Utilities.h"
 #include "ConvolutionReverbAudioProcessor.h"
 
 /* PRIVATE */
@@ -8,40 +9,98 @@ void ConvolutionReverbAudioProcessor::advancePhase() {
     t += phaseIncrement;
 }
 
-PolarCoordinate ConvolutionReverbAudioProcessor::computeDistanceDirection(PolarCoordinate p1, PolarCoordinate p2, Axis reference) {
-    float d = 0.0f, phi = 0.0f;
-    float dTheta = p2.theta - p1.theta;
-    d = sqrtf((p1.r * p1.r) + (p2.r * p2.r) - (2 * p1.r * p2.r * cosf(dTheta)));
-
-    if (reference == Axis::X_AXIS)
-        phi = atan2f((p2.r * sinf(p2.theta)) - (p1.r * sinf(p1.theta)), (p2.r * cosf(p2.theta)) - (p1.r * cosf(p1.theta)));
-    else // Y_AXIS
-        phi = atan2f((p2.r * cosf(p2.theta)) - (p1.r * cosf(p1.theta)), (p2.r * sinf(p2.theta)) - (p1.r * sinf(p1.theta)));
-
-    return { d, phi };
-}
-
 void ConvolutionReverbAudioProcessor::updateIRCoordinates() {
     // newWeights = true;
 }
 
 void ConvolutionReverbAudioProcessor::updatePosition() {
     switch (motionPattern) {
-        case MotionPattern::RANDOM_WALK: {
-            break;
-        }
-        case MotionPattern::LISSAJOUS: {
-            float b = 1.0f, phi = juce::MathConstants<float>::halfPi;
-            int p = 3, q = 5; // TODO: Parameterize p and q?
-
-            float r = b * sinf(static_cast<float>(p) * t);
-            float theta = phi * sinf((static_cast<float>(q) * t) + phi);
+        case MotionPattern::MANUAL: {
+            float r = motionModA, theta = motionModB * juce::MathConstants<float>::twoPi;
+            if (r - position.r < 1e-3 && theta - position.theta < 1e-3) return;
             position = { r, theta };
-            // DBG("Position: " << r << ", " << theta);
             newWeights = true;
             break;
         }
-    }
+        case MotionPattern::ORBIT: {
+            float radius = motionModA;
+
+            float r = radius;
+            float theta = t;
+            position = { r, theta };
+            newWeights = true;
+            break;
+        }
+        case MotionPattern::SPIRAL: {
+            float swirliness = juce::jmap(motionModA, 1.0f, 10.0f);
+
+            float r = sinf(0.1f * t);
+            float theta = swirliness * t;
+            position = { r, theta };
+            newWeights = true;
+            break;
+        }
+        case MotionPattern::FLORAL: {
+            float p = floorf(juce::jmap(motionModA, 1.0f, 10.0f)), q = floorf(juce::jmap(motionModB, 1.0f, 10.0f)); // p, q
+
+            float r = sinf(p * t);
+            float theta = q * t;
+            position = { r, theta };
+            newWeights = true;
+            break;
+        }
+        case MotionPattern::LISSAJOUS: {
+            float p = floorf(juce::jmap(motionModA, 1.0f, 10.0f)), q = floorf(juce::jmap(motionModB, 1.0f, 10.0f)); // p, q
+            const float phi = juce::MathConstants<float>::halfPi;
+
+            float r = sinf(p * t);
+            float theta = phi * sinf((q * t) + phi);
+            position = { r, theta };
+            newWeights = true;
+            break;
+        }
+        case MotionPattern::RANDOM_DISCRETE: {
+            float radius = motionModA, smoothing = motionModB; // radius, smoothing
+
+            float probability = motionRate * 0.1f;
+            if (randFloat() < probability) { 
+                // Set new target
+                float r = std::sqrt(randFloat()) * radius;
+                float theta = randFloat() * juce::MathConstants<float>::twoPi;
+                randomTarget = { r, theta };
+            }
+
+            if (position.r - randomTarget.r < 1e-3 && position.theta - randomTarget.theta < 1e-3) return;
+
+            // Smooth toward target position
+            float nextR = juce::jmap(smoothing, position.r, randomTarget.r);
+            float dTheta = std::fmod(randomTarget.theta - position.theta + (juce::MathConstants<float>::pi * 3),
+                juce::MathConstants<float>::twoPi) - juce::MathConstants<float>::pi;
+            float nextTheta = position.theta + (dTheta * (1.0f - smoothing));
+
+            position = { nextR, nextTheta };
+            newWeights = true;
+            break;
+        }
+        case MotionPattern::RANDOM_WALK: {
+            float radius = motionModA;
+
+            float step = 0.02f * motionRate;
+            // Convert to Cartesian
+            float x = position.r * std::cos(position.theta), y = position.r * std::sin(position.theta);
+            // Step and constrain radius
+            x += randSigned() * step; y += randSigned() * step;
+            float mag = std::sqrt((x * x) + (y * y));
+            if (mag > radius) { x /= mag; y /= mag; }
+            // Convert to polar
+            float r = std::sqrt((x * x) + (y * y));
+            float theta = std::atan2(y, x);
+
+            position = { r, theta };
+            newWeights = true;
+            break;
+        }
+    } // DBG("Position: " << r << ", " << theta);
 }
 
 void ConvolutionReverbAudioProcessor::updateWeights() {
@@ -52,8 +111,8 @@ void ConvolutionReverbAudioProcessor::updateWeights() {
 
     const float distanceFactor = 2.0f;
     for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
-        PolarCoordinate rel = computeDistanceDirection(position, irCoordinates[ir], Axis::Y_AXIS);
-        tempWeights[ir] = 1.0f / powf(rel.r + 1e-6f, distanceFactor); // Inverse distance weights
+        PolarCoordinate rel = computeDistanceDirection(position, irCoordinates[ir], Axis::Y_AXIS, false);
+        tempWeights[ir] = 1.0f / powf(rel.r + 1e-6f, distanceFactor); // Inverse-distance weights
         // TODO: Do binaural stuff here
     }
 
@@ -121,6 +180,7 @@ void ConvolutionReverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buf
         buffer.copyFrom(1, 0, buffer, 0, 0, buffer.getNumSamples());
     }
 
+    // Block rate updates
     updateParameters();
     advancePhase();
 
@@ -149,11 +209,15 @@ void ConvolutionReverbAudioProcessor::updateParameters() {
     const float& nDecay = parameters->getRawParameterValue("Decay")->load();
     const MotionPattern& nMotionPattern = static_cast<MotionPattern>(parameters->getRawParameterValue("Motion Pattern")->load());
     const float& nMotionRate = parameters->getRawParameterValue("Motion Rate")->load();
+    const float& nMotionModA = parameters->getRawParameterValue("Motion Mod A")->load();
+    const float& nMotionModB = parameters->getRawParameterValue("Motion Mod B")->load();
 
     if (nMix != mix) { mix = nMix; mixer.setWetMixProportion(nMix); }
     if (nDecay != decay) { decay = nDecay; convolutionReverb.setDecay(nDecay); }
     if (nMotionPattern != motionPattern) { motionPattern = nMotionPattern; }
     if (nMotionRate != motionRate) { motionRate = nMotionRate; }
+    if (nMotionModA != motionModA) { motionModA = nMotionModA; }
+    if (nMotionModB != motionModB) { motionModB = nMotionModB; }
 }
 
 ConvolutionReverb* ConvolutionReverbAudioProcessor::getConvolutionReverb() { return &convolutionReverb; }

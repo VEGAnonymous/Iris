@@ -16,14 +16,12 @@ static constexpr auto FFT_SIZE = 4 * L; // 2048
 static constexpr auto FFT_ORDER = 11; // 2^11, hardcoded
 static constexpr auto HOP_SIZE = FFT_SIZE / 4; // L
 
-
-
 // Aliases
 using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
 
 // Enums
 enum Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
-enum MotionPattern { RANDOM_WALK, LISSAJOUS }; // Curve
+enum MotionPattern { MANUAL, ORBIT, SPIRAL, LISSAJOUS, FLORAL, RANDOM_DISCRETE, RANDOM_WALK }; // Curve
 
 // Structs
 struct PolarCoordinate {

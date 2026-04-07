@@ -40,10 +40,9 @@ void ConvolutionReverb::updateIRFFT(int irIndex) {
 }
 
 void ConvolutionReverb::mixSpectrum() {
-	mixedSpectra.resize(inputChannels);
 	for (int channel = 0; channel < inputChannels; ++channel) { // Each channel
 		juce::FloatVectorOperations::clear(mixedSpectra[channel].data()->data(), maxIRPartitionCount * FFT_SIZE);
-
+		
 		for (int partition = 0; partition < maxIRPartitionCount; ++partition) { // Each partition
 			float envelope = irEnvelopes[partition];
 
@@ -101,17 +100,11 @@ void ConvolutionReverb::setIRBuffer(int index, juce::AudioBuffer<float> irBuffer
 
 void ConvolutionReverb::setUniformWeights() { 
 	for (int channel = 0; channel < irWeights.size(); ++channel) irWeights[channel].fill(1.0f / MAX_IR_COUNT);
-	// DBG("Set uniform weights");
 	mixSpectrum();
 }
 
 void ConvolutionReverb::setWeights(std::vector<std::array<float, MAX_IR_COUNT>> weights) {
-	// Weights should sum to 1
-	for (int channel = 0; channel < weights.size(); ++channel)
-		jassert(std::abs(std::accumulate(weights[channel].begin(), weights[channel].end(), 0.0f) - 1.0f) < 1e-6f);
-	
 	irWeights = weights;
-	// DBG("Set weights");
 	mixSpectrum();
 }
 
@@ -123,7 +116,6 @@ void ConvolutionReverb::setDecay(float decay) {
 	float envelope = powf(10.0f, alpha / 20.0f); // Linear
 	for (int partition = 0; partition < maxIRPartitionCount; ++partition)
 		irEnvelopes[partition] = powf(envelope, partition);
-	// DBG("Set decay: " << decay);
 }
 
 void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {

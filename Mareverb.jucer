@@ -8,6 +8,7 @@
     <GROUP id="{52C29717-2BB5-4F62-25D3-FC09807A17AA}" name="Source">
       <FILE id="BGxNhP" name="ConvolutionReverb.cpp" compile="1" resource="0"
             file="Source/ConvolutionReverb.cpp"/>
+      <FILE id="Nzbb5r" name="Utilities.h" compile="0" resource="0" file="Source/Utilities.h"/>
       <FILE id="KY1yGi" name="ConvolutionReverb.h" compile="0" resource="0"
             file="Source/ConvolutionReverb.h"/>
       <FILE id="LryTJc" name="ConvolutionReverbAudioProcessor.h" compile="0"

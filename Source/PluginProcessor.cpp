@@ -10,11 +10,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     layout.add(std::make_unique<juce::AudioParameterFloat>("Global Mix", "Global Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("Decay", "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     
-    const juce::StringArray motionPatterns {"Random Walk", "Lissajous"};
+    const juce::StringArray motionPatterns {"Vanilla", "Orbit", "Spiral", "Floral", "Lissajous", "Discrete", "Walk"};
     layout.add(std::make_unique<juce::AudioParameterChoice>("Motion Pattern", "Motion Pattern", motionPatterns, MotionPattern::LISSAJOUS));
-    
     layout.add(std::make_unique<juce::AudioParameterFloat>("Motion Rate", "Motion Rate", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.0f));
-    
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Motion Mod A", "Motion Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Motion Mod B", "Motion Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+
     return layout;
 }
 
