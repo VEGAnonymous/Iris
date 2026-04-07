@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Defines.h"
+#include "PolarMap.h"
+#include "MotionController.h"
 
 #include <JuceHeader.h>
 #include <array>
@@ -14,14 +16,17 @@ private:
         float globalMix;
         float decay;
         MotionPattern motionPattern;
-        float motionRate;
+        float motionRate, motionModA, motionModB;
 
         Settings() : globalMix(0.5f), decay(0.5f),
-            motionPattern(MotionPattern::LISSAJOUS), motionRate(0.2f)
+            motionPattern(MotionPattern::LISSAJOUS),
+            motionRate(0.0f), motionModA(0.5f), motionModB(0.5f)
         {}
     };
 
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     Settings getSettings(juce::AudioProcessorValueTreeState& apvts);
+    void updateParameters();
 
     // IR management
 
@@ -35,8 +40,18 @@ private:
     std::array<juce::File, MAX_IR_COUNT> activeIRFiles;
     std::array<juce::AudioBuffer<float>, MAX_IR_COUNT> activeIRBuffers;
 
-    bool loadIR(int irIndex, int fileIndex = -1);
-    bool loadRandomIR(int irIndex);
+    // Time
+    float globalTime = 0.0f;
+    int controlCounter = 0;
+
+    void advancePhase();
+
+    // Polar map, motion, weights
+    PolarMap polarMap;
+    MotionController motionController;
+    std::vector<std::array<float, MAX_IR_COUNT>> irWeights {};
+
+    void updateWeights();
 
     // Processor graph
 
@@ -50,6 +65,9 @@ private:
 public:
     MareverbAudioProcessor();
     ~MareverbAudioProcessor() override;
+
+    bool loadIR(int irIndex, int fileIndex = -1);
+    bool loadRandomIR(int irIndex);
 
     // Boilerplate
     const juce::String getName() const override { return JucePlugin_Name; }
@@ -79,6 +97,5 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-    juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
 };

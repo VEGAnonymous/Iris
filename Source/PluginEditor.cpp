@@ -14,13 +14,13 @@ void MareverbAudioProcessorEditor::timerCallback() {
 /* PUBLIC */
 
 MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p), 
+    : AudioProcessorEditor (&p), audioProcessor (p),
     globalMixControlAttachment(audioProcessor.apvts, "Global Mix", globalMixControl),
     decayControlAttachment(audioProcessor.apvts, "Decay", decayControl),
     motionRateControlAttachment(audioProcessor.apvts, "Motion Rate", motionRateControl),
     motionModAControlAttachment(audioProcessor.apvts, "Motion Mod A", motionModAControl),
-    motionModBControlAttachment(audioProcessor.apvts, "Motion Mod B", motionModBControl)
-{
+    motionModBControlAttachment(audioProcessor.apvts, "Motion Mod B", motionModBControl) {
+
     for (auto* component : getComponents()) addAndMakeVisible(component);
 
     const auto& params = audioProcessor.getParameters();
@@ -43,7 +43,7 @@ void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
     auto bounds = getLocalBounds();
     auto mareMapArea = bounds.removeFromTop(405);
 
-    auto w = mareMapArea.getWidth();
+    // auto w = mareMapArea.getWidth();
 
     g.setColour(juce::Colours::floralwhite);
     g.drawRoundedRectangle(mareMapArea.toFloat(), 4.0f, 1.0f);

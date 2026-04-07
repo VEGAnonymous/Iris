@@ -4,6 +4,8 @@
 
 /* PRIVATE */
 
+// Parameters
+
 juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::createParameterLayout() {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
@@ -20,14 +22,61 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
 }
 
 MareverbAudioProcessor::Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState& parameters) {
-    MareverbAudioProcessor::Settings settings;
+    Settings settings;
 
     settings.globalMix = parameters.getRawParameterValue("Global Mix")->load();
     settings.decay = parameters.getRawParameterValue("Decay")->load();
-
-    // TODO: Fill this out
+    settings.motionPattern = static_cast<MotionPattern>(parameters.getRawParameterValue("Motion Pattern")->load());
+    settings.motionRate = parameters.getRawParameterValue("Motion Rate")->load();
+    settings.motionModA = parameters.getRawParameterValue("Motion Mod A")->load();
+    settings.motionModB = parameters.getRawParameterValue("Motion Mod B")->load();
 
     return settings;
+}
+
+void MareverbAudioProcessor::updateParameters() {
+    Settings settings = getSettings(apvts);
+
+    auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
+    if (convProcessor != nullptr) {
+        convProcessor->setMix(settings.globalMix);
+        convProcessor->setDecay(settings.decay);
+    }
+
+    motionController.setMotionPattern(settings.motionPattern);
+    motionController.setMotionRate(settings.motionRate);
+    motionController.setMotionModA(settings.motionModA);
+    motionController.setMotionModB(settings.motionModB);
+}
+
+// Time
+
+void MareverbAudioProcessor::advancePhase() {
+    float freq = apvts.getRawParameterValue("Motion Rate")->load() * 0.2f;
+    float phaseIncrement = juce::MathConstants<float>::twoPi * freq
+        * (static_cast<float>(getBlockSize()) / static_cast<float>(getSampleRate()));
+    globalTime += phaseIncrement;
+}
+
+// Polar map, motion
+
+void MareverbAudioProcessor::updateWeights() {
+    std::array<float, MAX_IR_COUNT> rawWeights{};
+
+    const float distanceFactor = 2.0f;
+    auto position = polarMap.getPosition();
+    auto relatives = polarMap.getRelatives();
+
+    for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
+        rawWeights[ir] = 1.0f / powf(relatives[ir].r + 1e-6f, distanceFactor); // Inverse-distance weights
+        // TODO: Do binaural stuff here
+    }
+
+    float sum = std::accumulate(rawWeights.begin(), rawWeights.end(), 0.0f);
+    if (sum > 0.0f) for (int ir = 0; ir < MAX_IR_COUNT; ++ir) rawWeights[ir] /= sum; // Normalize weights sum to 1
+
+    for (int channel = 0; channel < 2; ++channel)
+        for (int ir = 0; ir < MAX_IR_COUNT; ++ir) irWeights[channel][ir] = rawWeights[ir];
 }
 
 void MareverbAudioProcessor::connectAudioNodes() {
@@ -45,7 +94,7 @@ void MareverbAudioProcessor::connectAudioNodes() {
 MareverbAudioProcessor::MareverbAudioProcessor()
      : AudioProcessor (BusesProperties().withInput  ("Input", juce::AudioChannelSet::stereo(), true)
                                         .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
-       mainProcessor(new juce::AudioProcessorGraph()) {
+       mainProcessor(new juce::AudioProcessorGraph()), motionController(&polarMap, &globalTime), irWeights(2) {
 
     // Init nodes
     audioInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioInputNode));
@@ -74,18 +123,13 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     // Init convolution reverb
     auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
     jassert(convProcessor != nullptr);
-    convProcessor->setAPVTS(&apvts); // Pass parameter layout down
-    auto& reverb = *convProcessor->getConvolutionReverb();
-    reverb.setDecay(0.5f);
-    reverb.setUniformWeights();
-    // reverb.setWeights(std::array<float, MAX_IR_COUNT> {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}); // Init weights
+
+    // Init IR coordinates
+    for (int ir = 0; ir < MAX_IR_COUNT; ++ir)
+        polarMap.setCoordinate(ir, { 1.0f, (ir * juce::MathConstants <float>::twoPi) / MAX_IR_COUNT });
 }
 
-bool MareverbAudioProcessor::loadRandomIR(int irIndex) {
-    if (irFiles.isEmpty()) return false;
-    int idx = irRNG.nextInt(irFiles.size());
-    return loadIR(irIndex, idx);
-}
+MareverbAudioProcessor::~MareverbAudioProcessor() { }
 
 bool MareverbAudioProcessor::loadIR(int irIndex, int fileIndex) {
     if (irIndex < 0 || irIndex >= MAX_IR_COUNT) return false;
@@ -94,7 +138,7 @@ bool MareverbAudioProcessor::loadIR(int irIndex, int fileIndex) {
 
     // Load file from activeIRFiles and create reader
     juce::File ir = activeIRFiles[irIndex];
-    std::unique_ptr<juce::AudioFormatReader> reader (formatManager.createReaderFor(ir));
+    std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(ir));
     if (reader == nullptr) return false;
 
     // Read samples to buffer in activeIRBuffers
@@ -105,11 +149,16 @@ bool MareverbAudioProcessor::loadIR(int irIndex, int fileIndex) {
         auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
         if (convProcessor != nullptr) {
             convProcessor->getConvolutionReverb()->setIRBuffer(irIndex, activeIRBuffers[irIndex]);
-            return true; }
+            return true;
+        }
     } return false;
 }
 
-MareverbAudioProcessor::~MareverbAudioProcessor() { }
+bool MareverbAudioProcessor::loadRandomIR(int irIndex) {
+    if (irFiles.isEmpty()) return false;
+    int idx = irRNG.nextInt(irFiles.size());
+    return loadIR(irIndex, idx);
+}
 
 // Boilerplate
 double MareverbAudioProcessor::getTailLengthSeconds() const { return 0.0; }
@@ -141,6 +190,28 @@ void MareverbAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    // Block rate updates
+    advancePhase();
+    updateParameters();
+
+    // Control rate updates
+    controlCounter += buffer.getNumSamples();
+    if (controlCounter >= static_cast<int>(getSampleRate() / CONTROL_RATE)) {
+        // Motion
+        motionController.updateCoordinates();
+        motionController.updatePosition();
+        // Weights
+        if (motionController.hasUpdated()) {
+            polarMap.computeRelatives();
+            updateWeights();
+            auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
+            if (convProcessor != nullptr) convProcessor->setWeights(irWeights);
+            // Set atomic flag for GUI or something?
+        }
+
+        controlCounter = 0;
+    }
+
     mainProcessor->processBlock(buffer, midiMessages);
 }
 
@@ -158,12 +229,11 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
     apvts.state.writeToStream(mos);
 }
 
-void MareverbAudioProcessor::setStateInformation (const void* data, int sizeInBytes) { 
+void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
     auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
     if (tree.isValid()) {
         apvts.replaceState(tree);
-        auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
-        if (convProcessor != nullptr) convProcessor->updateParameters();
+        // TODO: Update parameters
     }
 }
 

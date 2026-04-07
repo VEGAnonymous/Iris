@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ConvolutionReverb.h"
+#include "PolarMap.h"
+#include "MotionController.h"
 
 #include <JuceHeader.h>
 
@@ -9,30 +11,10 @@ private:
 	// DSP
 	ConvolutionReverb convolutionReverb;
 	juce::dsp::DryWetMixer<float> mixer;
-	float t = 0.0f; // Time
-	int controlCounter = 0;
 
 	// Parameters
-	juce::AudioProcessorValueTreeState* parameters = nullptr;
 	float mix = 0.5f, decay = 0.5f;
-	float positionR = 0.0f, positionTheta = 0.0f;
-
-	// Weights
-	PolarCoordinate position = {0.0f, 0.0f};
-	std::array<PolarCoordinate, MAX_IR_COUNT> irCoordinates {}; // Location of each IR
-	bool newWeights = false;
-
-	// Motion
-	MotionPattern motionPattern = MotionPattern::LISSAJOUS;
-	float motionRate = 0.5f;
-	float motionModA = 0.5f, motionModB = 0.5f;
-	PolarCoordinate randomTarget {0.0f, 0.0f};
-	
-	// Methods
-	void advancePhase();
-	void updateIRCoordinates();
-	void updatePosition();
-	void updateWeights();
+	std::vector<std::array<float, MAX_IR_COUNT>> weights;
 
 public:
 	ConvolutionReverbAudioProcessor();
@@ -66,9 +48,9 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override {}
 	void setStateInformation(const void* data, int sizeInBytes) override {}
 
-	void setAPVTS(juce::AudioProcessorValueTreeState* apvts);
-
-	void updateParameters();
+	void setMix(float nMix);
+	void setDecay(float nDecay);
+	void setWeights(std::vector<std::array<float, MAX_IR_COUNT>> nWeights);
 
 	ConvolutionReverb* getConvolutionReverb();
 };
