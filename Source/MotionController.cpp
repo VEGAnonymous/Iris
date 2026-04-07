@@ -18,50 +18,47 @@
 
 MotionController::MotionController(PolarMap* initMap, float* initT) : polarMap(initMap), t(initT) {}
 
-void MotionController::updatePosition() {
+PolarCoordinate MotionController::computeParametric(MotionPattern motionPattern, float motionModA, float motionModB, float t) {
     switch (motionPattern) {
         case MotionPattern::MANUAL: {
             float& r = motionModA; float theta = motionModB * juce::MathConstants<float>::twoPi;
-            PolarCoordinate currentPosition = polarMap->getPosition();
-
-            if (abs(currentPosition.r - r) < 1e-3 && abs(currentPosition.theta - theta) < 1e-3) {
-                updated = false; return; }
-            polarMap->setPosition({ r, theta });
-            updated = true;
-            break;
+            return { r, theta };
         }
         case MotionPattern::ORBIT: {
             float& radius = motionModA;
-            float r = radius, theta = *t;
-            polarMap->setPosition({ r, theta });
-            updated = true;
-            break;
+            float r = radius, theta = 3 * t;
+            return { r, theta };
         }
         case MotionPattern::SPIRAL: {
             float swirliness = juce::jmap(motionModA, 1.0f, 10.0f);
-            float r = sinf(0.1f * *t), theta = swirliness * *t;
-            polarMap->setPosition({ r, theta });
-            updated = true;
-            break;
+            float r = sinf(0.1f * t), theta = swirliness * t;
+            return { r, theta };
         }
         case MotionPattern::FLORAL: {
             float p = floorf(juce::jmap(motionModA, 1.0f, 10.0f)), q = floorf(juce::jmap(motionModB, 1.0f, 10.0f));
-            float r = sinf(p * *t), theta = q * *t;
-            polarMap->setPosition({ r, theta });
-            updated = true;
-            break;
+            float r = sinf(p * t), theta = q * t;
+            return { r, theta };
         }
         case MotionPattern::LISSAJOUS: {
             float p = floorf(juce::jmap(motionModA, 1.0f, 10.0f)), q = floorf(juce::jmap(motionModB, 1.0f, 10.0f));
             const float phi = juce::MathConstants<float>::halfPi;
-            float r = sinf(p * *t), theta = phi * sinf((q * *t) + phi);
-            polarMap->setPosition({ r, theta });
-            updated = true;
-            break;
+            float r = sinf(p * t), theta = phi * sinf((q * t) + phi);
+            return { r, theta };
         }
+
+        // Stochastic, N/A
+        case MotionPattern::RANDOM_DISCRETE:
+        case MotionPattern::RANDOM_WALK: return { 0.0f, 0.0f };
+        default: return { 0.0f, 0.0f };
+    }
+}
+
+PolarCoordinate MotionController::computePosition(MotionPattern motionPattern, 
+    float motionRate, float motionModA, float motionModB, float t,
+    PolarCoordinate currentPosition, PolarCoordinate& randomTarget) {
+    switch (motionPattern) {
         case MotionPattern::RANDOM_DISCRETE: {
             float& radius = motionModA; float& smoothing = motionModB;
-            PolarCoordinate currentPosition = polarMap->getPosition();
             float probability = motionRate * 0.1f;
             if (randFloat() < probability) {
                 // Set new target
@@ -70,35 +67,36 @@ void MotionController::updatePosition() {
                 randomTarget = { r, theta };
             }
 
-            if (abs(currentPosition.r - randomTarget.r) < 1e-3 && abs(currentPosition.theta - randomTarget.theta) < 1e-3) { 
-                updated = false; return; }
+            if (abs(currentPosition.r - randomTarget.r) < 1e-3 && abs(currentPosition.theta - randomTarget.theta) < 1e-3)
+                return currentPosition;
 
             // Smooth toward target position
             float nextR = juce::jmap(smoothing, currentPosition.r, randomTarget.r);
             float dTheta = std::fmod(randomTarget.theta - currentPosition.theta + (juce::MathConstants<float>::pi * 3),
                 juce::MathConstants<float>::twoPi) - juce::MathConstants<float>::pi;
             float nextTheta = currentPosition.theta + (dTheta * (1.0f - smoothing));
-            polarMap->setPosition({ nextR, nextTheta });
-            updated = true;
-            break;
+            return { nextR, nextTheta };
         }
         case MotionPattern::RANDOM_WALK: {
             float& radius = motionModA;
-            PolarCoordinate currentPosition = polarMap->getPosition();
             float step = 0.02f * motionRate;
-            // Convert to Cartesian
-            float x = currentPosition.r * std::cos(currentPosition.theta), y = currentPosition.r * std::sin(currentPosition.theta);
-            // Step and constrain radius
-            x += randSigned() * step; y += randSigned() * step;
-            float mag = std::sqrt((x * x) + (y * y));
-            if (mag > radius) { x /= mag; y /= mag; }
-            // Convert to polar
-            float r = std::sqrt((x * x) + (y * y)), theta = std::atan2(y, x);
-            polarMap->setPosition({ r, theta });
-            updated = true;
-            break;
+            CartesianCoordinate p = polarToCartesian(currentPosition);
+            p.x += randSigned() * step; p.y += randSigned() * step;
+            float mag = std::sqrt((p.x * p.x) + (p.y * p.y));
+            if (mag > radius) { p.x /= mag; p.y /= mag; }
+            return cartesianToPolar(p);
         }
-    } // DBG("Position: " << r << ", " << theta);
+        default: return computeParametric(motionPattern, motionModA, motionModB, t);
+    }
+}
+
+void MotionController::updatePosition() {
+    PolarCoordinate current = polarMap->getPosition();
+    PolarCoordinate next = computePosition(motionPattern, motionRate, motionModA, motionModB, *t, current, randomTarget);
+
+    if (abs(current.r - next.r) < 1e-3 && abs(current.theta - next.theta) < 1e-3) { updated = false; }
+    else { polarMap->setPosition(next); updated = true; }
+    // DBG("Position: " << r << ", " << theta);
 }
 
 void MotionController::updateCoordinates() {

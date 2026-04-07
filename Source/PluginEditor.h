@@ -4,7 +4,7 @@
 #include "PluginProcessor.h"
 
 class MareverbAudioProcessorEditor  : public juce::AudioProcessorEditor,
-    juce::AudioProcessorParameter::Listener, juce::Timer {
+    juce::AudioProcessorValueTreeState::Listener, juce::Timer {
 public:
 
     MareverbAudioProcessorEditor (MareverbAudioProcessor&);
@@ -16,10 +16,9 @@ private:
     MareverbAudioProcessor& audioProcessor;
 
     // Listeners and callbacks
-    juce::Atomic<bool> parametersChanged{ false };
+    juce::Atomic<bool> motionPatternChanged { false };
 
-    void parameterValueChanged(int parameterIndex, float newValue) override;
-    void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override {}
+    void parameterChanged (const juce::String& parameterID, float newValue) override;
     void timerCallback() override;
 
     // Components
@@ -30,10 +29,16 @@ private:
 
     Rotary globalMixControl, decayControl,
         motionRateControl, motionModAControl, motionModBControl;
-    Attachment globalMixControlAttachment, decayControlAttachment, 
+    juce::AudioProcessorValueTreeState::SliderAttachment globalMixControlAttachment, decayControlAttachment, 
         motionRateControlAttachment, motionModAControlAttachment, motionModBControlAttachment;
 
+    juce::ComboBox motionPatternControl;
+    juce::AudioProcessorValueTreeState::ComboBoxAttachment motionPatternControlAttachment;
+
     std::vector<juce::Component*> getComponents();
+    
+    // State
+    PolarCoordinate currentPosition {0.0f, 0.0f};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MareverbAudioProcessorEditor)
 };

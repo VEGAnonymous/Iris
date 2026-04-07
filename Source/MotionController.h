@@ -17,6 +17,10 @@ public:
 	MotionController(PolarMap* initMap, float* initT);
 	~MotionController() = default;
 
+	static PolarCoordinate computeParametric(MotionPattern motionPattern, float motionModA, float motionModB, float t);
+	static PolarCoordinate computePosition(MotionPattern motionPattern, float motionRate, float motionModA, float motionModB, float t,
+		PolarCoordinate currentPosition, PolarCoordinate& randomTarget);
+
 	void updatePosition();
 	void updateCoordinates();
 

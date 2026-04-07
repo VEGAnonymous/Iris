@@ -12,20 +12,7 @@ class MareverbAudioProcessor : public juce::AudioProcessor {
 private:
     // Parameters
 
-    struct Settings {
-        float globalMix;
-        float decay;
-        MotionPattern motionPattern;
-        float motionRate, motionModA, motionModB;
-
-        Settings() : globalMix(0.5f), decay(0.5f),
-            motionPattern(MotionPattern::LISSAJOUS),
-            motionRate(0.0f), motionModA(0.5f), motionModB(0.5f)
-        {}
-    };
-
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    Settings getSettings(juce::AudioProcessorValueTreeState& apvts);
     void updateParameters();
 
     // IR management
@@ -47,6 +34,7 @@ private:
     void advancePhase();
 
     // Polar map, motion, weights
+
     PolarMap polarMap;
     MotionController motionController;
     std::vector<std::array<float, MAX_IR_COUNT>> irWeights {};
@@ -98,4 +86,7 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
+
+    std::atomic<PolarCoordinate> position {{0.0f, 0.0f}};
+    std::atomic<bool> positionChanged {false};
 };

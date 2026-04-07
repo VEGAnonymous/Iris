@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "ConvolutionReverbAudioProcessor.h"
+#include "Utilities.h"
 
 /* PRIVATE */
 
@@ -11,27 +12,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Global Mix", "Global Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("Decay", "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    
-    const juce::StringArray motionPatterns {"Vanilla", "Orbit", "Spiral", "Floral", "Lissajous", "Discrete", "Walk"};
     layout.add(std::make_unique<juce::AudioParameterChoice>("Motion Pattern", "Motion Pattern", motionPatterns, MotionPattern::LISSAJOUS));
     layout.add(std::make_unique<juce::AudioParameterFloat>("Motion Rate", "Motion Rate", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.0f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("Motion Mod A", "Motion Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("Motion Mod B", "Motion Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
 
     return layout;
-}
-
-MareverbAudioProcessor::Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState& parameters) {
-    Settings settings;
-
-    settings.globalMix = parameters.getRawParameterValue("Global Mix")->load();
-    settings.decay = parameters.getRawParameterValue("Decay")->load();
-    settings.motionPattern = static_cast<MotionPattern>(parameters.getRawParameterValue("Motion Pattern")->load());
-    settings.motionRate = parameters.getRawParameterValue("Motion Rate")->load();
-    settings.motionModA = parameters.getRawParameterValue("Motion Mod A")->load();
-    settings.motionModB = parameters.getRawParameterValue("Motion Mod B")->load();
-
-    return settings;
 }
 
 void MareverbAudioProcessor::updateParameters() {
@@ -52,7 +38,7 @@ void MareverbAudioProcessor::updateParameters() {
 // Time
 
 void MareverbAudioProcessor::advancePhase() {
-    float freq = apvts.getRawParameterValue("Motion Rate")->load() * 0.2f;
+    float freq = apvts.getRawParameterValue("Motion Rate")->load() * 0.5f;
     float phaseIncrement = juce::MathConstants<float>::twoPi * freq
         * (static_cast<float>(getBlockSize()) / static_cast<float>(getSampleRate()));
     globalTime += phaseIncrement;
@@ -119,10 +105,6 @@ MareverbAudioProcessor::MareverbAudioProcessor()
         bool loaded = loadRandomIR(i);
         jassert(loaded);
     }
-
-    // Init convolution reverb
-    auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
-    jassert(convProcessor != nullptr);
 
     // Init IR coordinates
     for (int ir = 0; ir < MAX_IR_COUNT; ++ir)
@@ -202,11 +184,13 @@ void MareverbAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         motionController.updatePosition();
         // Weights
         if (motionController.hasUpdated()) {
+            position.store(polarMap.getPosition(), std::memory_order_relaxed);
+            positionChanged.store(true, std::memory_order_release);
+
             polarMap.computeRelatives();
             updateWeights();
             auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
             if (convProcessor != nullptr) convProcessor->setWeights(irWeights);
-            // Set atomic flag for GUI or something?
         }
 
         controlCounter = 0;
