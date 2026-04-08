@@ -6,6 +6,10 @@
               companyName="Eponymous DSP" pluginManufacturerCode="Mare">
   <MAINGROUP id="uSBxoM" name="Mareverb">
     <GROUP id="{52C29717-2BB5-4F62-25D3-FC09807A17AA}" name="Source">
+      <FILE id="eJDfPp" name="PolarMapComponent.cpp" compile="1" resource="0"
+            file="Source/PolarMapComponent.cpp"/>
+      <FILE id="VvHUrK" name="PolarMapComponent.h" compile="0" resource="0"
+            file="Source/PolarMapComponent.h"/>
       <FILE id="efG5sR" name="MotionController.cpp" compile="1" resource="0"
             file="Source/MotionController.cpp"/>
       <FILE id="nYZf88" name="MotionController.h" compile="0" resource="0"

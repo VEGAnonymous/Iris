@@ -11,21 +11,19 @@ void MareverbAudioProcessorEditor::parameterChanged(const juce::String& paramete
     }
 }
 void MareverbAudioProcessorEditor::timerCallback() {
-    if (motionPatternChanged.exchange(false)) {
-        // auto settings = getSettings(audioProcessor.apvts);
-        repaint(); // <- Move to child component
-    }
-
-    if (audioProcessor.positionChanged.exchange(false, std::memory_order_acquire)) {
-        currentPosition = audioProcessor.position.load(std::memory_order_relaxed);
-        repaint();
-    }
+    if (motionPatternChanged.exchange(false))
+        polarMapComponent.notifyPathChanged();
+    if (audioProcessor.positionChanged.exchange(false, std::memory_order_acquire))
+        polarMapComponent.notifyPositionChanged(audioProcessor.position.load(std::memory_order_relaxed));
 }
 
 /* PUBLIC */
 
 MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p),
+
+    polarMapComponent(audioProcessor),
+
     globalMixControlAttachment(audioProcessor.apvts, "Global Mix", globalMixControl),
     decayControlAttachment(audioProcessor.apvts, "Decay", decayControl),
     motionPatternControlAttachment(audioProcessor.apvts, "Motion Pattern", motionPatternControl),
@@ -33,7 +31,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     motionModAControlAttachment(audioProcessor.apvts, "Motion Mod A", motionModAControl),
     motionModBControlAttachment(audioProcessor.apvts, "Motion Mod B", motionModBControl) {
 
-    motionPatternControl.addItemList(motionPatterns, 1);
+    setSize(405, 621);
 
     // Attach listeners
     audioProcessor.apvts.addParameterListener("Global Mix", this);
@@ -43,10 +41,14 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     audioProcessor.apvts.addParameterListener("Motion Mod A", this);
     audioProcessor.apvts.addParameterListener("Motion Mod B", this);
 
+    // Add components
+    addAndMakeVisible(polarMapComponent);
     for (auto* component : getComponents()) addAndMakeVisible(component);
 
+    // Control settings
+    motionPatternControl.addItemList(motionPatterns, 1);
+    
     startTimerHz(REFRESH_RATE);
-    setSize(405, 621);
 }
 
 MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() { 
@@ -63,59 +65,14 @@ MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
 
 void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
     g.fillAll(juce::Colours::black);
-
-    auto bounds = getLocalBounds();
-    auto mareMapArea = bounds.removeFromTop(405);
-
-    // auto w = mareMapArea.getWidth();
-
-    g.setColour(juce::Colours::floralwhite);
-    g.drawRoundedRectangle(mareMapArea.toFloat(), 4.0f, 1.0f);
-    g.setOpacity(0.5f);
-    g.drawEllipse(mareMapArea.toFloat(), 2.0f);
-
-    const float boundMin = mareMapArea.toFloat().getX(), boundMax = mareMapArea.toFloat().getRight(); // X or Y works, it's a square
-    auto map = [boundMin, boundMax](CartesianCoordinate p) {
-        return CartesianCoordinate{
-            juce::jmap(p.x, -1.0f, 1.0f, boundMin, boundMax),
-            juce::jmap(p.y, -1.0f, 1.0f, boundMin, boundMax)
-        };
-    };
-
-    // Draw parametric curve
-    Settings settings = getSettings(audioProcessor.apvts);
-    MotionPattern& pattern = settings.motionPattern;
-
-    if (pattern != MotionPattern::RANDOM_DISCRETE && pattern != MotionPattern::RANDOM_WALK) {
-        juce::Path parametricPath;
-
-        float& motionRate = settings.motionRate, motionModA = settings.motionModA, motionModB = settings.motionModB;
-        CartesianCoordinate initP = map(polarToCartesian(MotionController::computeParametric(pattern, motionModA, motionModB, 0.0f))); // t = 0.0f
-        parametricPath.startNewSubPath(initP.x, initP.y);
-        for (float t = 0.01f; t < 10.0f; t += 0.01f) {
-            CartesianCoordinate p = map(polarToCartesian(MotionController::computeParametric(pattern, motionModA, motionModB, t)));
-            parametricPath.lineTo(p.x, p.y);
-        }
-
-        g.setColour(juce::Colours::white);
-        g.setOpacity(0.2f);
-        g.strokePath(parametricPath, juce::PathStrokeType(2.0));
-    }
-
-    // Draw position indicator
-    CartesianCoordinate currentPos = map(polarToCartesian(currentPosition));
-    g.setColour(juce::Colours::lightcyan);
-    g.setOpacity(1.0f);
-    const float radius = 4.0f;
-    g.fillEllipse(currentPos.x - radius, currentPos.y - radius, radius * 2.0f, radius * 2.0f);
 }
 
 void MareverbAudioProcessorEditor::resized() {
-    // Window layout
     auto bounds = getLocalBounds();
 
     // Map
     auto mareMapArea = bounds.removeFromTop(405);
+    polarMapComponent.setBounds(mareMapArea);
 
     // Parameter rows
     juce::FlexBox motionControlRow;

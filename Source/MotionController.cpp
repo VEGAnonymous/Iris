@@ -18,8 +18,9 @@
 
 MotionController::MotionController(PolarMap* initMap, float* initT) : polarMap(initMap), t(initT) {}
 
-PolarCoordinate MotionController::computeParametric(MotionPattern motionPattern, float motionModA, float motionModB, float t) {
-    switch (motionPattern) {
+PolarCoordinate MotionController::computeParametric(MotionParameters motionParameters, float t) {
+    float& motionModA = motionParameters.motionModA, motionModB = motionParameters.motionModB;
+    switch (motionParameters.motionPattern) {
         case MotionPattern::MANUAL: {
             float& r = motionModA; float theta = motionModB * juce::MathConstants<float>::twoPi;
             return { r, theta };
@@ -53,46 +54,66 @@ PolarCoordinate MotionController::computeParametric(MotionPattern motionPattern,
     }
 }
 
-PolarCoordinate MotionController::computePosition(MotionPattern motionPattern, 
-    float motionRate, float motionModA, float motionModB, float t,
-    PolarCoordinate currentPosition, PolarCoordinate& randomTarget) {
-    switch (motionPattern) {
+PolarCoordinate MotionController::computePosition(MotionParameters motionParameters, MotionState& motionState, float t) {
+    float& motionModA = motionParameters.motionModA, motionModB = motionParameters.motionModB;
+    switch (motionParameters.motionPattern) {
         case MotionPattern::RANDOM_DISCRETE: {
-            float& radius = motionModA; float& smoothing = motionModB;
-            float probability = motionRate * 0.1f;
-            if (randFloat() < probability) {
+            float& radius = motionModA; float smoothing = juce::jmap(1.0f - motionModB, 0.05f, 1.0f);
+            CartesianCoordinate currentPosition = polarToCartesian(motionState.currentPosition);
+            CartesianCoordinate& targetPosition = motionState.targetPosition;
+            bool& hasTarget = motionState.hasTarget;
+
+            float probability = motionParameters.motionRate * 0.1f;
+            if (randFloat() < probability && !hasTarget) {
                 // Set new target
                 float r = std::sqrt(randFloat()) * radius;
                 float theta = randFloat() * juce::MathConstants<float>::twoPi;
-                randomTarget = { r, theta };
+                targetPosition = polarToCartesian({r, theta});
+                hasTarget = true;
             }
 
-            if (abs(currentPosition.r - randomTarget.r) < 1e-3 && abs(currentPosition.theta - randomTarget.theta) < 1e-3)
-                return currentPosition;
+            // Check if arrived
+            float dx = currentPosition.x - targetPosition.x, dy = currentPosition.y - targetPosition.y;
+            if (((dx * dx) + (dy * dy)) < 1e-3f) {
+                hasTarget = false; return cartesianToPolar(currentPosition); }
 
             // Smooth toward target position
-            float nextR = juce::jmap(smoothing, currentPosition.r, randomTarget.r);
-            float dTheta = std::fmod(randomTarget.theta - currentPosition.theta + (juce::MathConstants<float>::pi * 3),
-                juce::MathConstants<float>::twoPi) - juce::MathConstants<float>::pi;
-            float nextTheta = currentPosition.theta + (dTheta * (1.0f - smoothing));
-            return { nextR, nextTheta };
+            currentPosition = { juce::jmap(smoothing, currentPosition.x, targetPosition.x),
+                                juce::jmap(smoothing, currentPosition.y, targetPosition.y) };
+
+            return cartesianToPolar(currentPosition);
         }
         case MotionPattern::RANDOM_WALK: {
-            float& radius = motionModA;
-            float step = 0.02f * motionRate;
-            CartesianCoordinate p = polarToCartesian(currentPosition);
-            p.x += randSigned() * step; p.y += randSigned() * step;
-            float mag = std::sqrt((p.x * p.x) + (p.y * p.y));
-            if (mag > radius) { p.x /= mag; p.y /= mag; }
+            const float step = 0.02f * motionParameters.motionRate;
+            const float damping = juce::jmap(motionModA * motionModA, 0.85f, 0.98f);
+            const float& bounce = motionModB;
+
+            CartesianCoordinate& velocity = motionState.walkVelocity;
+            CartesianCoordinate p = polarToCartesian(motionState.currentPosition);
+
+            velocity.x += randSigned() * step; velocity.y += randSigned() * step; // Apply random force
+            velocity.x *= damping; velocity.y *= damping;
+
+            p.x += velocity.x; p.y += velocity.y; // Apply movement
+
+            // Constrain to unit circle
+            float mag = std::sqrt(p.x * p.x + p.y * p.y);
+            if (mag > 1.0f) {
+                p.x /= mag; p.y /= mag;
+                velocity.x *= -0.1f -bounce; velocity.y *= -0.1f -bounce; // Bounce
+            }
+
             return cartesianToPolar(p);
         }
-        default: return computeParametric(motionPattern, motionModA, motionModB, t);
+        default: return computeParametric(motionParameters, t);
     }
 }
 
 void MotionController::updatePosition() {
     PolarCoordinate current = polarMap->getPosition();
-    PolarCoordinate next = computePosition(motionPattern, motionRate, motionModA, motionModB, *t, current, randomTarget);
+    motionState.currentPosition = current;
+
+    PolarCoordinate next = computePosition(motionParameters, motionState, *t);
 
     if (abs(current.r - next.r) < 1e-3 && abs(current.theta - next.theta) < 1e-3) { updated = false; }
     else { polarMap->setPosition(next); updated = true; }
@@ -111,15 +132,15 @@ void MotionController::updateCoordinates() {
 
 void MotionController::setPolarMap(PolarMap* nPolarMap) { polarMap = nPolarMap; }
 void MotionController::setTimer(float* nT) { t = nT; }
-void MotionController::setMotionPattern(MotionPattern nMotionPattern) { motionPattern = nMotionPattern; }
-void MotionController::setMotionRate(float nMotionRate) { if (nMotionRate != motionRate) DBG("Set motion rate " << nMotionRate); motionRate = nMotionRate; }
-void MotionController::setMotionModA(float nMotionModA) { if (nMotionModA != motionModA) DBG("Set motion mod A " << nMotionModA);  motionModA = nMotionModA; }
-void MotionController::setMotionModB(float nMotionModB) { if (nMotionModB != motionModB) DBG("Set motion mod B " << nMotionModB); motionModB = nMotionModB; }
+void MotionController::setMotionPattern(MotionPattern nMotionPattern) { motionParameters.motionPattern = nMotionPattern; }
+void MotionController::setMotionRate(float nMotionRate) { motionParameters.motionRate = nMotionRate; }
+void MotionController::setMotionModA(float nMotionModA) { motionParameters.motionModA = nMotionModA; }
+void MotionController::setMotionModB(float nMotionModB) { motionParameters.motionModB = nMotionModB; }
 
 PolarMap* MotionController::getPolarMap() const { return polarMap; }
 float* MotionController::getTimer() const { return t; }
-MotionPattern MotionController::getMotionPattern() const { return motionPattern; }
-float MotionController::getMotionRate() const { return motionRate; }
-float MotionController::getMotionModA() const { return motionModA; }
-float MotionController::getMotionModB() const { return motionModB; }
+MotionPattern MotionController::getMotionPattern() const { return motionParameters.motionPattern; }
+float MotionController::getMotionRate() const { return motionParameters.motionRate; }
+float MotionController::getMotionModA() const { return motionParameters.motionModA; }
+float MotionController::getMotionModB() const { return motionParameters.motionModB; }
 bool MotionController::hasUpdated() const { return updated; }

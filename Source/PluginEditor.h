@@ -1,7 +1,9 @@
 #pragma once
 
-#include <JuceHeader.h>
 #include "PluginProcessor.h"
+#include "PolarMapComponent.h"
+
+#include <JuceHeader.h>
 
 class MareverbAudioProcessorEditor  : public juce::AudioProcessorEditor,
     juce::AudioProcessorValueTreeState::Listener, juce::Timer {
@@ -38,7 +40,7 @@ private:
     std::vector<juce::Component*> getComponents();
     
     // State
-    PolarCoordinate currentPosition {0.0f, 0.0f};
+    PolarMapComponent polarMapComponent;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MareverbAudioProcessorEditor)
 };

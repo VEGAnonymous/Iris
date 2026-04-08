@@ -8,18 +8,30 @@ private:
 	PolarMap* polarMap;
 	float* t;
 
-	MotionPattern motionPattern = MotionPattern::LISSAJOUS;
-	float motionRate = 0.5f, motionModA = 0.5f, motionModB = 0.5f;
-	PolarCoordinate randomTarget { 0.0f, 0.0f };
-	bool updated = false;
+	struct MotionParameters {
+		MotionPattern motionPattern = MotionPattern::LISSAJOUS;
+		float motionRate = 0.5f;
+		float motionModA = 0.5f, motionModB = 0.5f;
+	};
 
+	struct MotionState {
+		PolarCoordinate currentPosition {0.0f, 0.0f};
+		// Discrete
+		CartesianCoordinate targetPosition {0.0f, 0.0f};
+		bool hasTarget = false;
+		// Walk
+		CartesianCoordinate walkVelocity {0.0f, 0.0f};
+	};
+
+	MotionParameters motionParameters;
+	MotionState motionState;
+	bool updated = false;
 public:
 	MotionController(PolarMap* initMap, float* initT);
 	~MotionController() = default;
 
-	static PolarCoordinate computeParametric(MotionPattern motionPattern, float motionModA, float motionModB, float t);
-	static PolarCoordinate computePosition(MotionPattern motionPattern, float motionRate, float motionModA, float motionModB, float t,
-		PolarCoordinate currentPosition, PolarCoordinate& randomTarget);
+	static PolarCoordinate computeParametric(MotionParameters motionParameters, float t);
+	static PolarCoordinate computePosition(MotionParameters motionParameters, MotionState& motionState, float t);
 
 	void updatePosition();
 	void updateCoordinates();
@@ -39,4 +51,3 @@ public:
 	float getMotionModB() const;
 	bool hasUpdated() const;
 };
-

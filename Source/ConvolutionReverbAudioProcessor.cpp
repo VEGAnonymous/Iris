@@ -26,7 +26,7 @@ bool ConvolutionReverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& 
 // DSP
 
 void ConvolutionReverbAudioProcessor::prepareToPlay(double sampleRate, int maxBlockSize) {
-    juce::dsp::ProcessSpec spec {sampleRate, maxBlockSize, juce::uint32(2)};
+    juce::dsp::ProcessSpec spec {sampleRate, maxBlockSize, 2};
 
     mixer.setMixingRule(juce::dsp::DryWetMixingRule::sin3dB);
     mixer.setWetLatency(HOP_SIZE);

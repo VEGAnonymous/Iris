@@ -50,7 +50,6 @@ void MareverbAudioProcessor::updateWeights() {
     std::array<float, MAX_IR_COUNT> rawWeights{};
 
     const float distanceFactor = 2.0f;
-    auto position = polarMap.getPosition();
     auto relatives = polarMap.getRelatives();
 
     for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
