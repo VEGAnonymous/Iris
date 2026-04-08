@@ -2,19 +2,6 @@
 
 #include "Defines.h"
 
-inline Settings getSettings(juce::AudioProcessorValueTreeState& parameters) {
-    Settings settings;
-
-    settings.globalMix = parameters.getRawParameterValue("Global Mix")->load();
-    settings.decay = parameters.getRawParameterValue("Decay")->load();
-    settings.motionPattern = static_cast<MotionPattern>(parameters.getRawParameterValue("Motion Pattern")->load());
-    settings.motionRate = parameters.getRawParameterValue("Motion Rate")->load();
-    settings.motionModA = parameters.getRawParameterValue("Motion Mod A")->load();
-    settings.motionModB = parameters.getRawParameterValue("Motion Mod B")->load();
-
-    return settings;
-}
-
 // Random
 
 inline float randFloat() { return juce::Random::getSystemRandom().nextFloat(); } // [0, 1)

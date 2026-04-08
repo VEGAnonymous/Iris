@@ -14,7 +14,7 @@ CartesianCoordinate PolarMapComponent::map(CartesianCoordinate p) const { // [-1
 void PolarMapComponent::buildPath() {
     parametricPath.clear();
 
-    Settings settings = getSettings(audioProcessor.apvts);
+    Settings settings = MareverbAudioProcessor::getSettings(audioProcessor.apvts);
     MotionPattern& pattern = settings.motionPattern;
 
     if (pattern == MotionPattern::RANDOM_DISCRETE || pattern == MotionPattern::RANDOM_WALK) return;

@@ -87,6 +87,8 @@ public:
 
     juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
 
+    static Settings getSettings(juce::AudioProcessorValueTreeState& parameters);
+
     std::atomic<PolarCoordinate> position {{0.0f, 0.0f}};
     std::atomic<bool> positionChanged {false};
 };
