@@ -9,8 +9,8 @@
 
     PolarMap* polarMap;
     float* t;
-    MotionPattern motionPattern = MotionPattern::LISSAJOUS;
-    float motionRate = 0.5f, motionModA = 0.5f, motionModB = 0.5f;
+    PositionPattern positionPattern = PositionPattern::LISSAJOUS;
+    float positionRate = 0.5f, positionModA = 0.5f, positionModB = 0.5f;
 
 */
 
@@ -18,52 +18,52 @@
 
 MotionController::MotionController(PolarMap* initMap, float* initT) : polarMap(initMap), t(initT) {}
 
-PolarCoordinate MotionController::computeParametric(MotionParameters motionParameters, float t) {
-    float& motionModA = motionParameters.motionModA, motionModB = motionParameters.motionModB;
-    switch (motionParameters.motionPattern) {
-        case MotionPattern::MANUAL: {
-            float& r = motionModA; float theta = motionModB * juce::MathConstants<float>::twoPi;
+PolarCoordinate MotionController::computeParametric(PositionParameters positionParameters, float t) {
+    float& positionModA = positionParameters.positionModA, positionModB = positionParameters.positionModB;
+    switch (positionParameters.positionPattern) {
+        case PositionPattern::MANUAL: {
+            float& r = positionModA; float theta = positionModB * juce::MathConstants<float>::twoPi;
             return { r, theta };
         }
-        case MotionPattern::ORBIT: {
-            float& radius = motionModA;
+        case PositionPattern::ORBIT: {
+            float& radius = positionModA;
             float r = radius, theta = 3 * t;
             return { r, theta };
         }
-        case MotionPattern::SPIRAL: {
-            float swirliness = juce::jmap(motionModA, 1.0f, 10.0f);
+        case PositionPattern::SPIRAL: {
+            float swirliness = juce::jmap(positionModA, 1.0f, 10.0f);
             float r = sinf(0.1f * t), theta = swirliness * t;
             return { r, theta };
         }
-        case MotionPattern::FLORAL: {
-            float p = floorf(juce::jmap(motionModA, 1.0f, 10.0f)), q = floorf(juce::jmap(motionModB, 1.0f, 10.0f));
+        case PositionPattern::FLORAL: {
+            float p = floorf(juce::jmap(positionModA, 1.0f, 10.0f)), q = floorf(juce::jmap(positionModB, 1.0f, 10.0f));
             float r = sinf(p * t), theta = q * t;
             return { r, theta };
         }
-        case MotionPattern::LISSAJOUS: {
-            float p = floorf(juce::jmap(motionModA, 1.0f, 10.0f)), q = floorf(juce::jmap(motionModB, 1.0f, 10.0f));
+        case PositionPattern::LISSAJOUS: {
+            float p = floorf(juce::jmap(positionModA, 1.0f, 10.0f)), q = floorf(juce::jmap(positionModB, 1.0f, 10.0f));
             const float phi = juce::MathConstants<float>::halfPi;
             float r = sinf(p * t), theta = phi * sinf((q * t) + phi);
             return { r, theta };
         }
 
         // Stochastic, N/A
-        case MotionPattern::RANDOM_DISCRETE:
-        case MotionPattern::RANDOM_WALK: return { 0.0f, 0.0f };
+        case PositionPattern::RANDOM_DISCRETE:
+        case PositionPattern::RANDOM_WALK: return { 0.0f, 0.0f };
         default: return { 0.0f, 0.0f };
     }
 }
 
-PolarCoordinate MotionController::computePosition(MotionParameters motionParameters, MotionState& motionState, float t) {
-    float& motionModA = motionParameters.motionModA, motionModB = motionParameters.motionModB;
-    switch (motionParameters.motionPattern) {
-        case MotionPattern::RANDOM_DISCRETE: {
-            float& radius = motionModA; float smoothing = juce::jmap(1.0f - motionModB, 0.05f, 1.0f);
-            CartesianCoordinate currentPosition = polarToCartesian(motionState.currentPosition);
-            CartesianCoordinate& targetPosition = motionState.targetPosition;
-            bool& hasTarget = motionState.hasTarget;
+PolarCoordinate MotionController::computePosition(PositionParameters positionParameters, PositionState& positionState, float t) {
+    float& positionModA = positionParameters.positionModA, positionModB = positionParameters.positionModB;
+    switch (positionParameters.positionPattern) {
+        case PositionPattern::RANDOM_DISCRETE: {
+            float& radius = positionModA; float smoothing = juce::jmap(1.0f - positionModB, 0.05f, 1.0f);
+            CartesianCoordinate currentPosition = polarToCartesian(positionState.currentPosition);
+            CartesianCoordinate& targetPosition = positionState.targetPosition;
+            bool& hasTarget = positionState.hasTarget;
 
-            float probability = motionParameters.motionRate * 0.1f;
+            float probability = positionParameters.positionRate * 0.1f;
             if (randFloat() < probability && !hasTarget) {
                 // Set new target
                 float r = std::sqrt(randFloat()) * radius;
@@ -83,13 +83,13 @@ PolarCoordinate MotionController::computePosition(MotionParameters motionParamet
 
             return cartesianToPolar(currentPosition);
         }
-        case MotionPattern::RANDOM_WALK: {
-            const float step = 0.02f * motionParameters.motionRate;
-            const float damping = juce::jmap(motionModA * motionModA, 0.85f, 0.98f);
-            const float& bounce = motionModB;
+        case PositionPattern::RANDOM_WALK: {
+            const float step = 0.02f * positionParameters.positionRate;
+            const float damping = juce::jmap(positionModA * positionModA, 0.85f, 0.98f);
+            const float& bounce = positionModB;
 
-            CartesianCoordinate& velocity = motionState.walkVelocity;
-            CartesianCoordinate p = polarToCartesian(motionState.currentPosition);
+            CartesianCoordinate& velocity = positionState.walkVelocity;
+            CartesianCoordinate p = polarToCartesian(positionState.currentPosition);
 
             velocity.x += randSigned() * step; velocity.y += randSigned() * step; // Apply random force
             velocity.x *= damping; velocity.y *= damping;
@@ -105,15 +105,15 @@ PolarCoordinate MotionController::computePosition(MotionParameters motionParamet
 
             return cartesianToPolar(p);
         }
-        default: return computeParametric(motionParameters, t);
+        default: return computeParametric(positionParameters, t);
     }
 }
 
 void MotionController::updatePosition() {
     PolarCoordinate current = polarMap->getPosition();
-    motionState.currentPosition = current;
+    positionState.currentPosition = current;
 
-    PolarCoordinate next = computePosition(motionParameters, motionState, *t);
+    PolarCoordinate next = computePosition(positionParameters, positionState, *t);
 
     if (abs(current.r - next.r) < 1e-3 && abs(current.theta - next.theta) < 1e-3) { updated = false; }
     else { polarMap->setPosition(next); updated = true; }
@@ -132,15 +132,16 @@ void MotionController::updateCoordinates() {
 
 void MotionController::setPolarMap(PolarMap* nPolarMap) { polarMap = nPolarMap; }
 void MotionController::setTimer(float* nT) { t = nT; }
-void MotionController::setMotionPattern(MotionPattern nMotionPattern) { motionParameters.motionPattern = nMotionPattern; }
-void MotionController::setMotionRate(float nMotionRate) { motionParameters.motionRate = nMotionRate; }
-void MotionController::setMotionModA(float nMotionModA) { motionParameters.motionModA = nMotionModA; }
-void MotionController::setMotionModB(float nMotionModB) { motionParameters.motionModB = nMotionModB; }
+void MotionController::setPositionParameters(PositionParameters nPositionParameters) { positionParameters = nPositionParameters; }
+void MotionController::setPositionPattern(PositionPattern nPositionPattern) { positionParameters.positionPattern = nPositionPattern; }
+void MotionController::setPositionRate(float nPositionRate) { positionParameters.positionRate = nPositionRate; }
+void MotionController::setPositionModA(float nPositionModA) { positionParameters.positionModA = nPositionModA; }
+void MotionController::setPositionModB(float nPositionModB) { positionParameters.positionModB = nPositionModB; }
 
 PolarMap* MotionController::getPolarMap() const { return polarMap; }
 float* MotionController::getTimer() const { return t; }
-MotionPattern MotionController::getMotionPattern() const { return motionParameters.motionPattern; }
-float MotionController::getMotionRate() const { return motionParameters.motionRate; }
-float MotionController::getMotionModA() const { return motionParameters.motionModA; }
-float MotionController::getMotionModB() const { return motionParameters.motionModB; }
+PositionPattern MotionController::getPositionPattern() const { return positionParameters.positionPattern; }
+float MotionController::getPositionRate() const { return positionParameters.positionRate; }
+float MotionController::getPositionModA() const { return positionParameters.positionModA; }
+float MotionController::getPositionModB() const { return positionParameters.positionModB; }
 bool MotionController::hasUpdated() const { return updated; }

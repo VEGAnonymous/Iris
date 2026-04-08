@@ -17,25 +17,27 @@ static constexpr auto FFT_SIZE = 4 * L; // 2048
 static constexpr auto FFT_ORDER = 11; // 2^11, hardcoded
 static constexpr auto HOP_SIZE = FFT_SIZE / 4; // L
 
-const juce::StringArray motionPatterns { "Vanilla", "Orbit", "Spiral", "Floral", "Lissajous", "Discrete", "Walk" };
+const juce::StringArray positionPatterns { "Vanilla", "Orbit", "Spiral", "Floral", "Lissajous", "Random", "Walk" };
+const juce::StringArray coordinatePatterns { "Vanilla", "Ring", "Orbit", "Grid", "Random", "Walk" };
 
 // Aliases
 using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
 
 // Enums
-enum Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
-enum MotionPattern { MANUAL, ORBIT, SPIRAL, LISSAJOUS, FLORAL, RANDOM_DISCRETE, RANDOM_WALK }; // Curve
+enum class Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
+enum class PositionPattern { MANUAL, ORBIT, SPIRAL, LISSAJOUS, FLORAL, RANDOM_DISCRETE, RANDOM_WALK };
+enum class CoordinatePattern { MANUAL, RING, ORBIT, GRID, RANDOM_DISCRETE, RANDOM_WALK };
 
 // Structs
 struct Settings {
     float globalMix;
     float decay;
-    MotionPattern motionPattern;
-    float motionRate, motionModA, motionModB;
+    PositionPattern positionPattern;
+    float positionRate, positionModA, positionModB;
 
     Settings() : globalMix(0.5f), decay(0.5f),
-        motionPattern(MotionPattern::LISSAJOUS),
-        motionRate(0.0f), motionModA(0.5f), motionModB(0.5f)
+        positionPattern(PositionPattern::LISSAJOUS),
+        positionRate(0.0f), positionModA(0.5f), positionModB(0.5f)
     {}
 };
 

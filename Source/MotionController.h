@@ -8,13 +8,13 @@ private:
 	PolarMap* polarMap;
 	float* t;
 
-	struct MotionParameters {
-		MotionPattern motionPattern = MotionPattern::LISSAJOUS;
-		float motionRate = 0.5f;
-		float motionModA = 0.5f, motionModB = 0.5f;
+	struct PositionParameters {
+		PositionPattern positionPattern = PositionPattern::LISSAJOUS;
+		float positionRate = 0.5f;
+		float positionModA = 0.5f, positionModB = 0.5f;
 	};
 
-	struct MotionState {
+	struct PositionState {
 		PolarCoordinate currentPosition {0.0f, 0.0f};
 		// Discrete
 		CartesianCoordinate targetPosition {0.0f, 0.0f};
@@ -23,31 +23,32 @@ private:
 		CartesianCoordinate walkVelocity {0.0f, 0.0f};
 	};
 
-	MotionParameters motionParameters;
-	MotionState motionState;
+	PositionParameters positionParameters;
+	PositionState positionState;
 	bool updated = false;
 public:
 	MotionController(PolarMap* initMap, float* initT);
 	~MotionController() = default;
 
-	static PolarCoordinate computeParametric(MotionParameters motionParameters, float t);
-	static PolarCoordinate computePosition(MotionParameters motionParameters, MotionState& motionState, float t);
+	static PolarCoordinate computeParametric(PositionParameters positionParameters, float t);
+	static PolarCoordinate computePosition(PositionParameters positionParameters, PositionState& positionState, float t);
 
 	void updatePosition();
 	void updateCoordinates();
 
 	void setPolarMap(PolarMap* nPolarMap);
 	void setTimer(float* nT);
-	void setMotionPattern(MotionPattern nMotionPattern);
-	void setMotionRate(float nMotionRate);
-	void setMotionModA(float nMotionModA);
-	void setMotionModB(float nMotionModB);
+	void setPositionParameters(PositionParameters nPositionParameters);
+	void setPositionPattern(PositionPattern nPositionPattern);
+	void setPositionRate(float nPositionRate);
+	void setPositionModA(float nPositionModA);
+	void setPositionModB(float nPositionModB);
 
 	PolarMap* getPolarMap() const;
 	float* getTimer() const;
-	MotionPattern getMotionPattern() const;
-	float getMotionRate() const;
-	float getMotionModA() const;
-	float getMotionModB() const;
+	PositionPattern getPositionPattern() const;
+	float getPositionRate() const;
+	float getPositionModA() const;
+	float getPositionModB() const;
 	bool hasUpdated() const;
 };

@@ -12,10 +12,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Global Mix", "Global Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("Decay", "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterChoice>("Motion Pattern", "Motion Pattern", motionPatterns, MotionPattern::LISSAJOUS));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Motion Rate", "Motion Rate", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.0f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Motion Mod A", "Motion Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Motion Mod B", "Motion Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("Position Pattern", "Position Pattern", positionPatterns, static_cast<int>(PositionPattern::LISSAJOUS)));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Position Rate", "Position Rate", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Position Mod A", "Position Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Position Mod B", "Position Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
 
     return layout;
 }
@@ -29,16 +29,13 @@ void MareverbAudioProcessor::updateParameters() {
         convProcessor->setDecay(settings.decay);
     }
 
-    motionController.setMotionPattern(settings.motionPattern);
-    motionController.setMotionRate(settings.motionRate);
-    motionController.setMotionModA(settings.motionModA);
-    motionController.setMotionModB(settings.motionModB);
+    motionController.setPositionParameters({settings.positionPattern, settings.positionRate, settings.positionModA, settings.positionModB});
 }
 
 // Time
 
 void MareverbAudioProcessor::advancePhase() {
-    float freq = apvts.getRawParameterValue("Motion Rate")->load() * 0.5f;
+    float freq = apvts.getRawParameterValue("Position Rate")->load() * 0.2f;
     float phaseIncrement = juce::MathConstants<float>::twoPi * freq
         * (static_cast<float>(getBlockSize()) / static_cast<float>(getSampleRate()));
     globalTime += phaseIncrement;
@@ -178,7 +175,7 @@ void MareverbAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     // Control rate updates
     controlCounter += buffer.getNumSamples();
     if (controlCounter >= static_cast<int>(getSampleRate() / CONTROL_RATE)) {
-        // Motion
+        // Position
         motionController.updateCoordinates();
         motionController.updatePosition();
         // Weights
@@ -225,10 +222,10 @@ Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState&
 
     settings.globalMix = parameters.getRawParameterValue("Global Mix")->load();
     settings.decay = parameters.getRawParameterValue("Decay")->load();
-    settings.motionPattern = static_cast<MotionPattern>(parameters.getRawParameterValue("Motion Pattern")->load());
-    settings.motionRate = parameters.getRawParameterValue("Motion Rate")->load();
-    settings.motionModA = parameters.getRawParameterValue("Motion Mod A")->load();
-    settings.motionModB = parameters.getRawParameterValue("Motion Mod B")->load();
+    settings.positionPattern = static_cast<PositionPattern>(parameters.getRawParameterValue("Position Pattern")->load());
+    settings.positionRate = parameters.getRawParameterValue("Position Rate")->load();
+    settings.positionModA = parameters.getRawParameterValue("Position Mod A")->load();
+    settings.positionModB = parameters.getRawParameterValue("Position Mod B")->load();
 
     return settings;
 }

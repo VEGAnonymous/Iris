@@ -15,14 +15,14 @@ void PolarMapComponent::buildPath() {
     parametricPath.clear();
 
     Settings settings = MareverbAudioProcessor::getSettings(audioProcessor.apvts);
-    MotionPattern& pattern = settings.motionPattern;
+    PositionPattern& positionPattern = settings.positionPattern;
 
-    if (pattern == MotionPattern::RANDOM_DISCRETE || pattern == MotionPattern::RANDOM_WALK) return;
-    float& motionModA = settings.motionModA, motionModB = settings.motionModB;
-    CartesianCoordinate initP = map(polarToCartesian(MotionController::computeParametric({pattern, 0.0f, motionModA, motionModB}, 0.0f))); // t = 0
+    if (positionPattern == PositionPattern::RANDOM_DISCRETE || positionPattern == PositionPattern::RANDOM_WALK) return;
+    float& positionModA = settings.positionModA, positionModB = settings.positionModB;
+    CartesianCoordinate initP = map(polarToCartesian(MotionController::computeParametric({positionPattern, 0.0f, positionModA, positionModB}, 0.0f))); // t = 0
     parametricPath.startNewSubPath(initP.x, initP.y);
     for (float t = 0.01f; t < 10.0f; t += 0.01f) {
-        CartesianCoordinate p = map(polarToCartesian(MotionController::computeParametric({pattern, 0.0f, motionModA, motionModB}, t)));
+        CartesianCoordinate p = map(polarToCartesian(MotionController::computeParametric({positionPattern, 0.0f, positionModA, positionModB}, t)));
         parametricPath.lineTo(p.x, p.y);
     }
 

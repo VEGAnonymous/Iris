@@ -6,12 +6,12 @@
 /* PRIVATE */
 
 void MareverbAudioProcessorEditor::parameterChanged(const juce::String& parameterID, float newValue) {
-    if (parameterID == "Motion Pattern" || parameterID == "Motion Mod A" || parameterID == "Motion Mod B") {
-        motionPatternChanged.set(true);
+    if (parameterID == "Position Pattern" || parameterID == "Position Mod A" || parameterID == "Position Mod B") {
+        positionPatternChanged.set(true);
     }
 }
 void MareverbAudioProcessorEditor::timerCallback() {
-    if (motionPatternChanged.exchange(false))
+    if (positionPatternChanged.exchange(false))
         polarMapComponent.notifyPathChanged();
     if (audioProcessor.positionChanged.exchange(false, std::memory_order_acquire))
         polarMapComponent.notifyPositionChanged(audioProcessor.position.load(std::memory_order_relaxed));
@@ -26,27 +26,27 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     globalMixControlAttachment(audioProcessor.apvts, "Global Mix", globalMixControl),
     decayControlAttachment(audioProcessor.apvts, "Decay", decayControl),
-    motionPatternControlAttachment(audioProcessor.apvts, "Motion Pattern", motionPatternControl),
-    motionRateControlAttachment(audioProcessor.apvts, "Motion Rate", motionRateControl),
-    motionModAControlAttachment(audioProcessor.apvts, "Motion Mod A", motionModAControl),
-    motionModBControlAttachment(audioProcessor.apvts, "Motion Mod B", motionModBControl) {
+    positionPatternControlAttachment(audioProcessor.apvts, "Position Pattern", positionPatternControl),
+    positionRateControlAttachment(audioProcessor.apvts, "Position Rate", positionRateControl),
+    positionModAControlAttachment(audioProcessor.apvts, "Position Mod A", positionModAControl),
+    positionModBControlAttachment(audioProcessor.apvts, "Position Mod B", positionModBControl) {
 
     setSize(405, 621);
 
     // Attach listeners
     audioProcessor.apvts.addParameterListener("Global Mix", this);
     audioProcessor.apvts.addParameterListener("Decay", this);
-    audioProcessor.apvts.addParameterListener("Motion Pattern", this);
-    audioProcessor.apvts.addParameterListener("Motion Rate", this);
-    audioProcessor.apvts.addParameterListener("Motion Mod A", this);
-    audioProcessor.apvts.addParameterListener("Motion Mod B", this);
+    audioProcessor.apvts.addParameterListener("Position Pattern", this);
+    audioProcessor.apvts.addParameterListener("Position Rate", this);
+    audioProcessor.apvts.addParameterListener("Position Mod A", this);
+    audioProcessor.apvts.addParameterListener("Position Mod B", this);
 
     // Add components
     addAndMakeVisible(polarMapComponent);
     for (auto* component : getComponents()) addAndMakeVisible(component);
 
     // Control settings
-    motionPatternControl.addItemList(motionPatterns, 1);
+    positionPatternControl.addItemList(positionPatterns, 1);
     
     startTimerHz(REFRESH_RATE);
 }
@@ -55,10 +55,10 @@ MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
     // Detach listeners
     audioProcessor.apvts.removeParameterListener("Global Mix", this);
     audioProcessor.apvts.removeParameterListener("Decay", this);
-    audioProcessor.apvts.removeParameterListener("Motion Pattern", this);
-    audioProcessor.apvts.removeParameterListener("Motion Rate", this);
-    audioProcessor.apvts.removeParameterListener("Motion Mod A", this);
-    audioProcessor.apvts.removeParameterListener("Motion Mod B", this);
+    audioProcessor.apvts.removeParameterListener("Position Pattern", this);
+    audioProcessor.apvts.removeParameterListener("Position Rate", this);
+    audioProcessor.apvts.removeParameterListener("Position Mod A", this);
+    audioProcessor.apvts.removeParameterListener("Position Mod B", this);
 }
 
 // GUI
@@ -75,10 +75,10 @@ void MareverbAudioProcessorEditor::resized() {
     polarMapComponent.setBounds(mareMapArea);
 
     // Parameter rows
-    juce::FlexBox motionControlRow;
-    std::vector<juce::Component*> motionControls = { &motionPatternControl, &motionRateControl, &motionModAControl, &motionModBControl };
-    for (auto* component : motionControls) 
-        motionControlRow.items.add(juce::FlexItem(*component).withFlex(1.0f).withMaxHeight(90));
+    juce::FlexBox positionControlRow;
+    std::vector<juce::Component*> positionControls = { &positionPatternControl, &positionRateControl, &positionModAControl, &positionModBControl };
+    for (auto* component : positionControls) 
+        positionControlRow.items.add(juce::FlexItem(*component).withFlex(1.0f).withMaxHeight(90));
 
     juce::FlexBox globalControlRow;
     std::vector<juce::Component*> globalControls = { &globalMixControl, &decayControl };
@@ -88,11 +88,11 @@ void MareverbAudioProcessorEditor::resized() {
     // Main parameter column
     juce::FlexBox uiColumn;
     uiColumn.flexDirection = juce::FlexBox::Direction::column;
-    uiColumn.items.add(juce::FlexItem(motionControlRow).withFlex(1.0f));
+    uiColumn.items.add(juce::FlexItem(positionControlRow).withFlex(1.0f));
     uiColumn.items.add(juce::FlexItem(globalControlRow).withFlex(1.0f));
     uiColumn.performLayout(bounds);
 }
 
 std::vector<juce::Component*> MareverbAudioProcessorEditor::getComponents() {
-    return { &globalMixControl, &decayControl, &motionPatternControl, &motionRateControl, &motionModAControl, &motionModBControl };
+    return { &globalMixControl, &decayControl, &positionPatternControl, &positionRateControl, &positionModAControl, &positionModBControl };
 }

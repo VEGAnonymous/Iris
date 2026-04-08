@@ -18,7 +18,7 @@ private:
     MareverbAudioProcessor& audioProcessor;
 
     // Listeners and callbacks
-    juce::Atomic<bool> motionPatternChanged { false };
+    juce::Atomic<bool> positionPatternChanged { false };
 
     void parameterChanged (const juce::String& parameterID, float newValue) override;
     void timerCallback() override;
@@ -30,12 +30,12 @@ private:
     };
 
     Rotary globalMixControl, decayControl,
-        motionRateControl, motionModAControl, motionModBControl;
+        positionRateControl, positionModAControl, positionModBControl;
     juce::AudioProcessorValueTreeState::SliderAttachment globalMixControlAttachment, decayControlAttachment, 
-        motionRateControlAttachment, motionModAControlAttachment, motionModBControlAttachment;
+        positionRateControlAttachment, positionModAControlAttachment, positionModBControlAttachment;
 
-    juce::ComboBox motionPatternControl;
-    juce::AudioProcessorValueTreeState::ComboBoxAttachment motionPatternControlAttachment;
+    juce::ComboBox positionPatternControl;
+    juce::AudioProcessorValueTreeState::ComboBoxAttachment positionPatternControlAttachment;
 
     std::vector<juce::Component*> getComponents();
     
