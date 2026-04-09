@@ -13,9 +13,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     layout.add(std::make_unique<juce::AudioParameterFloat>("Global Mix", "Global Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("Decay", "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterChoice>("Position Pattern", "Position Pattern", positionPatterns, static_cast<int>(PositionPattern::LISSAJOUS)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Position Rate", "Position Rate", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Position Rate", "Position Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("Position Mod A", "Position Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("Position Mod B", "Position Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("Field Pattern", "Field Pattern", fieldPatterns, static_cast<int>(FieldPattern::RING)));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Field Rate", "Field Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Field Mod A", "Field Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Field Mod B", "Field Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
 
     return layout;
 }
@@ -30,15 +34,19 @@ void MareverbAudioProcessor::updateParameters() {
     }
 
     motionController.setPositionParameters({settings.positionPattern, settings.positionRate, settings.positionModA, settings.positionModB});
+    motionController.setFieldParameters({MAX_IR_COUNT, settings.fieldPattern, settings.fieldRate, settings.fieldModA, settings.fieldModB});
 }
 
 // Time
 
 void MareverbAudioProcessor::advancePhase() {
-    float freq = apvts.getRawParameterValue("Position Rate")->load() * 0.2f;
-    float phaseIncrement = juce::MathConstants<float>::twoPi * freq
+    float positionFreq = apvts.getRawParameterValue("Position Rate")->load() * 0.2f;
+    float fieldFreq = apvts.getRawParameterValue("Field Rate")->load() * 0.05f;
+    float positionPhaseIncrement = juce::MathConstants<float>::twoPi * positionFreq
         * (static_cast<float>(getBlockSize()) / static_cast<float>(getSampleRate()));
-    globalTime += phaseIncrement;
+    float fieldPhaseIncrement = juce::MathConstants<float>::twoPi * fieldFreq
+        * (static_cast<float>(getBlockSize()) / static_cast<float>(getSampleRate()));
+    positionTime += positionPhaseIncrement; fieldTime += fieldPhaseIncrement;
 }
 
 // Polar map, motion
@@ -76,7 +84,7 @@ void MareverbAudioProcessor::connectAudioNodes() {
 MareverbAudioProcessor::MareverbAudioProcessor()
      : AudioProcessor (BusesProperties().withInput  ("Input", juce::AudioChannelSet::stereo(), true)
                                         .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
-       mainProcessor(new juce::AudioProcessorGraph()), motionController(&polarMap, &globalTime), irWeights(2) {
+       mainProcessor(new juce::AudioProcessorGraph()), motionController(&polarMap, &positionTime, &fieldTime), irWeights(2) {
 
     // Init nodes
     audioInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioInputNode));
@@ -150,7 +158,7 @@ bool MareverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) 
 #endif
 
 // DSP
-void MareverbAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) {
+void MareverbAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     mainProcessor->setPlayConfigDetails(getMainBusNumInputChannels(), getMainBusNumOutputChannels(), sampleRate, samplesPerBlock);
     mainProcessor->prepareToPlay(sampleRate, samplesPerBlock);
     connectAudioNodes();
@@ -160,13 +168,13 @@ void MareverbAudioProcessor::releaseResources() {
     mainProcessor->releaseResources();
 }
 
-void MareverbAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+void MareverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
+    auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+        buffer.clear(i, 0, buffer.getNumSamples());
 
     // Block rate updates
     advancePhase();
@@ -175,14 +183,26 @@ void MareverbAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     // Control rate updates
     controlCounter += buffer.getNumSamples();
     if (controlCounter >= static_cast<int>(getSampleRate() / CONTROL_RATE)) {
-        // Position
-        motionController.updateCoordinates();
+        // Position + field
+        motionController.updateField();
         motionController.updatePosition();
-        // Weights
-        if (motionController.hasUpdated()) {
+        
+        // Pass state to GUI
+        if (motionController.hasPositionUpdated()) {
             position.store(polarMap.getPosition(), std::memory_order_relaxed);
             positionChanged.store(true, std::memory_order_release);
+        }
 
+        if (motionController.hasFieldUpdated() || updateField.exchange(false, std::memory_order_relaxed)) {
+            if (fieldMutex.try_lock()) {
+                fieldCoordinates = polarMap.getCoordinates();
+                fieldMutex.unlock();
+                fieldChanged.store(true, std::memory_order_release);
+            }
+        }
+
+        // Weights
+        if (motionController.hasPositionUpdated() || motionController.hasFieldUpdated()) {
             polarMap.computeRelatives();
             updateWeights();
             auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
@@ -226,6 +246,10 @@ Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState&
     settings.positionRate = parameters.getRawParameterValue("Position Rate")->load();
     settings.positionModA = parameters.getRawParameterValue("Position Mod A")->load();
     settings.positionModB = parameters.getRawParameterValue("Position Mod B")->load();
+    settings.fieldPattern = static_cast<FieldPattern>(parameters.getRawParameterValue("Field Pattern")->load());
+    settings.fieldRate = parameters.getRawParameterValue("Field Rate")->load();
+    settings.fieldModA = parameters.getRawParameterValue("Field Mod A")->load();
+    settings.fieldModB = parameters.getRawParameterValue("Field Mod B")->load();
 
     return settings;
 }

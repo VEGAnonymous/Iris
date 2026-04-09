@@ -4,8 +4,9 @@
 
 // Defines
 static constexpr auto sqrt2_2 = juce::MathConstants<float>::sqrt2 / 2.0f;
+static constexpr auto EPSILON = 1e-3f;
 
-static constexpr auto REFRESH_RATE = 60;
+static constexpr auto REFRESH_RATE = 30;
 static constexpr auto CONTROL_RATE = 25.0f;
 
 static constexpr auto N_CHANNELS = 2; // Stereo
@@ -18,7 +19,7 @@ static constexpr auto FFT_ORDER = 11; // 2^11, hardcoded
 static constexpr auto HOP_SIZE = FFT_SIZE / 4; // L
 
 const juce::StringArray positionPatterns { "Vanilla", "Orbit", "Spiral", "Floral", "Lissajous", "Random", "Walk" };
-const juce::StringArray coordinatePatterns { "Vanilla", "Ring", "Orbit", "Grid", "Random", "Walk" };
+const juce::StringArray fieldPatterns { "Vanilla", "Ring", "Orbit", "Grid", "Random", "Walk" };
 
 // Aliases
 using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
@@ -26,7 +27,7 @@ using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
 // Enums
 enum class Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
 enum class PositionPattern { MANUAL, ORBIT, SPIRAL, LISSAJOUS, FLORAL, RANDOM_DISCRETE, RANDOM_WALK };
-enum class CoordinatePattern { MANUAL, RING, ORBIT, GRID, RANDOM_DISCRETE, RANDOM_WALK };
+enum class FieldPattern{ MANUAL, RING, ORBIT, GRID, RANDOM_DISCRETE, RANDOM_WALK };
 
 // Structs
 struct Settings {
@@ -34,12 +35,30 @@ struct Settings {
     float decay;
     PositionPattern positionPattern;
     float positionRate, positionModA, positionModB;
+    FieldPattern fieldPattern;
+    float fieldRate, fieldModA, fieldModB;
 
     Settings() : globalMix(0.5f), decay(0.5f),
         positionPattern(PositionPattern::LISSAJOUS),
-        positionRate(0.0f), positionModA(0.5f), positionModB(0.5f)
+        positionRate(0.0f), positionModA(0.5f), positionModB(0.5f),
+        fieldPattern(FieldPattern::ORBIT),
+        fieldRate(0.0f), fieldModA(0.5f), fieldModB(0.5f)
     {}
 };
 
-struct CartesianCoordinate { float x, y; };
-struct PolarCoordinate { float r, theta; };
+struct CartesianCoordinate { 
+    float x, y; 
+    bool operator==(const CartesianCoordinate& b) const {
+        return std::fabs(x - b.x) < EPSILON && std::fabs(y - b.y) < EPSILON;
+    }
+};
+
+struct PolarCoordinate {
+    float r, theta;
+    bool operator==(const PolarCoordinate& b) const {
+        // Unwrap angle
+        float dTheta = std::fmod(std::fabs(theta - b.theta), juce::MathConstants<float>::twoPi);
+        if (dTheta > juce::MathConstants<float>::pi) dTheta = juce::MathConstants<float>::twoPi - dTheta;
+        return std::fabs(r - b.r) < EPSILON && dTheta < EPSILON;
+    }
+};

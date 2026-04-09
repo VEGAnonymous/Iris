@@ -28,7 +28,7 @@ private:
     std::array<juce::AudioBuffer<float>, MAX_IR_COUNT> activeIRBuffers;
 
     // Time
-    float globalTime = 0.0f;
+    float positionTime = 0.0f, fieldTime = 0.0f;
     int controlCounter = 0;
 
     void advancePhase();
@@ -91,4 +91,9 @@ public:
 
     std::atomic<PolarCoordinate> position {{0.0f, 0.0f}};
     std::atomic<bool> positionChanged {false};
+
+    std::vector<PolarCoordinate> fieldCoordinates;
+    std::mutex fieldMutex;
+    std::atomic<bool> fieldChanged {false}; // Notify editor
+    std::atomic<bool> updateField {false}; // Editor forced update (e.g., parameter changes)
 };

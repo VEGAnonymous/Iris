@@ -11,7 +11,24 @@ CartesianCoordinate PolarMapComponent::map(CartesianCoordinate p) const { // [-1
     };
 }
 
-void PolarMapComponent::buildPath() {
+juce::Rectangle<float> PolarMapComponent::toBounds(PolarCoordinate p, float radius) const { // Coordinate -> fillEllipse() bounds
+    CartesianCoordinate c = map(polarToCartesian(p));
+    return { c.x - radius, c.y - radius, radius * 2.0f, radius * 2.0f };
+}
+
+void PolarMapComponent::notifyPathChanged() { pathChanged = true; repaint(); }
+void PolarMapComponent::notifyPositionChanged(PolarCoordinate nPosition) {
+    currentPosition = nPosition;
+    repaint(positionBounds.toNearestInt().expanded(1)); // Clear old bounds
+    repaint(toBounds(nPosition, positionRadius).toNearestInt().expanded(1)); // Repaint at new bounds
+}
+void PolarMapComponent::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates) {
+    for (const auto& coord : fieldCoordinates) repaint(toBounds(coord, coordinateRadius).toNearestInt().expanded(1)); // Clear old bounds
+    fieldCoordinates = std::move(nCoordinates);
+    for (const auto& coord : fieldCoordinates) repaint(toBounds(coord, coordinateRadius).toNearestInt().expanded(1)); // Repaint at new bounds
+}
+
+void PolarMapComponent::repaintPath() {
     parametricPath.clear();
 
     Settings settings = MareverbAudioProcessor::getSettings(audioProcessor.apvts);
@@ -19,26 +36,14 @@ void PolarMapComponent::buildPath() {
 
     if (positionPattern == PositionPattern::RANDOM_DISCRETE || positionPattern == PositionPattern::RANDOM_WALK) return;
     float& positionModA = settings.positionModA, positionModB = settings.positionModB;
-    CartesianCoordinate initP = map(polarToCartesian(MotionController::computeParametric({positionPattern, 0.0f, positionModA, positionModB}, 0.0f))); // t = 0
+    CartesianCoordinate initP = map(polarToCartesian(MotionController::computePositionParametric({ positionPattern, 0.0f, positionModA, positionModB }, 0.0f))); // t = 0
     parametricPath.startNewSubPath(initP.x, initP.y);
     for (float t = 0.01f; t < 10.0f; t += 0.01f) {
-        CartesianCoordinate p = map(polarToCartesian(MotionController::computeParametric({positionPattern, 0.0f, positionModA, positionModB}, t)));
+        CartesianCoordinate p = map(polarToCartesian(MotionController::computePositionParametric({ positionPattern, 0.0f, positionModA, positionModB }, t)));
         parametricPath.lineTo(p.x, p.y);
     }
 
     pathChanged = false;
-}
-
-void PolarMapComponent::notifyPathChanged() { pathChanged = true; repaint(); }
-void PolarMapComponent::notifyPositionChanged(PolarCoordinate nPosition) {
-    currentPosition = nPosition;
-    repaint(indicatorBounds.toNearestInt().expanded(1)); // Clear old position
-    
-    // Paint new position
-    CartesianCoordinate nPos = map(polarToCartesian(nPosition));
-    auto nBounds = juce::Rectangle<float>(nPos.x - indicatorRadius, nPos.y - indicatorRadius, 
-        indicatorRadius * 2.0f, indicatorRadius * 2.0f);
-    repaint(nBounds.toNearestInt().expanded(1));
 }
 
 void PolarMapComponent::paint(juce::Graphics& g) {
@@ -52,18 +57,24 @@ void PolarMapComponent::paint(juce::Graphics& g) {
     g.drawEllipse(bounds, 2.0f);
 
     // Parametric path
-    if (pathChanged) buildPath();
+    if (pathChanged) repaintPath();
     if (!parametricPath.isEmpty()) {
         g.setColour(juce::Colours::white);
         g.setOpacity(0.2f);
         g.strokePath(parametricPath, juce::PathStrokeType(2.0f));
     }
 
-    // Position indicator
-    CartesianCoordinate currentPos = map(polarToCartesian(currentPosition));
-    indicatorBounds = { currentPos.x - indicatorRadius, currentPos.y - indicatorRadius,
-        indicatorRadius * 2.0f, indicatorRadius * 2.0f };
-    g.setColour(juce::Colours::lightcyan);
     g.setOpacity(1.0f);
-    g.fillEllipse(indicatorBounds);
+
+    // Position indicator
+    positionBounds = toBounds(currentPosition, positionRadius);
+    g.setColour(juce::Colours::lightcyan);
+    g.fillEllipse(positionBounds);
+
+    // Field indicators
+    for (const auto& coordinate : fieldCoordinates) {
+        auto coordinateBounds = toBounds(coordinate, coordinateRadius);
+        g.setColour(juce::Colours::aqua);
+        g.fillEllipse(coordinateBounds);
+    }
 }

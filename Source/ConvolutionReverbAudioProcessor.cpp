@@ -52,10 +52,10 @@ void ConvolutionReverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buf
 // STATE
 
 void ConvolutionReverbAudioProcessor::setMix(float nMix) {
-    if (nMix != mix) { mix = nMix; mixer.setWetMixProportion(nMix); DBG("Set mix " << nMix); }
+    if (nMix != mix) { mix = nMix; mixer.setWetMixProportion(nMix); }
 }
 void ConvolutionReverbAudioProcessor::setDecay(float nDecay) {
-    if (nDecay != decay) { decay = nDecay; convolutionReverb.setDecay(nDecay); DBG("Set decay " << nDecay); }
+    if (nDecay != decay) { decay = nDecay; convolutionReverb.setDecay(nDecay); }
 }
 
 void ConvolutionReverbAudioProcessor::setWeights(std::vector<std::array<float, MAX_IR_COUNT>> nWeights) {

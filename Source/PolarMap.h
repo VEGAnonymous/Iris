@@ -23,6 +23,7 @@ public:
 	std::vector<PolarCoordinate> getCoordinates() const;
 	PolarCoordinate getRelative(int index) const;
 	std::vector<PolarCoordinate> getRelatives() const;
+	int getCoordinateCount() const;
 
 	PolarCoordinate computeRelative(PolarCoordinate p1, PolarCoordinate p2,
 		Axis reference = Axis::Y_AXIS, bool computeAngle = true);

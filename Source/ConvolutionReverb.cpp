@@ -193,7 +193,7 @@ void ConvolutionReverb::setDecay(float decay) {
 	float alpha = totalDB / static_cast<float>(maxIRPartitionCount); // dB
 	float envelope = powf(10.0f, alpha / 20.0f); // Linear
 	for (int partition = 0; partition < maxIRPartitionCount; ++partition)
-		irEnvelopes[partition] = powf(envelope, partition);
+		irEnvelopes[partition] = powf(envelope, static_cast<float>(partition));
 }
 
 void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {

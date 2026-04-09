@@ -18,7 +18,7 @@ void PolarMap::setPosition(PolarCoordinate pos) { position = pos; }
 void PolarMap::setCoordinate(int index, PolarCoordinate coordinate, bool setRelative) {
     if (index < 0) return;
     PolarCoordinate rel = setRelative ? computeRelative(position, coordinate, Axis::Y_AXIS, true) : PolarCoordinate{0.0f, 0.0f};
-    if (index >= coordinates.size()) { coordinates.push_back(coordinate); relatives.push_back(rel); }
+    if (index >= coordinates.size()) { coordinates.emplace_back(coordinate); relatives.emplace_back(rel); }
     else { coordinates[index] = coordinate; relatives[index] = rel; }
 }
 void PolarMap::setCoordinates(std::vector<PolarCoordinate> coords, bool setRelatives) { 
@@ -38,6 +38,7 @@ PolarCoordinate PolarMap::getRelative(int index) const {
     else return relatives[index];
 }
 std::vector<PolarCoordinate> PolarMap::getRelatives() const { return relatives; }
+int PolarMap::getCoordinateCount() const { return static_cast<int>(coordinates.size()); }
 
 PolarCoordinate PolarMap::computeRelative(PolarCoordinate p1, PolarCoordinate p2, Axis reference, bool computeAngle) {
     // TODO: Optimize with approximations

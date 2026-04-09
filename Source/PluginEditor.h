@@ -30,12 +30,14 @@ private:
     };
 
     Rotary globalMixControl, decayControl,
-        positionRateControl, positionModAControl, positionModBControl;
+        positionRateControl, positionModAControl, positionModBControl,
+        fieldRateControl, fieldModAControl, fieldModBControl;
     juce::AudioProcessorValueTreeState::SliderAttachment globalMixControlAttachment, decayControlAttachment, 
-        positionRateControlAttachment, positionModAControlAttachment, positionModBControlAttachment;
+        positionRateControlAttachment, positionModAControlAttachment, positionModBControlAttachment,
+        fieldRateControlAttachment, fieldModAControlAttachment, fieldModBControlAttachment;
 
-    juce::ComboBox positionPatternControl;
-    juce::AudioProcessorValueTreeState::ComboBoxAttachment positionPatternControlAttachment;
+    juce::ComboBox positionPatternControl, fieldPatternControl;
+    juce::AudioProcessorValueTreeState::ComboBoxAttachment positionPatternControlAttachment, fieldPatternControlAttachment;
 
     std::vector<juce::Component*> getComponents();
     

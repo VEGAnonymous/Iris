@@ -6,14 +6,14 @@
 class MotionController {
 private:
 	PolarMap* polarMap;
-	float* t;
+	float* positionTime; float* fieldTime;
+	bool positionUpdated = false, fieldUpdated = false;
 
 	struct PositionParameters {
 		PositionPattern positionPattern = PositionPattern::LISSAJOUS;
 		float positionRate = 0.5f;
 		float positionModA = 0.5f, positionModB = 0.5f;
 	};
-
 	struct PositionState {
 		PolarCoordinate currentPosition {0.0f, 0.0f};
 		// Discrete
@@ -22,33 +22,43 @@ private:
 		// Walk
 		CartesianCoordinate walkVelocity {0.0f, 0.0f};
 	};
-
 	PositionParameters positionParameters;
 	PositionState positionState;
-	bool updated = false;
+
+	struct FieldParameters {
+		int fieldCount = 0;
+		FieldPattern fieldPattern = FieldPattern::RING;
+		float fieldRate = 0.5f;
+		float fieldModA = 0.5f, fieldModB = 0.5f;
+	};
+	struct FieldState {
+		std::vector<PositionState> coordinateStates {};
+	};
+	FieldParameters fieldParameters;
+	FieldState fieldState;
+
+	static PolarCoordinate randomDiscrete(PositionParameters positionParameters, PositionState& positionState, float t);
+	static PolarCoordinate randomWalk(PositionParameters positionParameters, PositionState& positionState, float t);
+	
 public:
-	MotionController(PolarMap* initMap, float* initT);
+	MotionController(PolarMap* map, float* positionTimer, float* fieldTimer);
 	~MotionController() = default;
 
-	static PolarCoordinate computeParametric(PositionParameters positionParameters, float t);
+	static PolarCoordinate computePositionParametric(PositionParameters positionParameters, float t);
 	static PolarCoordinate computePosition(PositionParameters positionParameters, PositionState& positionState, float t);
 
+	static std::vector<PolarCoordinate> computeFieldParametric(FieldParameters fieldParameters, float t);
+	static std::vector<PolarCoordinate> computeField(FieldParameters fieldParameters, FieldState& fieldState, float t);
+
 	void updatePosition();
-	void updateCoordinates();
+	void updateField();
 
 	void setPolarMap(PolarMap* nPolarMap);
-	void setTimer(float* nT);
+	void setPositionTimer(float* nPT); 
+	void setFieldTimer(float* nFT);
 	void setPositionParameters(PositionParameters nPositionParameters);
-	void setPositionPattern(PositionPattern nPositionPattern);
-	void setPositionRate(float nPositionRate);
-	void setPositionModA(float nPositionModA);
-	void setPositionModB(float nPositionModB);
+	void setFieldParameters(FieldParameters nFieldParameters);
 
-	PolarMap* getPolarMap() const;
-	float* getTimer() const;
-	PositionPattern getPositionPattern() const;
-	float getPositionRate() const;
-	float getPositionModA() const;
-	float getPositionModB() const;
-	bool hasUpdated() const;
+	bool hasPositionUpdated() const;
+	bool hasFieldUpdated() const;
 };
