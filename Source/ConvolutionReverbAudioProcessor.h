@@ -45,8 +45,8 @@ public:
 	bool hasEditor() const override { return false; }
 
 	// STATE
-    void getStateInformation (juce::MemoryBlock& destData) override {}
-	void setStateInformation(const void* data, int sizeInBytes) override {}
+    void getStateInformation (juce::MemoryBlock& /*destData*/) override {}
+	void setStateInformation(const void* /*data*/, int /*sizeInBytes*/) override {}
 
 	void setMix(float nMix);
 	void setDecay(float nDecay);

@@ -27,18 +27,20 @@ private:
 
 	struct FieldParameters {
 		int fieldCount = 0;
+		int fieldSelect = 0;
 		FieldPattern fieldPattern = FieldPattern::RING;
 		float fieldRate = 0.5f;
 		float fieldModA = 0.5f, fieldModB = 0.5f;
 	};
 	struct FieldState {
 		std::vector<PositionState> coordinateStates {};
+		std::vector<PolarCoordinate> nextCoordinates {};
 	};
 	FieldParameters fieldParameters;
 	FieldState fieldState;
 
-	static PolarCoordinate randomDiscrete(PositionParameters positionParameters, PositionState& positionState, float t);
-	static PolarCoordinate randomWalk(PositionParameters positionParameters, PositionState& positionState, float t);
+	static PolarCoordinate randomDiscrete(PositionParameters positionParameters, PositionState& positionState);
+	static PolarCoordinate randomWalk(PositionParameters positionParameters, PositionState& positionState);
 	
 public:
 	MotionController(PolarMap* map, float* positionTimer, float* fieldTimer);
@@ -47,8 +49,8 @@ public:
 	static PolarCoordinate computePositionParametric(PositionParameters positionParameters, float t);
 	static PolarCoordinate computePosition(PositionParameters positionParameters, PositionState& positionState, float t);
 
-	static std::vector<PolarCoordinate> computeFieldParametric(FieldParameters fieldParameters, float t);
-	static std::vector<PolarCoordinate> computeField(FieldParameters fieldParameters, FieldState& fieldState, float t);
+	static void computeFieldParametric(FieldParameters fieldParameters, std::vector<PolarCoordinate>& outputCoordinates, float t);
+	static void computeField(FieldParameters fieldParameters, FieldState& fieldState, float t);
 
 	void updatePosition();
 	void updateField();

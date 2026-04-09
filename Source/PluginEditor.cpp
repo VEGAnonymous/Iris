@@ -5,7 +5,7 @@
 
 /* PRIVATE */
 
-void MareverbAudioProcessorEditor::parameterChanged(const juce::String& parameterID, float newValue) {
+void MareverbAudioProcessorEditor::parameterChanged(const juce::String& parameterID, float /*newValue*/) {
     if (parameterID == "Position Pattern" || parameterID == "Position Mod A" || parameterID == "Position Mod B")
         positionPatternChanged.set(true);
     else if (parameterID == "Field Pattern" || parameterID == "Field Mod A" || parameterID == "Field Mod B")

@@ -27,18 +27,28 @@ private:
     std::array<juce::File, MAX_IR_COUNT> activeIRFiles;
     std::array<juce::AudioBuffer<float>, MAX_IR_COUNT> activeIRBuffers;
 
+    bool loadIR(int irIndex, int fileIndex = -1);
+    bool loadRandomIR(int irIndex);
+
     // Time
+
     float positionTime = 0.0f, fieldTime = 0.0f;
     int controlCounter = 0;
 
     void advancePhase();
 
-    // Polar map, motion, weights
+    // Binaural processing
+
+    void processBinaural(const std::array<float, MAX_IR_COUNT>& rawWeights, const std::vector<PolarCoordinate>& relatives);
+
+    // Polar map, motion
 
     PolarMap polarMap;
     MotionController motionController;
-    std::vector<std::array<float, MAX_IR_COUNT>> irWeights {};
 
+    // Weights
+
+    std::vector<std::array<float, MAX_IR_COUNT>> irWeights {};
     void updateWeights();
 
     // Processor graph
@@ -54,9 +64,6 @@ public:
     MareverbAudioProcessor();
     ~MareverbAudioProcessor() override;
 
-    bool loadIR(int irIndex, int fileIndex = -1);
-    bool loadRandomIR(int irIndex);
-
     // Boilerplate
     const juce::String getName() const override { return JucePlugin_Name; }
     bool acceptsMidi() const override { return false; }
@@ -65,9 +72,9 @@ public:
     double getTailLengthSeconds() const override;
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
-    void setCurrentProgram(int index) override {};
-    const juce::String getProgramName(int index) override { return {}; }
-    void changeProgramName(int index, const juce::String& newName) override {};
+    void setCurrentProgram(int /*index*/) override {};
+    const juce::String getProgramName(int /*index*/) override { return {}; }
+    void changeProgramName(int /*index*/, const juce::String& /*newName*/) override {};
 #ifndef JucePlugin_PreferredChannelConfigurations
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
 #endif

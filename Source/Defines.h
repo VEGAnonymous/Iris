@@ -18,8 +18,9 @@ static constexpr auto FFT_SIZE = 4 * L; // 2048
 static constexpr auto FFT_ORDER = 11; // 2^11, hardcoded
 static constexpr auto HOP_SIZE = FFT_SIZE / 4; // L
 
+const juce::StringArray weightingModes { "Absolute", "Relative" };
 const juce::StringArray positionPatterns { "Vanilla", "Orbit", "Spiral", "Floral", "Lissajous", "Random", "Walk" };
-const juce::StringArray fieldPatterns { "Vanilla", "Ring", "Orbit", "Grid", "Random", "Walk" };
+const juce::StringArray fieldPatterns { "Vanilla", "Ring", "Orbits", "Random", "Walk" };
 
 // Aliases
 using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
@@ -27,21 +28,22 @@ using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
 // Enums
 enum class Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
 enum class PositionPattern { MANUAL, ORBIT, SPIRAL, LISSAJOUS, FLORAL, RANDOM_DISCRETE, RANDOM_WALK };
-enum class FieldPattern{ MANUAL, RING, ORBIT, GRID, RANDOM_DISCRETE, RANDOM_WALK };
+enum class FieldPattern{ MANUAL, RING, ORBITS, RANDOM_DISCRETE, RANDOM_WALK };
 
 // Structs
 struct Settings {
-    float globalMix;
-    float decay;
+    float globalMix, decay;
     PositionPattern positionPattern;
     float positionRate, positionModA, positionModB;
+    int fieldSelect;
     FieldPattern fieldPattern;
     float fieldRate, fieldModA, fieldModB;
 
     Settings() : globalMix(0.5f), decay(0.5f),
         positionPattern(PositionPattern::LISSAJOUS),
         positionRate(0.0f), positionModA(0.5f), positionModB(0.5f),
-        fieldPattern(FieldPattern::ORBIT),
+        fieldSelect(0),
+        fieldPattern(FieldPattern::RING),
         fieldRate(0.0f), fieldModA(0.5f), fieldModB(0.5f)
     {}
 };
