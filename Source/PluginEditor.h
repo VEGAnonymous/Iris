@@ -18,7 +18,7 @@ private:
 
     // Parameters
     const std::vector<juce::String> paramIDs = {
-        ParamID::globalMix, ParamID::decay,
+        ParamID::globalMix, ParamID::decay, ParamID::lowCut, ParamID::highCut,
         ParamID::weightingMode, ParamID::strength, ParamID::spread,
         ParamID::positionPattern, ParamID::positionRate, ParamID::positionModA, ParamID::positionModB,
         ParamID::fieldPattern, ParamID::fieldRate, ParamID::fieldModA, ParamID::fieldModB
@@ -32,12 +32,13 @@ private:
         ) {}
     };
 
-    Rotary globalMixControl, decayControl,
+    Rotary globalMixControl, decayControl, lowCutControl, highCutControl,
         strengthControl, spreadControl,
         positionRateControl, positionModAControl, positionModBControl,
         fieldRateControl, fieldModAControl, fieldModBControl;
 
-    juce::AudioProcessorValueTreeState::SliderAttachment globalMixControlAttachment, decayControlAttachment, 
+    juce::AudioProcessorValueTreeState::SliderAttachment 
+        globalMixControlAttachment, decayControlAttachment, lowCutControlAttachment, highCutControlAttachment,
         strengthControlAttachment, spreadControlAttachment,
         positionRateControlAttachment, positionModAControlAttachment, positionModBControlAttachment,
         fieldRateControlAttachment, fieldModAControlAttachment, fieldModBControlAttachment;

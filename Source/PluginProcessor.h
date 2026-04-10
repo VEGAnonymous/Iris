@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ConvolutionReverbAudioProcessor.h"
+#include "CutFilterAudioProcessor.h"
 #include "Defines.h"
 #include "MotionController.h"
 #include "PolarMap.h"
@@ -16,6 +17,8 @@ private:
     juce::ApplicationProperties applicationProperties;
 
     // Parameters
+    float mix = 0.5f; 
+
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void updateParameters();
     void updateSwapIntervals();
@@ -89,11 +92,13 @@ private:
 
     // Processor graph
     std::unique_ptr<juce::AudioProcessorGraph> mainProcessor;
-    juce::AudioProcessorGraph::Node::Ptr audioInputNode, audioOutputNode, convolutionVerbNode;
+    juce::AudioProcessorGraph::Node::Ptr audioInputNode, audioOutputNode, convolutionVerbNode, cutFilterNode;
+    juce::dsp::DryWetMixer<float> mixer;
 
     void connectAudioNodes();
 
     ConvolutionReverbAudioProcessor* getConvolutionReverbProcessor() const;
+    CutFilterAudioProcessor* getCutFilterProcessor() const;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MareverbAudioProcessor)
 

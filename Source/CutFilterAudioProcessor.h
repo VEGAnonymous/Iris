@@ -1,31 +1,38 @@
 #pragma once
 
-#include "ConvolutionReverb.h"
-#include "PolarMap.h"
-#include "MotionController.h"
+#include "Defines.h"
 
 #include <JuceHeader.h>
 
-class ConvolutionReverbAudioProcessor : public juce::AudioProcessor {
+class CutFilterAudioProcessor : public juce::AudioProcessor {
 private:
-	// DSP
-	ConvolutionReverb convolutionReverb;
+	enum class CutFilterIndex { LOW_CUT, HIGH_CUT };
+	using StereoFilter = juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>>;
+	using FilterChain = juce::dsp::ProcessorChain<StereoFilter, StereoFilter>;
+
+	FilterChain chain;
 
 	// Parameters
-	float decay = 0.5f;
+	float lowCutCutoff = 20.0f, highCutCutoff = 20000.0f;
 
-	std::vector<std::array<float, MAX_IR_COUNT>> weights;
+	void updateFilter(float lowCutCutoff, float highCutCutoff, double sampleRate) {
+		auto lowCoeffs = juce::dsp::FilterDesign<float>
+			::designIIRHighpassHighOrderButterworthMethod(lowCutCutoff, sampleRate, 1);
+
+		auto highCoeffs = juce::dsp::FilterDesign<float>
+			::designIIRLowpassHighOrderButterworthMethod(highCutCutoff, sampleRate, 1);
+	}
 
 public:
-	ConvolutionReverbAudioProcessor();
-	~ConvolutionReverbAudioProcessor() override;
+	CutFilterAudioProcessor();
+	~CutFilterAudioProcessor() override;
 
 	// Boilerplate
 	const juce::String getName() const override { return "Convolution Reverb"; }
 	bool acceptsMidi() const override { return false; }
 	bool producesMidi() const override { return false; }
 	bool isMidiEffect() const override { return false; }
-	double getTailLengthSeconds() const override;
+	double getTailLengthSeconds() const override { return 0.0f; }
 	int getNumPrograms() override { return 1; }
 	int getCurrentProgram() override { return 0; }
 	void setCurrentProgram(int) override {}
@@ -42,13 +49,13 @@ public:
 	juce::AudioProcessorEditor* createEditor() override { return nullptr; }
 	bool hasEditor() const override { return false; }
 
-    void getStateInformation (juce::MemoryBlock& /*destData*/) override {}
+	void getStateInformation(juce::MemoryBlock& /*destData*/) override {}
 	void setStateInformation(const void* /*data*/, int /*sizeInBytes*/) override {}
 
-	// Parameters
-	void setDecay(float nDecay);
-
-	void setWeights(std::vector<std::array<float, MAX_IR_COUNT>> nWeights);
-
-	ConvolutionReverb* getConvolutionReverb();
+	// State
+	void setLowCutCutoff(float nCutoff);
+	void setHighCutCutoff(float nCutoff);
+	
+	float getLowCutCutoff() const;
+	float getHighCutCutoff() const;
 };

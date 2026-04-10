@@ -25,6 +25,8 @@ namespace ParamID {
     static constexpr auto 
         globalMix = "Global Mix",
         decay = "Decay",
+        lowCut = "Low Cut",
+        highCut = "High Cut",
 
         weightingMode = "Weighting Mode",
         strength = "Strength",
@@ -60,7 +62,7 @@ enum class FieldPattern { MANUAL, RING, ORBITS, RANDOM_DISCRETE, RANDOM_WALK };
 
 // Structs
 struct Settings {
-    float globalMix, decay;
+    float globalMix, decay, lowCut, highCut;
     WeightingMode weightingMode; float strength, spread;
     PositionPattern positionPattern;
     float positionRate, positionModA, positionModB;
@@ -68,7 +70,7 @@ struct Settings {
     FieldPattern fieldPattern;
     float fieldRate, fieldModA, fieldModB;
 
-    Settings() : globalMix(0.5f), decay(0.5f),
+    Settings() : globalMix(0.5f), decay(0.5f), lowCut(20.0f), highCut(20000.0f),
 
         weightingMode(WeightingMode::ABSOLUTE), strength(0.5f), spread(1.0f),
 

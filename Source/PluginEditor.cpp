@@ -38,6 +38,8 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     globalMixControlAttachment(audioProcessor.apvts, ParamID::globalMix, globalMixControl),
     decayControlAttachment(audioProcessor.apvts, ParamID::decay, decayControl),
+    lowCutControlAttachment(audioProcessor.apvts, ParamID::lowCut, lowCutControl),
+    highCutControlAttachment(audioProcessor.apvts, ParamID::highCut, highCutControl),
 
     weightingModeControlAttachment(audioProcessor.apvts, ParamID::weightingMode, weightingModeControl),
     strengthControlAttachment(audioProcessor.apvts, ParamID::strength, strengthControl),
@@ -104,7 +106,7 @@ void MareverbAudioProcessorEditor::resized() {
         interactionControlRow.items.add(juce::FlexItem(*control).withFlex(1.0f).withMaxHeight(90));
 
     juce::FlexBox globalControlRow;
-    std::vector<juce::Component*> globalControls = { &globalMixControl, &decayControl };
+    std::vector<juce::Component*> globalControls = { &globalMixControl, &decayControl, &lowCutControl, &highCutControl };
     for (auto* control : globalControls) 
         globalControlRow.items.add(juce::FlexItem(*control).withFlex(1.0f).withMaxHeight(90));
 
@@ -120,7 +122,7 @@ void MareverbAudioProcessorEditor::resized() {
 
 std::vector<juce::Component*> MareverbAudioProcessorEditor::getControls() {
     return { 
-        &globalMixControl, &decayControl, 
+        &globalMixControl, &decayControl, &lowCutControl, &highCutControl,
         &weightingModeControl, &strengthControl, &spreadControl,
         &positionPatternControl, &positionRateControl, &positionModAControl, &positionModBControl,
         &fieldPatternControl, &fieldRateControl, &fieldModAControl, &fieldModBControl 

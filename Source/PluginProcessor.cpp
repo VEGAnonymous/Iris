@@ -11,7 +11,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
 
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::globalMix, "Global Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::decay, "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::lowCut, "Low Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::highCut, "High Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20000.0f));
+
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::weightingMode, "Weighting Mode", weightingModes, static_cast<int>(WeightingMode::ABSOLUTE)));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::strength, "Strength", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::spread, "Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 1.0f));
@@ -41,10 +43,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
 void MareverbAudioProcessor::updateParameters() {
     Settings settings = getSettings(apvts);
 
+    mixer.setWetMixProportion(settings.globalMix);
+
     auto* convProcessor = getConvolutionReverbProcessor();
-    if (convProcessor) {
-        convProcessor->setMix(settings.globalMix);
-        convProcessor->setDecay(settings.decay);
+    if (convProcessor) convProcessor->setDecay(settings.decay);
+
+    auto* cutProcessor = getCutFilterProcessor();
+    if (cutProcessor) {
+        if (settings.lowCut != cutProcessor->getLowCutCutoff()) cutProcessor->setLowCutCutoff(settings.lowCut);
+        if (settings.highCut != cutProcessor->getHighCutCutoff()) cutProcessor->setHighCutCutoff(settings.highCut);
     }
 
     motionController.setPositionParameters({
@@ -306,14 +313,19 @@ void MareverbAudioProcessor::connectAudioNodes() {
     if (!mainProcessor->getConnections().empty()) return;
     int inputChannels = audioInputNode->getProcessor()->getTotalNumOutputChannels(); 
     int outputChannels = 2;
-    for (int ch = 0; ch < inputChannels; ++ch)
+    for (int ch = 0; ch < inputChannels; ++ch) {
         mainProcessor->addConnection({ { audioInputNode->nodeID, ch }, { convolutionVerbNode->nodeID, ch } });
-    for (int ch = 0; ch < outputChannels; ++ch)
-        mainProcessor->addConnection({ { convolutionVerbNode->nodeID, ch }, { audioOutputNode->nodeID, ch } });
+        mainProcessor->addConnection({ { convolutionVerbNode->nodeID, ch }, { cutFilterNode->nodeID, ch } });
+        mainProcessor->addConnection({ { cutFilterNode->nodeID, ch }, { audioOutputNode->nodeID, ch } });
+    }
 }
 
 ConvolutionReverbAudioProcessor* MareverbAudioProcessor::getConvolutionReverbProcessor() const {
     return dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
+}
+
+CutFilterAudioProcessor* MareverbAudioProcessor::getCutFilterProcessor() const {
+    return dynamic_cast<CutFilterAudioProcessor*>(cutFilterNode->getProcessor());
 }
 
 /* PUBLIC */
@@ -321,7 +333,8 @@ ConvolutionReverbAudioProcessor* MareverbAudioProcessor::getConvolutionReverbPro
 MareverbAudioProcessor::MareverbAudioProcessor()
     : AudioProcessor(BusesProperties().withInput("Input", juce::AudioChannelSet::stereo(), true)
         .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-    mainProcessor(new juce::AudioProcessorGraph()), motionController(&polarMap, &positionTime, &fieldTime), irWeights(2) {
+    mainProcessor(new juce::AudioProcessorGraph()), motionController(&polarMap, &positionTime, &fieldTime), irWeights(2),
+    mixer(HOP_SIZE) {
 
     // Init properties
     juce::PropertiesFile::Options options;
@@ -333,6 +346,7 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     // Init nodes
     audioInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioInputNode));
     convolutionVerbNode = mainProcessor->addNode(std::make_unique<ConvolutionReverbAudioProcessor>());
+    cutFilterNode = mainProcessor->addNode(std::make_unique<CutFilterAudioProcessor>());
     audioOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioOutputNode));
 
     // Init IRs
@@ -368,9 +382,18 @@ bool MareverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) 
 
 // DSP
 void MareverbAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+    juce::dsp::ProcessSpec spec{ sampleRate, static_cast<juce::uint32>(samplesPerBlock), getNumOutputChannels() };
+
     mainProcessor->setPlayConfigDetails(getMainBusNumInputChannels(), getMainBusNumOutputChannels(), sampleRate, samplesPerBlock);
     mainProcessor->prepareToPlay(sampleRate, samplesPerBlock);
+
     connectAudioNodes();
+
+    mixer.setMixingRule(juce::dsp::DryWetMixingRule::sin3dB);
+    mixer.setWetLatency(HOP_SIZE);
+    mixer.prepare(spec);
+
+    updateParameters();
 }
 
 void MareverbAudioProcessor::releaseResources() {
@@ -425,7 +448,10 @@ void MareverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
         controlCounter = 0;
     }
 
+    // Process + mix chain
+    mixer.pushDrySamples(buffer);
     mainProcessor->processBlock(buffer, midiMessages);
+    mixer.mixWetSamples(buffer);
 }
 
 juce::AudioProcessorEditor* MareverbAudioProcessor::createEditor() { return new MareverbAudioProcessorEditor (*this); }
@@ -449,6 +475,8 @@ Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState&
 
     settings.globalMix = parameters.getRawParameterValue(ParamID::globalMix)->load();
     settings.decay = parameters.getRawParameterValue(ParamID::decay)->load();
+    settings.lowCut = parameters.getRawParameterValue(ParamID::lowCut)->load();
+    settings.highCut = parameters.getRawParameterValue(ParamID::highCut)->load();
     
     settings.weightingMode = static_cast<WeightingMode>(parameters.getRawParameterValue(ParamID::weightingMode)->load());
     settings.strength = parameters.getRawParameterValue(ParamID::strength)->load();
