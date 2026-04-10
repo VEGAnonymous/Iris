@@ -36,24 +36,36 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     globalMixControlAttachment(audioProcessor.apvts, "Global Mix", globalMixControl),
     decayControlAttachment(audioProcessor.apvts, "Decay", decayControl),
+
+    weightingModeControlAttachment(audioProcessor.apvts, "Weighting Mode", weightingModeControl),
+    strengthControlAttachment(audioProcessor.apvts, "Strength", strengthControl),
+    spreadControlAttachment(audioProcessor.apvts, "Spread", spreadControl),
+
     positionPatternControlAttachment(audioProcessor.apvts, "Position Pattern", positionPatternControl),
     positionRateControlAttachment(audioProcessor.apvts, "Position Rate", positionRateControl),
     positionModAControlAttachment(audioProcessor.apvts, "Position Mod A", positionModAControl),
     positionModBControlAttachment(audioProcessor.apvts, "Position Mod B", positionModBControl),
     fieldPatternControlAttachment(audioProcessor.apvts, "Field Pattern", fieldPatternControl),
+
     fieldRateControlAttachment(audioProcessor.apvts, "Field Rate", fieldRateControl),
     fieldModAControlAttachment(audioProcessor.apvts, "Field Mod A", fieldModAControl),
     fieldModBControlAttachment(audioProcessor.apvts, "Field Mod B", fieldModBControl) {
 
-    setSize(405, 621);
+    setSize(1216, 621);
 
     // Attach listeners
     audioProcessor.apvts.addParameterListener("Global Mix", this);
     audioProcessor.apvts.addParameterListener("Decay", this);
+
+    audioProcessor.apvts.addParameterListener("Weighting Mode", this);
+    audioProcessor.apvts.addParameterListener("Strength", this);
+    audioProcessor.apvts.addParameterListener("Spread", this);
+
     audioProcessor.apvts.addParameterListener("Position Pattern", this);
     audioProcessor.apvts.addParameterListener("Position Rate", this);
     audioProcessor.apvts.addParameterListener("Position Mod A", this);
     audioProcessor.apvts.addParameterListener("Position Mod B", this);
+
     audioProcessor.apvts.addParameterListener("Field Pattern", this);
     audioProcessor.apvts.addParameterListener("Field Rate", this);
     audioProcessor.apvts.addParameterListener("Field Mod A", this);
@@ -74,10 +86,16 @@ MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
     // Detach listeners
     audioProcessor.apvts.removeParameterListener("Global Mix", this);
     audioProcessor.apvts.removeParameterListener("Decay", this);
+
+    audioProcessor.apvts.removeParameterListener("Weighting Mode", this);
+    audioProcessor.apvts.removeParameterListener("Strength", this);
+    audioProcessor.apvts.removeParameterListener("Spread", this);
+
     audioProcessor.apvts.removeParameterListener("Position Pattern", this);
     audioProcessor.apvts.removeParameterListener("Position Rate", this);
     audioProcessor.apvts.removeParameterListener("Position Mod A", this);
     audioProcessor.apvts.removeParameterListener("Position Mod B", this);
+
     audioProcessor.apvts.removeParameterListener("Field Pattern", this);
     audioProcessor.apvts.removeParameterListener("Field Rate", this);
     audioProcessor.apvts.removeParameterListener("Field Mod A", this);
@@ -94,7 +112,7 @@ void MareverbAudioProcessorEditor::resized() {
     auto bounds = getLocalBounds();
 
     // Map
-    auto mareMapArea = bounds.removeFromTop(405);
+    auto mareMapArea = bounds.removeFromLeft(621);
     polarMapComponent.setBounds(mareMapArea);
 
     // Parameter rows
@@ -108,6 +126,11 @@ void MareverbAudioProcessorEditor::resized() {
     for (auto* component : fieldControls)
         fieldControlRow.items.add(juce::FlexItem(*component).withFlex(1.0f).withMaxHeight(90));
 
+    juce::FlexBox interactionControlRow;
+    std::vector<juce::Component*> interactionControls = { &weightingModeControl, &strengthControl, &spreadControl };
+    for (auto* component : interactionControls)
+        interactionControlRow.items.add(juce::FlexItem(*component).withFlex(1.0f).withMaxHeight(90));
+
     juce::FlexBox globalControlRow;
     std::vector<juce::Component*> globalControls = { &globalMixControl, &decayControl };
     for (auto* component : globalControls) 
@@ -118,12 +141,14 @@ void MareverbAudioProcessorEditor::resized() {
     uiColumn.flexDirection = juce::FlexBox::Direction::column;
     uiColumn.items.add(juce::FlexItem(positionControlRow).withFlex(1.0f));
     uiColumn.items.add(juce::FlexItem(fieldControlRow).withFlex(1.0f));
+    uiColumn.items.add(juce::FlexItem(interactionControlRow).withFlex(1.0f));
     uiColumn.items.add(juce::FlexItem(globalControlRow).withFlex(1.0f));
     uiColumn.performLayout(bounds);
 }
 
 std::vector<juce::Component*> MareverbAudioProcessorEditor::getComponents() {
     return { &globalMixControl, &decayControl, 
+        &weightingModeControl, &strengthControl, &spreadControl,
         &positionPatternControl, &positionRateControl, &positionModAControl, &positionModBControl,
         &fieldPatternControl, &fieldRateControl, &fieldModAControl, &fieldModBControl };
 }

@@ -1,8 +1,9 @@
 #pragma once
 
+#include "ConvolutionReverbAudioProcessor.h"
 #include "Defines.h"
-#include "PolarMap.h"
 #include "MotionController.h"
+#include "PolarMap.h"
 
 #include <JuceHeader.h>
 #include <array>
@@ -10,6 +11,10 @@
 
 class MareverbAudioProcessor : public juce::AudioProcessor {
 private:
+    // Settings
+
+    juce::ApplicationProperties applicationProperties;
+
     // Parameters
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
@@ -17,9 +22,15 @@ private:
 
     // IR management
 
+    std::unique_ptr<juce::FileChooser> irFileChooser, irDirectoryChooser;
+
     juce::Random irRNG;
 
-    juce::File irDirectory;
+    struct IRDirectory {
+        juce::File irDirectory;
+        bool active = true;
+    };
+    std::vector<IRDirectory> irDirectories;
     juce::Array<juce::File> irFiles;
 
     juce::AudioFormatManager formatManager;
@@ -27,8 +38,23 @@ private:
     std::array<juce::File, MAX_IR_COUNT> activeIRFiles;
     std::array<juce::AudioBuffer<float>, MAX_IR_COUNT> activeIRBuffers;
 
-    bool loadIR(int irIndex, int fileIndex = -1);
+    void saveDirectories();
+    void loadDirectories();
+
+    void chooseIR(int irIndex);
+    void chooseIRDirectory();
+
+    void addIRDirectory(juce::File dir);
+    void removeIRDirectory(int index);
+    void activateIRDirectory(int index, bool nState);
+
+    void collectIRs();
+
+    bool loadIR(int irIndex, juce::File file);
     bool loadRandomIR(int irIndex);
+    bool loadRandomIRs();
+    void clearIR(int irIndex);
+    void clearIRs();
 
     // Time
 
@@ -57,6 +83,8 @@ private:
     juce::AudioProcessorGraph::Node::Ptr audioInputNode, audioOutputNode, convolutionVerbNode;
 
     void connectAudioNodes();
+
+    ConvolutionReverbAudioProcessor* getConvolutionReverbProcessor() const;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MareverbAudioProcessor)
 

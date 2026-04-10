@@ -154,7 +154,9 @@ void MotionController::computeFieldParametric(FieldParameters fieldParameters, s
         case FieldPattern::RING: {
             float& radius = fieldModA; float offset = juce::jmap(fieldModB, 0.0f, juce::MathConstants<float>::twoPi);
             for (int coord = 0; coord < fieldCount; ++coord) {
-                float r = radius, theta = ((static_cast<float>(coord) * juce::MathConstants<float>::twoPi) / fieldCount) + offset + t;
+                DBG(outputCoordinates.size());
+                float r = radius,
+                      theta = ((static_cast<float>(coord) * juce::MathConstants<float>::twoPi) / fieldCount) + offset + t;
                 outputCoordinates[coord] = { r, theta };
             } break;
         }
@@ -185,8 +187,8 @@ void MotionController::computeField(FieldParameters fieldParameters, FieldState&
     };
 
     switch (fieldParameters.fieldPattern) {
-        case FieldPattern::RANDOM_DISCRETE: algorithm(randomDiscrete); break;
-        case FieldPattern::RANDOM_WALK: algorithm(randomWalk); break;
+        case FieldPattern::RANDOM_DISCRETE: { algorithm(randomDiscrete); break; }
+        case FieldPattern::RANDOM_WALK: { algorithm(randomWalk); break; }
         default: computeFieldParametric(fieldParameters, fieldState.nextCoordinates, t);
     }
 }
@@ -203,10 +205,20 @@ void MotionController::updatePosition() {
 
 void MotionController::updateField() {
     // Update field state from ground truth
+    const int& fieldCount = fieldParameters.fieldCount;
+
+    if (polarMap->getCoordinateCount() != fieldCount) { // Bootstrap
+        std::vector<PolarCoordinate> init(fieldCount, { 0.0f, 0.0f });
+        polarMap->setCoordinates(init, true);
+    }
+
+    jassert(polarMap->getCoordinateCount() != 0);
+
     const auto& current = polarMap->getCoordinates();
-    int coordinateCount = polarMap->getCoordinateCount();
-    fieldState.coordinateStates.resize(coordinateCount); fieldState.nextCoordinates.resize(coordinateCount);
-    for (int coord = 0; coord < coordinateCount; coord++) 
+    fieldState.coordinateStates.resize(fieldCount); 
+    fieldState.nextCoordinates.resize(fieldCount);
+
+    for (int coord = 0; coord < fieldCount; coord++) 
         fieldState.coordinateStates[coord].currentPosition = current[coord];
 
     computeField(fieldParameters, fieldState, *fieldTime); // Compute next field coordinates in-place

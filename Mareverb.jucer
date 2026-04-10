@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="Zdvz2w" name="Mareverb" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" defines="JUCE_USE_FLAC=1"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" defines="JUCE_USE_FLAC=1&#10;JUCE_USE_MP3AUDIOFORMAT=1&#10;JUCE_USE_OGGVORBIS=1"
               bundleIdentifier="lol.pony.Mareverb" companyEmail="lyranonymous@protonmail.com"
               companyName="Eponymous DSP" pluginManufacturerCode="Mare">
   <MAINGROUP id="uSBxoM" name="Mareverb">

@@ -77,6 +77,7 @@ public:
 
     void setInputChannels(int n);
     void setIRBuffer(int index, juce::AudioBuffer<float> irBuffer);
+    void clearIRBuffer(int index);
     void setUniformWeights();
     void setWeights(std::vector<std::array<float, MAX_IR_COUNT>> weights);
     void setDecay(float decay);

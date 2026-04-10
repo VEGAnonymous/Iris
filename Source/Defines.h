@@ -27,12 +27,14 @@ using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
 
 // Enums
 enum class Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
+enum class WeightingMode { ABSOLUTE, RELATIVE };
 enum class PositionPattern { MANUAL, ORBIT, SPIRAL, LISSAJOUS, FLORAL, RANDOM_DISCRETE, RANDOM_WALK };
 enum class FieldPattern{ MANUAL, RING, ORBITS, RANDOM_DISCRETE, RANDOM_WALK };
 
 // Structs
 struct Settings {
     float globalMix, decay;
+    WeightingMode weightingMode; float strength, spread;
     PositionPattern positionPattern;
     float positionRate, positionModA, positionModB;
     int fieldSelect;
@@ -40,6 +42,7 @@ struct Settings {
     float fieldRate, fieldModA, fieldModB;
 
     Settings() : globalMix(0.5f), decay(0.5f),
+        weightingMode(WeightingMode::ABSOLUTE), strength(0.5f), spread(1.0f),
         positionPattern(PositionPattern::LISSAJOUS),
         positionRate(0.0f), positionModA(0.5f), positionModB(0.5f),
         fieldSelect(0),

@@ -15,6 +15,7 @@ void ConvolutionReverb::updateMaxIRPartitionCount() {
 }
 
 void ConvolutionReverb::updateIRFFT(int irIndex) {
+	if (irIndex < 0 || irIndex >= MAX_IR_COUNT) return;
 	const auto& irBuffer = irBuffers[irIndex];
 	const int channelCount = irBuffer.getNumChannels();
 	irSpectra[irIndex].resize(channelCount);
@@ -113,6 +114,15 @@ void ConvolutionReverb::overlapAdd(int channel) {
 }
 
 void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
+	if (maxIRPartitionCount == 0) { // No IRs loaded, passthrough
+		int& writeIndex = outputWriteIndex[channel];
+		for (int j = 0; j < HOP_SIZE; ++j) {
+			outputBuffers[channel][writeIndex] = 0.0f;
+			writeIndex = (writeIndex + 1) & (outputSize - 1);
+		} if (channel == 0) hopCounter++;
+		return;
+	}
+
 	// Copy 2L samples to partition buffer
 	auto& partition = inputPartitions[channel];
 	std::fill(partition.begin(), partition.end(), 0.0f);
@@ -171,9 +181,18 @@ void ConvolutionReverb::setInputChannels(int n) {
 	outputReadIndex.resize(n);
 }
 
-void ConvolutionReverb::setIRBuffer(int index, juce::AudioBuffer<float> irBuffer) { 
-	irBuffers[index] = irBuffer;
-	updateIRFFT(index);
+void ConvolutionReverb::setIRBuffer(int index, juce::AudioBuffer<float> irBuffer) {
+	if (index >= 0 && index < MAX_IR_COUNT) {
+		irBuffers[index] = irBuffer;
+		updateIRFFT(index);
+	}
+}
+
+void ConvolutionReverb::clearIRBuffer(int index) {
+	if (index >= 0 && index < MAX_IR_COUNT) {
+		irSpectra[index].clear();
+		updateMaxIRPartitionCount();
+	}
 }
 
 void ConvolutionReverb::setUniformWeights() { 
@@ -187,6 +206,7 @@ void ConvolutionReverb::setWeights(std::vector<std::array<float, MAX_IR_COUNT>> 
 }
 
 void ConvolutionReverb::setDecay(float decay) {
+	decay = juce::jlimit(0.0f, 1.0f, decay);
 	const float minDB = -180.0f, maxDB = -30.0f;
 	float totalDB = minDB + (decay * (maxDB - minDB));
 
