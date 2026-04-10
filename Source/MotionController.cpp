@@ -5,67 +5,32 @@
 
 /* PRIVATE */
 
-/* 
-
-    PolarMap* polarMap;
-    float* positionTime; float* fieldTime;
-    bool positionUpdated = false, fieldUpdated = false;
-
-    struct PositionParameters {
-        PositionPattern positionPattern = PositionPattern::LISSAJOUS;
-        float positionRate = 0.5f;
-        float positionModA = 0.5f, positionModB = 0.5f;
-    };
-    struct PositionState {
-        PolarCoordinate currentPosition {0.0f, 0.0f};
-        // Discrete
-        CartesianCoordinate targetPosition {0.0f, 0.0f};
-        bool hasTarget = false;
-        // Walk
-        CartesianCoordinate walkVelocity {0.0f, 0.0f};
-    };
-    PositionParameters positionParameters;
-    PositionState positionState;
-
-    struct FieldParameters {
-        FieldPattern fieldPattern = FieldPattern::RING;
-        float fieldRate = 0.5f;
-        float fieldModA = 0.5f, fieldModB = 0.5f;
-    };
-    struct FieldState {
-        std::vector<PolarCoordinate> currentCoordinates {};
-    };
-    FieldParameters fieldParameters;
-    FieldState fieldState;
-
-*/
-
-/* PUBLIC */
-
-MotionController::MotionController(PolarMap* map, float* positionTimer, float* fieldTimer) 
-    : polarMap(map), positionTime(positionTimer), fieldTime(fieldTimer) {}
-
 PolarCoordinate MotionController::randomDiscrete(PositionParameters positionParameters, PositionState& positionState) {
-    float& radius = positionParameters.positionModA; 
-    float smoothing = juce::jmap(1.0f - positionParameters.positionModB, 0.05f, 1.0f);
-
     CartesianCoordinate currentPosition = polarToCartesian(positionState.currentPosition);
     CartesianCoordinate& targetPosition = positionState.targetPosition;
     bool& hasTarget = positionState.hasTarget;
 
-    float probability = std::fabs(positionParameters.positionRate) * 0.05f;
+    float radius = positionParameters.positionModA;
+    float smoothing = juce::jmap(1.0f - positionParameters.positionModB, 0.05f, 1.0f);
+
+    const float probabilityScale = 0.05f;
+    float probability = std::fabs(positionParameters.positionRate) * probabilityScale;
+
     if (randFloat() < probability && !hasTarget) {
         // Set new target
-        float r = std::sqrt(randFloat()) * radius;
-        float theta = randFloat() * juce::MathConstants<float>::twoPi;
+        float r = std::sqrt(randFloat()) * radius,
+              theta = randFloat() * juce::MathConstants<float>::twoPi;
         targetPosition = polarToCartesian({ r, theta });
         hasTarget = true;
     }
 
     // Check if arrived
-    float dx = currentPosition.x - targetPosition.x, dy = currentPosition.y - targetPosition.y;
-    if (((dx * dx) + (dy * dy)) < 1e-3f) {
-        hasTarget = false; return cartesianToPolar(currentPosition);
+    float dx = currentPosition.x - targetPosition.x, 
+          dy = currentPosition.y - targetPosition.y;
+
+    if ((dx * dx + dy * dy) < EPSILON) {
+        hasTarget = false;
+        return cartesianToPolar(currentPosition);
     }
 
     // Smooth toward target position
@@ -76,54 +41,85 @@ PolarCoordinate MotionController::randomDiscrete(PositionParameters positionPara
 }
 
 PolarCoordinate MotionController::randomWalk(PositionParameters positionParameters, PositionState& positionState) {
-    const float step = 0.01f * positionParameters.positionRate;
-    const float damping = juce::jmap(positionParameters.positionModA * positionParameters.positionModA, 0.85f, 0.98f);
-    const float& bounce = positionParameters.positionModB;
-
     CartesianCoordinate& velocity = positionState.walkVelocity;
     CartesianCoordinate p = polarToCartesian(positionState.currentPosition);
 
-    velocity.x += randSigned() * step; velocity.y += randSigned() * step; // Apply random force
-    velocity.x *= damping; velocity.y *= damping;
+    const float rateScale = 0.01f;
+    const float step = positionParameters.positionRate * rateScale;
 
-    p.x += velocity.x; p.y += velocity.y; // Apply movement
+    const float damping = juce::jmap(positionParameters.positionModA * positionParameters.positionModA, 0.85f, 0.98f);
+    const float bounce = positionParameters.positionModB;
+
+    // Apply random force
+    velocity.x += randSigned() * step; 
+    velocity.y += randSigned() * step; 
+    velocity.x *= damping; 
+    velocity.y *= damping;
+
+    // Apply movement
+    p.x += velocity.x; 
+    p.y += velocity.y;
 
     // Constrain to unit circle
+    const float bounceBase = -0.1f;
     float mag = std::sqrt(p.x * p.x + p.y * p.y);
     if (mag > 1.0f) {
-        p.x /= mag; p.y /= mag;
-        velocity.x *= -0.1f - bounce; velocity.y *= -0.1f - bounce; // Bounce
+        p.x /= mag;
+        p.y /= mag;
+        velocity.x *= bounceBase - bounce; // boing
+        velocity.y *= bounceBase - bounce; // boing
     }
 
     return cartesianToPolar(p);
 }
 
+/* PUBLIC */
+
+MotionController::MotionController(PolarMap* map, float* positionTimer, float* fieldTimer) 
+    : polarMap(map), positionTime(positionTimer), fieldTime(fieldTimer) {}
+
 PolarCoordinate MotionController::computePositionParametric(PositionParameters positionParameters, float t) {
-    float& positionModA = positionParameters.positionModA, positionModB = positionParameters.positionModB;
+    float positionModA = positionParameters.positionModA;
+    float positionModB = positionParameters.positionModB;
+
     switch (positionParameters.positionPattern) {
         case PositionPattern::MANUAL: {
-            float& r = positionModA; float theta = positionModB * juce::MathConstants<float>::twoPi;
+            float r = positionModA;
+            float theta = positionModB * juce::MathConstants<float>::twoPi;
             return { r, theta };
         }
         case PositionPattern::ORBIT: {
-            float& radius = positionModA;
-            float r = radius, theta = 3 * t;
+            float radius = positionModA;
+
+            const float timeScale = 3.0f;
+
+            float r = radius;
+            float theta = t * timeScale;
             return { r, theta };
         }
         case PositionPattern::SPIRAL: {
             float swirliness = juce::jmap(positionModA, 1.0f, 10.0f);
-            float r = sinf(0.1f * t), theta = swirliness * t;
+
+            float r = sinf(0.1f * t);
+            float theta = swirliness * t;
             return { r, theta };
         }
         case PositionPattern::FLORAL: {
-            float p = floorf(juce::jmap(positionModA, 1.0f, 10.0f)), q = floorf(juce::jmap(positionModB, 1.0f, 10.0f));
-            float r = sinf(p * t), theta = q * t;
+            float p = floorf(juce::jmap(positionModA, 1.0f, 10.0f));
+            float q = floorf(juce::jmap(positionModB, 1.0f, 10.0f));
+
+            float r = sinf(p * t);
+            float theta = q * t;
             return { r, theta };
         }
         case PositionPattern::LISSAJOUS: {
-            float p = floorf(juce::jmap(positionModA, 1.0f, 10.0f)), q = floorf(juce::jmap(positionModB, 1.0f, 10.0f));
+            float p = floorf(juce::jmap(positionModA, 1.0f, 10.0f));
+            float q = floorf(juce::jmap(positionModB, 1.0f, 10.0f));
+
             const float phi = juce::MathConstants<float>::halfPi;
-            float r = sinf(p * t), theta = phi * sinf((q * t) + phi);
+
+            float r = sinf(p * t);
+            float theta = phi * sinf((q * t) + phi);
             return { r, theta };
         }
 
@@ -143,33 +139,47 @@ PolarCoordinate MotionController::computePosition(PositionParameters positionPar
 }
 
 void MotionController::computeFieldParametric(FieldParameters fieldParameters, std::vector<PolarCoordinate>& outputCoordinates, float t) {
-    float& fieldModA = fieldParameters.fieldModA, fieldModB = fieldParameters.fieldModB;
-    int& fieldCount = fieldParameters.fieldCount;
+    int fieldCount = fieldParameters.fieldCount;
+    float fieldModA = fieldParameters.fieldModA,
+          fieldModB = fieldParameters.fieldModB;
+
     switch (fieldParameters.fieldPattern) {
         case FieldPattern::MANUAL: {
-            float& r = fieldModA; float theta = fieldModB * juce::MathConstants<float>::twoPi;
+            float r = fieldModA;
+            float theta = fieldModB * juce::MathConstants<float>::twoPi;
             outputCoordinates[fieldParameters.fieldSelect] = { r, theta };
             break;
         }
         case FieldPattern::RING: {
-            float& radius = fieldModA; float offset = juce::jmap(fieldModB, 0.0f, juce::MathConstants<float>::twoPi);
+            float radius = fieldModA;
+            float offset = juce::jmap(fieldModB, 0.0f, juce::MathConstants<float>::twoPi);
+
+            const float angleStep = juce::MathConstants<float>::twoPi / fieldCount;
+
             for (int coord = 0; coord < fieldCount; ++coord) {
-                DBG(outputCoordinates.size());
-                float r = radius,
-                      theta = ((static_cast<float>(coord) * juce::MathConstants<float>::twoPi) / fieldCount) + offset + t;
+                float r = radius;
+                float theta = (static_cast<float>(coord) * angleStep) + offset + t;
                 outputCoordinates[coord] = { r, theta };
-            } break;
+            } 
+            break;
         }
         case FieldPattern::ORBITS: {
-            float& radius = fieldModA; float bias = juce::jmap(fieldModB, 2.0f, 0.125f);
+            float radius = fieldModA;
+            float bias = juce::jmap(fieldModB, 2.0f, 0.125f);
+
+            const float angleStep = juce::MathConstants<float>::twoPi / fieldCount;
+            const float timeScale = 2.0f;
+
             for (int coord = 0; coord < fieldCount; ++coord) {
                 float direction = (coord % 2 == 0) ? 1.0f : -1.0f;
-                float nIndex = (coord + 1.0f) / fieldCount;
-                float velocity = direction * std::powf(nIndex, bias);
-                float r = nIndex * radius,
-                      theta = ((static_cast<float>(coord) * juce::MathConstants<float>::twoPi) / fieldCount) + (2.0f * t * velocity);
+                float normIndex = (coord + 1.0f) / fieldCount;
+                float velocity = direction * std::powf(normIndex, bias);
+
+                float r = normIndex * radius;
+                float theta = (static_cast<float>(coord) * angleStep) + (t * velocity * timeScale);
                 outputCoordinates[coord] = { r, theta };
-            } break;
+            } 
+            break;
         }
         // Stochastic, N/A
         case FieldPattern::RANDOM_DISCRETE:
@@ -179,60 +189,63 @@ void MotionController::computeFieldParametric(FieldParameters fieldParameters, s
 }
 
 void MotionController::computeField(FieldParameters fieldParameters, FieldState& fieldState, float t) {
-    auto algorithm = [&](auto&& function) {
-        PositionParameters coordinateParameters{ PositionPattern::MANUAL /* Irrelevant */,
-            fieldParameters.fieldRate, fieldParameters.fieldModA, fieldParameters.fieldModB };
+    auto applyStochastic = [&](auto&& function) {
+        PositionParameters coordinateParameters { 
+            PositionPattern::MANUAL, // Irrelevant
+            fieldParameters.fieldRate, 
+            fieldParameters.fieldModA, 
+            fieldParameters.fieldModB 
+        };
         for (int coord = 0; coord < fieldParameters.fieldCount; ++coord)
             fieldState.nextCoordinates[coord] = (function(coordinateParameters, fieldState.coordinateStates[coord]));
     };
 
     switch (fieldParameters.fieldPattern) {
-        case FieldPattern::RANDOM_DISCRETE: { algorithm(randomDiscrete); break; }
-        case FieldPattern::RANDOM_WALK: { algorithm(randomWalk); break; }
+        case FieldPattern::RANDOM_DISCRETE: { applyStochastic(randomDiscrete); break; }
+        case FieldPattern::RANDOM_WALK: { applyStochastic(randomWalk); break; }
         default: computeFieldParametric(fieldParameters, fieldState.nextCoordinates, t);
     }
 }
 
 void MotionController::updatePosition() {
-    PolarCoordinate current = polarMap->getPosition();
-    positionState.currentPosition = current;
+    PolarCoordinate currentPosition = polarMap->getPosition();
+    positionState.currentPosition = currentPosition;
 
-    PolarCoordinate next = computePosition(positionParameters, positionState, *positionTime);
+    PolarCoordinate nextPosition = computePosition(positionParameters, positionState, *positionTime);
 
-    if (current == next) positionUpdated = false;
-    else { polarMap->setPosition(next); positionUpdated = true; }
+    if (currentPosition == nextPosition) positionUpdated = false;
+    else { polarMap->setPosition(nextPosition); positionUpdated = true; }
 }
 
 void MotionController::updateField() {
-    // Update field state from ground truth
-    const int& fieldCount = fieldParameters.fieldCount;
+    const int fieldCount = fieldParameters.fieldCount;
+    fieldState.coordinateStates.resize(fieldCount);
+    fieldState.nextCoordinates.resize(fieldCount);
 
-    if (polarMap->getCoordinateCount() != fieldCount) { // Bootstrap
+    // Bootstrap coordinates vector
+    if (polarMap->getCoordinateCount() != fieldCount) {
         std::vector<PolarCoordinate> init(fieldCount, { 0.0f, 0.0f });
         polarMap->setCoordinates(init, true);
     }
 
-    jassert(polarMap->getCoordinateCount() != 0);
-
-    const auto& current = polarMap->getCoordinates();
-    fieldState.coordinateStates.resize(fieldCount); 
-    fieldState.nextCoordinates.resize(fieldCount);
-
+    // Get current field coordinates
+    const auto& currentCoordinates = polarMap->getCoordinates();
     for (int coord = 0; coord < fieldCount; coord++) 
-        fieldState.coordinateStates[coord].currentPosition = current[coord];
+        fieldState.coordinateStates[coord].currentPosition = currentCoordinates[coord];
 
-    computeField(fieldParameters, fieldState, *fieldTime); // Compute next field coordinates in-place
+    // Compute next field coordinates in-place
+    computeField(fieldParameters, fieldState, *fieldTime);
 
-    auto& next = fieldState.nextCoordinates;
-    if (current == next) fieldUpdated = false;
-    else { polarMap->setCoordinates(next); fieldUpdated = true; }
+    auto& nextCoordinates = fieldState.nextCoordinates;
+    if (currentCoordinates == nextCoordinates) fieldUpdated = false;
+    else { polarMap->setCoordinates(nextCoordinates); fieldUpdated = true; }
 }
 
 void MotionController::setPolarMap(PolarMap* nPolarMap) { polarMap = nPolarMap; }
 void MotionController::setPositionTimer(float* nPT) { positionTime = nPT; }
 void MotionController::setFieldTimer(float* nFT) { fieldTime = nFT; }
 void MotionController::setPositionParameters(PositionParameters nPositionParameters) { positionParameters = nPositionParameters; }
-void MotionController::setFieldParameters(FieldParameters nFieldParameters) { fieldParameters = nFieldParameters; };
+void MotionController::setFieldParameters(FieldParameters nFieldParameters) { fieldParameters = nFieldParameters; }
 
 bool MotionController::hasPositionUpdated() const { return positionUpdated; }
 bool MotionController::hasFieldUpdated() const { return fieldUpdated; }

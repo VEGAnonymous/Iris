@@ -4,14 +4,66 @@
 
 /* PRIVATE */
 
-// Settings
+// Parameters
+
+juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::createParameterLayout() {
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::globalMix, "Global Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::decay, "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    
+    layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::weightingMode, "Weighting Mode", weightingModes, static_cast<int>(WeightingMode::ABSOLUTE)));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::strength, "Strength", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::spread, "Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 1.0f));
+    
+    layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::positionPattern, "Position Pattern", positionPatterns, static_cast<int>(PositionPattern::LISSAJOUS)));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Position Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModA, "Position Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModB, "Position Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    
+    layout.add(std::make_unique<juce::AudioParameterInt>(ParamID::fieldSelect, "Field Select", 0, MAX_IR_COUNT, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::fieldPattern, "Field Pattern", fieldPatterns, static_cast<int>(FieldPattern::RING)));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Field Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModA, "Field Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModB, "Field Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+
+    return layout;
+}
+
+void MareverbAudioProcessor::updateParameters() {
+    Settings settings = getSettings(apvts);
+
+    auto* convProcessor = getConvolutionReverbProcessor();
+    if (convProcessor) {
+        convProcessor->setMix(settings.globalMix);
+        convProcessor->setDecay(settings.decay);
+    }
+
+    motionController.setPositionParameters({
+        settings.positionPattern, 
+        settings.positionRate, 
+        settings.positionModA, 
+        settings.positionModB}
+    );
+    motionController.setFieldParameters({
+        MAX_IR_COUNT, 
+        settings.fieldSelect, 
+        settings.fieldPattern, 
+        settings.fieldRate, 
+        settings.fieldModA, 
+        settings.fieldModB}
+    );
+}
+
+// IR management
 
 void MareverbAudioProcessor::saveDirectories() {
     auto* properties = applicationProperties.getUserSettings();
     if (!properties) return;
 
-    properties->setValue("irDirectoryCount", static_cast<int>(irDirectories.size()));
-    for (int i = 0; i < static_cast<int>(irDirectories.size()); ++i) {
+    int dirCount = static_cast<int>(irDirectories.size());
+    properties->setValue("irDirectoryCount", dirCount);
+    for (int i = 0; i < dirCount; ++i) {
         properties->setValue("irDirectory_" + juce::String(i), irDirectories[i].irDirectory.getFullPathName());
         properties->setValue("irDirectoryActive_" + juce::String(i), irDirectories[i].active);
     }
@@ -26,51 +78,10 @@ void MareverbAudioProcessor::loadDirectories() {
     for (int i = 0; i < dirCount; ++i) {
         juce::File dir(properties->getValue("irDirectory_" + juce::String(i)));
         bool active = properties->getBoolValue("irDirectoryActive_" + juce::String(i), true);
-        if (dir.isDirectory()) irDirectories.push_back({dir, active});
+        if (dir.isDirectory()) irDirectories.push_back({ dir, active });
     }
     collectIRs();
 }
-
-// Parameters
-
-juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::createParameterLayout() {
-    juce::AudioProcessorValueTreeState::ParameterLayout layout;
-
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Global Mix", "Global Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Decay", "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    
-    layout.add(std::make_unique<juce::AudioParameterChoice>("Weighting Mode", "Weighting Mode", weightingModes, static_cast<int>(WeightingMode::ABSOLUTE)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Strength", "Strength", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Spread", "Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 1.0f));
-    
-    layout.add(std::make_unique<juce::AudioParameterChoice>("Position Pattern", "Position Pattern", positionPatterns, static_cast<int>(PositionPattern::LISSAJOUS)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Position Rate", "Position Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Position Mod A", "Position Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Position Mod B", "Position Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    
-    layout.add(std::make_unique<juce::AudioParameterInt>("Field Select", "Field Select", 0, MAX_IR_COUNT, 0));
-    layout.add(std::make_unique<juce::AudioParameterChoice>("Field Pattern", "Field Pattern", fieldPatterns, static_cast<int>(FieldPattern::RING)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Field Rate", "Field Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Field Mod A", "Field Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Field Mod B", "Field Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-
-    return layout;
-}
-
-void MareverbAudioProcessor::updateParameters() {
-    Settings settings = getSettings(apvts);
-
-    auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
-    if (convProcessor) {
-        convProcessor->setMix(settings.globalMix);
-        convProcessor->setDecay(settings.decay);
-    }
-
-    motionController.setPositionParameters({settings.positionPattern, settings.positionRate, settings.positionModA, settings.positionModB});
-    motionController.setFieldParameters({MAX_IR_COUNT, settings.fieldSelect, settings.fieldPattern, settings.fieldRate, settings.fieldModA, settings.fieldModB});
-}
-
-// IR management
 
 void MareverbAudioProcessor::chooseIR(int irIndex) {
     irFileChooser = std::make_unique<juce::FileChooser>(
@@ -78,7 +89,7 @@ void MareverbAudioProcessor::chooseIR(int irIndex) {
     irFileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
         [this, irIndex](const juce::FileChooser& fileChooser) {
             if (fileChooser.getResults().isEmpty()) return;
-            else loadIR(irIndex, fileChooser.getResult());
+            loadIR(irIndex, fileChooser.getResult());
         });
 }
 
@@ -89,7 +100,7 @@ void MareverbAudioProcessor::chooseIRDirectory() {
         juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
         [this](const juce::FileChooser& fileChooser) {
             if (fileChooser.getResults().isEmpty()) return;
-            else addIRDirectory(fileChooser.getResult());
+            addIRDirectory(fileChooser.getResult());
         });
 }
 
@@ -128,7 +139,8 @@ bool MareverbAudioProcessor::loadIR(int irIndex, juce::File irFile) {
     if (reader == nullptr) return false;
 
     // Read samples to buffer in activeIRBuffers
-    int numChannels = (int)reader->numChannels; int numSamples = (int)reader->lengthInSamples;
+    int numChannels = (int)reader->numChannels; 
+    int numSamples = (int)reader->lengthInSamples;
     activeIRBuffers[irIndex].setSize(numChannels, numSamples);
     if (reader->read(&activeIRBuffers[irIndex], 0, numSamples, 0, true, true)) {
         // Set IR buffer in convolution processor
@@ -137,17 +149,17 @@ bool MareverbAudioProcessor::loadIR(int irIndex, juce::File irFile) {
             convProcessor->getConvolutionReverb()->setIRBuffer(irIndex, activeIRBuffers[irIndex]);
             return true;
         }
-    } return false;
+    }
+    return false;
 }
 
 bool MareverbAudioProcessor::loadRandomIR(int irIndex) {
-    if (irFiles.isEmpty()) return false;
-    if (irIndex < 0 || irIndex >= MAX_IR_COUNT) return false;
+    if (irFiles.isEmpty() || !validateIRIndex(irIndex)) return false;
 
     int idx = irRNG.nextInt(irFiles.size());
-    juce::File irFile = irFiles[idx];
-    activeIRFiles[irIndex] = irFile;
-    return loadIR(irIndex, irFile);
+    juce::File randomIR = irFiles[idx];
+    activeIRFiles[irIndex] = randomIR;
+    return loadIR(irIndex, randomIR);
 }
 
 bool MareverbAudioProcessor::loadRandomIRs() {
@@ -158,11 +170,12 @@ bool MareverbAudioProcessor::loadRandomIRs() {
 }
 
 void MareverbAudioProcessor::clearIR(int irIndex) {
-    if (irIndex < 0 || irIndex >= MAX_IR_COUNT) return;
-    activeIRFiles[irIndex] = juce::File{};
-    activeIRBuffers[irIndex].setSize(0, 0);
-    auto* convProcessor = getConvolutionReverbProcessor();
-    if (convProcessor) convProcessor->getConvolutionReverb()->clearIRBuffer(irIndex);
+    if (validateIRIndex(irIndex)) {
+        activeIRFiles[irIndex] = juce::File{};
+        activeIRBuffers[irIndex].setSize(0, 0);
+        auto* convProcessor = getConvolutionReverbProcessor();
+        if (convProcessor) convProcessor->getConvolutionReverb()->clearIRBuffer(irIndex);
+    }
 }
 
 void MareverbAudioProcessor::clearIRs() {
@@ -172,8 +185,9 @@ void MareverbAudioProcessor::clearIRs() {
 // Time
 
 void MareverbAudioProcessor::advancePhase() {
-    const float positionFreq = apvts.getRawParameterValue("Position Rate")->load() * 0.2f,
-                fieldFreq = apvts.getRawParameterValue("Field Rate")->load() * 0.05f;
+    constexpr float positionRateScale = 0.2f, fieldRateScale = 0.05f;
+    const float positionFreq = apvts.getRawParameterValue(ParamID::positionRate)->load() * positionRateScale,
+                fieldFreq = apvts.getRawParameterValue(ParamID::fieldRate)->load() * fieldRateScale;
 
     const float blockDur = static_cast<float>(getBlockSize()) / static_cast<float>(getSampleRate());
     const float positionPhaseIncrement = juce::MathConstants<float>::twoPi * positionFreq * blockDur,
@@ -187,7 +201,7 @@ void MareverbAudioProcessor::advancePhase() {
 
 void MareverbAudioProcessor::processBinaural(const std::array<float, MAX_IR_COUNT>& rawWeights, 
     const std::vector<PolarCoordinate>& relatives) {
-    const float spread = std::powf(apvts.getRawParameterValue("Spread")->load(), 1.5f);
+    const float spread = std::powf(apvts.getRawParameterValue(ParamID::spread)->load(), 1.5f);
     for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
         const float& azimuth = relatives[ir].theta;
 
@@ -211,16 +225,16 @@ void MareverbAudioProcessor::updateWeights() {
     std::array<float, MAX_IR_COUNT> distanceWeights{};
 
     // Parameterize
-    WeightingMode weightingMode = static_cast<WeightingMode>(apvts.getRawParameterValue("Weighting Mode")->load());
-    const float& strength = apvts.getRawParameterValue("Strength")->load();
+    WeightingMode weightingMode = static_cast<WeightingMode>(apvts.getRawParameterValue(ParamID::weightingMode)->load());
+    const float& strength = apvts.getRawParameterValue(ParamID::strength)->load();
+
     float minDistance = juce::jmap(strength, 0.05f, 0.25f), maxWeight = 1.0f / (minDistance * minDistance), trim = 0.5f; // Absolute
     float distanceFactor = juce::jmap(strength * strength, 0.5f, 3.5f); // Relative
 
-    auto relatives = polarMap.getRelatives();
-
     // Compute inverse-distance weights
+    auto relatives = polarMap.getRelatives();
     if (weightingMode == WeightingMode::RELATIVE) {
-        for (int ir = 0; ir < MAX_IR_COUNT; ++ir) distanceWeights[ir] = 1.0f / powf(relatives[ir].r + 1e-6f, distanceFactor);
+        for (int ir = 0; ir < MAX_IR_COUNT; ++ir) distanceWeights[ir] = 1.0f / powf(relatives[ir].r + EPSILON, distanceFactor);
         float sum = std::accumulate(distanceWeights.begin(), distanceWeights.end(), 0.0f);
         if (sum > 0.0f) for (int ir = 0; ir < MAX_IR_COUNT; ++ir) distanceWeights[ir] /= sum; // Normalize weights sum to 1
     } else { // WeightingMode::ABSOLUTE
@@ -277,8 +291,8 @@ MareverbAudioProcessor::MareverbAudioProcessor()
 
     irDirectories.push_back({srcDirectory.getChildFile("IR Samples"), true});
     loadDirectories();
-    bool success = loadRandomIRs();
-    jassert(success);
+    bool loadedIRs = loadRandomIRs();
+    jassert(loadedIRs);
     // clearIRs();
 
     // Init RNG
@@ -295,7 +309,7 @@ double MareverbAudioProcessor::getTailLengthSeconds() const { return 0.0; }
 bool MareverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
     const auto& in = layouts.getMainInputChannelSet(), out = layouts.getMainOutputChannelSet();
     return (out == juce::AudioChannelSet::stereo() && // Output stereo
-        (in == juce::AudioChannelSet::mono() || in == juce::AudioChannelSet::stereo())); // Input mono or stereo
+           (in == juce::AudioChannelSet::mono() || in == juce::AudioChannelSet::stereo())); // Input mono or stereo
 }
 #endif
 
@@ -347,7 +361,7 @@ void MareverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
         if (motionController.hasPositionUpdated() || motionController.hasFieldUpdated()) {
             polarMap.computeRelatives();
             updateWeights();
-            auto* convProcessor = dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
+            auto* convProcessor = getConvolutionReverbProcessor();
             if (convProcessor) convProcessor->setWeights(irWeights);
         }
 
@@ -379,23 +393,23 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
 Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState& parameters) {
     Settings settings;
 
-    settings.globalMix = parameters.getRawParameterValue("Global Mix")->load();
-    settings.decay = parameters.getRawParameterValue("Decay")->load();
+    settings.globalMix = parameters.getRawParameterValue(ParamID::globalMix)->load();
+    settings.decay = parameters.getRawParameterValue(ParamID::decay)->load();
     
-    settings.weightingMode = static_cast<WeightingMode>(parameters.getRawParameterValue("Weighting Mode")->load());
-    settings.strength = parameters.getRawParameterValue("Strength")->load();
-    settings.spread = parameters.getRawParameterValue("Spread")->load();
+    settings.weightingMode = static_cast<WeightingMode>(parameters.getRawParameterValue(ParamID::weightingMode)->load());
+    settings.strength = parameters.getRawParameterValue(ParamID::strength)->load();
+    settings.spread = parameters.getRawParameterValue(ParamID::spread)->load();
 
-    settings.positionPattern = static_cast<PositionPattern>(parameters.getRawParameterValue("Position Pattern")->load());
-    settings.positionRate = parameters.getRawParameterValue("Position Rate")->load();
-    settings.positionModA = parameters.getRawParameterValue("Position Mod A")->load();
-    settings.positionModB = parameters.getRawParameterValue("Position Mod B")->load();
+    settings.positionPattern = static_cast<PositionPattern>(parameters.getRawParameterValue(ParamID::positionPattern)->load());
+    settings.positionRate = parameters.getRawParameterValue(ParamID::positionRate)->load();
+    settings.positionModA = parameters.getRawParameterValue(ParamID::positionModA)->load();
+    settings.positionModB = parameters.getRawParameterValue(ParamID::positionModB)->load();
 
-    settings.fieldSelect = static_cast<int>(parameters.getRawParameterValue("Field Select")->load());
-    settings.fieldPattern = static_cast<FieldPattern>(parameters.getRawParameterValue("Field Pattern")->load());
-    settings.fieldRate = parameters.getRawParameterValue("Field Rate")->load();
-    settings.fieldModA = parameters.getRawParameterValue("Field Mod A")->load();
-    settings.fieldModB = parameters.getRawParameterValue("Field Mod B")->load();
+    settings.fieldSelect = static_cast<int>(parameters.getRawParameterValue(ParamID::fieldSelect)->load());
+    settings.fieldPattern = static_cast<FieldPattern>(parameters.getRawParameterValue(ParamID::fieldPattern)->load());
+    settings.fieldRate = parameters.getRawParameterValue(ParamID::fieldRate)->load();
+    settings.fieldModA = parameters.getRawParameterValue(ParamID::fieldModA)->load();
+    settings.fieldModB = parameters.getRawParameterValue(ParamID::fieldModB)->load();
 
     return settings;
 }

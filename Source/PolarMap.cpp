@@ -1,41 +1,45 @@
 #include "PolarMap.h"
 
-/* PRIVATE */
-
-/*
-
-    PolarCoordinate position = { 0.0f, 0.0f };
-    std::vector<PolarCoordinate> coordinates {}; // Locations
-    std::vector<PolarCoordinate> relatives {}; // Distance-directions from position to each location
-
-*/
-
 /* PUBLIC */
 
 PolarMap::PolarMap(PolarCoordinate initPos) : position(initPos) { }
 
 void PolarMap::setPosition(PolarCoordinate pos) { position = pos; }
+
 void PolarMap::setCoordinate(int index, PolarCoordinate coordinate, bool setRelative) {
     if (index < 0) return;
-    PolarCoordinate rel = setRelative ? computeRelative(position, coordinate, Axis::Y_AXIS, true) : PolarCoordinate{0.0f, 0.0f};
-    if (index >= coordinates.size()) { coordinates.emplace_back(coordinate); relatives.emplace_back(rel); }
-    else { coordinates[index] = coordinate; relatives[index] = rel; }
+
+    PolarCoordinate rel = setRelative ? computeRelative(position, coordinate) : PolarCoordinate{0.0f, 0.0f};
+    if (index >= coordinates.size()) {
+        coordinates.emplace_back(coordinate); 
+        relatives.emplace_back(rel); 
+    } else { 
+        coordinates[index] = coordinate; 
+        relatives[index] = rel; 
+    }
 }
+
 void PolarMap::setCoordinates(std::vector<PolarCoordinate> coords, bool setRelatives) { 
-    coordinates = coords; if (setRelatives) computeRelatives();
+    coordinates = coords;
+    if (setRelatives) computeRelatives();
 }
 
 PolarCoordinate PolarMap::getPosition() const { return position; }
+
 PolarCoordinate PolarMap::getCoordinate(int index) const {
     if (index < 0 || index >= coordinates.size()) return { 0.0f, 0.0f };
     else return coordinates[index];
 }
+
 std::vector<PolarCoordinate> PolarMap::getCoordinates() const { return coordinates; }
+
 PolarCoordinate PolarMap::getRelative(int index) const { 
     if (index < 0 || index >= relatives.size()) return { 0.0f, 0.0f };
     else return relatives[index];
 }
+
 std::vector<PolarCoordinate> PolarMap::getRelatives() const { return relatives; }
+
 int PolarMap::getCoordinateCount() const { return static_cast<int>(coordinates.size()); }
 
 PolarCoordinate PolarMap::computeRelative(PolarCoordinate p1, PolarCoordinate p2, Axis reference, bool computeAngle) {

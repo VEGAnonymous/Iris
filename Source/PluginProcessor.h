@@ -12,16 +12,13 @@
 class MareverbAudioProcessor : public juce::AudioProcessor {
 private:
     // Settings
-
     juce::ApplicationProperties applicationProperties;
 
     // Parameters
-
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void updateParameters();
 
     // IR management
-
     std::unique_ptr<juce::FileChooser> irFileChooser, irDirectoryChooser;
 
     juce::Random irRNG;
@@ -57,28 +54,23 @@ private:
     void clearIRs();
 
     // Time
-
     float positionTime = 0.0f, fieldTime = 0.0f;
     int controlCounter = 0;
 
     void advancePhase();
 
     // Binaural processing
-
     void processBinaural(const std::array<float, MAX_IR_COUNT>& rawWeights, const std::vector<PolarCoordinate>& relatives);
 
     // Polar map, motion
-
     PolarMap polarMap;
     MotionController motionController;
 
     // Weights
-
     std::vector<std::array<float, MAX_IR_COUNT>> irWeights {};
     void updateWeights();
 
     // Processor graph
-
     std::unique_ptr<juce::AudioProcessorGraph> mainProcessor;
     juce::AudioProcessorGraph::Node::Ptr audioInputNode, audioOutputNode, convolutionVerbNode;
 
@@ -107,28 +99,27 @@ public:
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
 #endif
 
-    // DSP
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
-    // GUI
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
 
-    // State
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-    juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
-
-    static Settings getSettings(juce::AudioProcessorValueTreeState& parameters);
-
-    std::atomic<PolarCoordinate> position {{0.0f, 0.0f}};
-    std::atomic<bool> positionChanged {false};
+    // GUI concurrency
+    std::atomic<PolarCoordinate> position { {0.0f, 0.0f} };
+    std::atomic<bool> positionChanged { false };
 
     std::vector<PolarCoordinate> fieldCoordinates;
     std::mutex fieldMutex;
-    std::atomic<bool> fieldChanged {false}; // Notify editor
-    std::atomic<bool> updateField {false}; // Editor forced update (e.g., parameter changes)
+    std::atomic<bool> fieldChanged { false }; // Notify editor
+    std::atomic<bool> updateField { false }; // Editor forced update (e.g., parameter changes)
+
+    // Parameters
+    juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
+
+    static Settings getSettings(juce::AudioProcessorValueTreeState& parameters);
 };

@@ -20,7 +20,7 @@ bool ConvolutionReverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& 
     const auto& in = layouts.getMainInputChannelSet();
     const auto& out = layouts.getMainOutputChannelSet();
     return (out == juce::AudioChannelSet::stereo() && // Output stereo
-        (in == juce::AudioChannelSet::mono() || in == juce::AudioChannelSet::stereo())); // Input mono or stereo
+           (in == juce::AudioChannelSet::mono() || in == juce::AudioChannelSet::stereo())); // Input mono or stereo
 }
 
 // DSP
@@ -33,7 +33,9 @@ void ConvolutionReverbAudioProcessor::prepareToPlay(double sampleRate, int maxBl
     mixer.setWetMixProportion(mix);
     mixer.prepare(spec);
 
-    setMix(mix); setDecay(decay); setWeights(weights);
+    setMix(mix);
+    setDecay(decay); 
+    setWeights(weights);
 }
 
 void ConvolutionReverbAudioProcessor::releaseResources() { }
@@ -52,14 +54,24 @@ void ConvolutionReverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buf
 // STATE
 
 void ConvolutionReverbAudioProcessor::setMix(float nMix) {
-    if (nMix != mix) { mix = nMix; mixer.setWetMixProportion(nMix); }
+    if (nMix != mix) { 
+        mix = nMix; 
+        mixer.setWetMixProportion(nMix); 
+    }
 }
+
 void ConvolutionReverbAudioProcessor::setDecay(float nDecay) {
-    if (nDecay != decay) { decay = nDecay; convolutionReverb.setDecay(nDecay); }
+    if (nDecay != decay) { 
+        decay = nDecay; 
+        convolutionReverb.setDecay(nDecay); 
+    }
 }
 
 void ConvolutionReverbAudioProcessor::setWeights(std::vector<std::array<float, MAX_IR_COUNT>> nWeights) {
-    if (nWeights != weights) weights = nWeights; convolutionReverb.setWeights(nWeights);
+    if (nWeights != weights) {
+        weights = nWeights;
+        convolutionReverb.setWeights(nWeights);
+    }
 }
 
 ConvolutionReverb* ConvolutionReverbAudioProcessor::getConvolutionReverb() { return &convolutionReverb; }

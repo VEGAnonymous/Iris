@@ -14,13 +14,14 @@ private:
 
 	// Parameters
 	float mix = 0.5f, decay = 0.5f;
+
 	std::vector<std::array<float, MAX_IR_COUNT>> weights;
 
 public:
 	ConvolutionReverbAudioProcessor();
 	~ConvolutionReverbAudioProcessor() override;
 
-	// BOILERPLATE
+	// Boilerplate
 	const juce::String getName() const override { return "Convolution Reverb"; }
 	bool acceptsMidi() const override { return false; }
 	bool producesMidi() const override { return false; }
@@ -35,21 +36,20 @@ public:
 	bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
 #endif
 
-	// DSP
 	void prepareToPlay(double sampleRate, int maxBlockSize) override;
 	void releaseResources() override;
 	void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override;
 
-	// GUI
 	juce::AudioProcessorEditor* createEditor() override { return nullptr; }
 	bool hasEditor() const override { return false; }
 
-	// STATE
     void getStateInformation (juce::MemoryBlock& /*destData*/) override {}
 	void setStateInformation(const void* /*data*/, int /*sizeInBytes*/) override {}
 
+	// Parameters
 	void setMix(float nMix);
 	void setDecay(float nDecay);
+
 	void setWeights(std::vector<std::array<float, MAX_IR_COUNT>> nWeights);
 
 	ConvolutionReverb* getConvolutionReverb();

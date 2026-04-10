@@ -11,7 +11,7 @@ private:
 	std::vector<PolarCoordinate> relatives {}; // Distance-directions from position to each location
 
 public:
-	PolarMap(PolarCoordinate initialPos = {0.0f, 0.0f});
+	PolarMap(PolarCoordinate initPos = {0.0f, 0.0f});
 	~PolarMap() = default;
 
 	void setPosition(PolarCoordinate pos);
@@ -25,7 +25,6 @@ public:
 	std::vector<PolarCoordinate> getRelatives() const;
 	int getCoordinateCount() const;
 
-	PolarCoordinate computeRelative(PolarCoordinate p1, PolarCoordinate p2,
-		Axis reference = Axis::Y_AXIS, bool computeAngle = true);
+	PolarCoordinate computeRelative(PolarCoordinate p1, PolarCoordinate p2, Axis reference = Axis::Y_AXIS, bool computeAngle = true);
 	void computeRelatives(Axis reference = Axis::Y_AXIS, bool computeAngles = true);
 };

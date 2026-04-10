@@ -17,15 +17,26 @@ juce::Rectangle<float> PolarMapComponent::toBounds(PolarCoordinate p, float radi
 }
 
 void PolarMapComponent::notifyPathChanged() { pathChanged = true; repaint(); }
+
 void PolarMapComponent::notifyPositionChanged(PolarCoordinate nPosition) {
     currentPosition = nPosition;
     repaint(positionBounds.toNearestInt().expanded(1)); // Clear old bounds
     repaint(toBounds(nPosition, positionRadius).toNearestInt().expanded(1)); // Repaint at new bounds
 }
+
 void PolarMapComponent::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates) {
-    for (const auto& coord : fieldCoordinates) repaint(toBounds(coord, coordinateRadius).toNearestInt().expanded(1)); // Clear old bounds
+    // Clear old bounds
+    for (const auto& coord : fieldCoordinates) {
+        auto oBounds = toBounds(coord, coordinateRadius);
+        repaint(oBounds.toNearestInt().expanded(1));
+    } 
+    
+    // Repaint at new bounds
     fieldCoordinates = std::move(nCoordinates);
-    for (const auto& coord : fieldCoordinates) repaint(toBounds(coord, coordinateRadius).toNearestInt().expanded(1)); // Repaint at new bounds
+    for (const auto& coord : fieldCoordinates) {
+        auto nBounds = toBounds(coord, coordinateRadius);
+        repaint(nBounds.toNearestInt().expanded(1));
+    }
 }
 
 void PolarMapComponent::repaintPath() {
@@ -33,14 +44,19 @@ void PolarMapComponent::repaintPath() {
 
     Settings settings = MareverbAudioProcessor::getSettings(audioProcessor.apvts);
     PositionPattern& positionPattern = settings.positionPattern;
-
     if (positionPattern == PositionPattern::RANDOM_DISCRETE || positionPattern == PositionPattern::RANDOM_WALK) return;
-    float& positionModA = settings.positionModA, positionModB = settings.positionModB;
-    CartesianCoordinate initP = map(polarToCartesian(MotionController::computePositionParametric({ positionPattern, 0.0f, positionModA, positionModB }, 0.0f))); // t = 0
-    parametricPath.startNewSubPath(initP.x, initP.y);
+
+    float positionModA = settings.positionModA;
+    float positionModB = settings.positionModB;
+
+    PolarCoordinate initP = MotionController::computePositionParametric({ positionPattern, 0.0f, positionModA, positionModB }, 0.0f);
+    CartesianCoordinate initC = map(polarToCartesian(initP));
+    parametricPath.startNewSubPath(initC.x, initC.y);
+
     for (float t = 0.01f; t < 10.0f; t += 0.01f) {
-        CartesianCoordinate p = map(polarToCartesian(MotionController::computePositionParametric({ positionPattern, 0.0f, positionModA, positionModB }, t)));
-        parametricPath.lineTo(p.x, p.y);
+        PolarCoordinate p = MotionController::computePositionParametric({ positionPattern, 0.0f, positionModA, positionModB }, t);
+        CartesianCoordinate c = map(polarToCartesian(p));
+        parametricPath.lineTo(c.x, c.y);
     }
 
     pathChanged = false;
