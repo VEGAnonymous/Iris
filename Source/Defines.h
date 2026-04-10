@@ -12,6 +12,9 @@ static constexpr auto CONTROL_RATE = 25.0f;
 static constexpr auto N_CHANNELS = 2,
                       MAX_IR_COUNT = 8;
 
+static constexpr auto SWAP_INTERVAL_MIN = 5.0f,
+                      SWAP_INTERVAL_MAX = 60.0f;
+
 static constexpr auto L = 512,
                       PARTITION_SIZE = 2 * L,
                       FFT_SIZE = 4 * L, // 2048
@@ -37,6 +40,9 @@ namespace ParamID {
         fieldRate = "Field Rate",
         fieldModA = "Field Mod A",
         fieldModB = "Field Mod B";
+
+    inline juce::String irSwapMin(int i) { return "IR " + juce::String(i) + " Swap Min"; }
+    inline juce::String irSwapMax(int i) { return "IR " + juce::String(i) + " Swap Max"; }
 }
 
 const juce::StringArray weightingModes { "Absolute", "Relative" };

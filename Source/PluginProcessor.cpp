@@ -15,7 +15,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::weightingMode, "Weighting Mode", weightingModes, static_cast<int>(WeightingMode::ABSOLUTE)));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::strength, "Strength", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::spread, "Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 1.0f));
-    
+
+    // IR swap intervals
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        juce::String minID = ParamID::irSwapMin(i);
+        juce::String maxID = ParamID::irSwapMax(i);
+        layout.add(std::make_unique<juce::AudioParameterFloat>(minID, minID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 0.0f));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(maxID, maxID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 0.0f));
+    }
+
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::positionPattern, "Position Pattern", positionPatterns, static_cast<int>(PositionPattern::LISSAJOUS)));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Position Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModA, "Position Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
@@ -53,6 +61,23 @@ void MareverbAudioProcessor::updateParameters() {
         settings.fieldModA, 
         settings.fieldModB}
     );
+
+    updateSwapIntervals();
+}
+
+void MareverbAudioProcessor::updateSwapIntervals() {
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        float nMin = apvts.getRawParameterValue(ParamID::irSwapMin(i))->load();
+        float nMax = apvts.getRawParameterValue(ParamID::irSwapMax(i))->load();
+
+        auto& slot = irSlots[i];
+        if (nMin != slot.swapMin || nMax != slot.swapMax) {
+            slot.swapMin = nMin;
+            slot.swapMin = nMax;
+            if (slot.swapEnabled()) slot.resetCountdown(irRNG);
+            else slot.swapCountdown = 0.0f;
+        }
+    }
 }
 
 // IR management
@@ -139,14 +164,19 @@ bool MareverbAudioProcessor::loadIR(int irIndex, juce::File irFile) {
     if (reader == nullptr) return false;
 
     // Read samples to buffer in activeIRBuffers
-    int numChannels = (int)reader->numChannels; 
-    int numSamples = (int)reader->lengthInSamples;
-    activeIRBuffers[irIndex].setSize(numChannels, numSamples);
-    if (reader->read(&activeIRBuffers[irIndex], 0, numSamples, 0, true, true)) {
+    const int numChannels = static_cast<int>(reader->numChannels); 
+    const int numSamples = static_cast<int>(reader->lengthInSamples);
+    
+    auto& buffer = irSlots[irIndex].buffer;
+    buffer.setSize(numChannels, numSamples);
+    if (reader->read(&buffer, 0, numSamples, 0, true, true)) {
+        irSlots[irIndex].file = irFile; // File validated
+
         // Set IR buffer in convolution processor
         auto* convProcessor = getConvolutionReverbProcessor();
         if (convProcessor) {
-            convProcessor->getConvolutionReverb()->setIRBuffer(irIndex, activeIRBuffers[irIndex]);
+            convProcessor->getConvolutionReverb()->setIRBuffer(irIndex, buffer);
+            irSlots[irIndex].occupied = true;
             return true;
         }
     }
@@ -158,7 +188,6 @@ bool MareverbAudioProcessor::loadRandomIR(int irIndex) {
 
     int idx = irRNG.nextInt(irFiles.size());
     juce::File randomIR = irFiles[idx];
-    activeIRFiles[irIndex] = randomIR;
     return loadIR(irIndex, randomIR);
 }
 
@@ -171,8 +200,9 @@ bool MareverbAudioProcessor::loadRandomIRs() {
 
 void MareverbAudioProcessor::clearIR(int irIndex) {
     if (validateIRIndex(irIndex)) {
-        activeIRFiles[irIndex] = juce::File{};
-        activeIRBuffers[irIndex].setSize(0, 0);
+        irSlots[irIndex].file = juce::File{};
+        irSlots[irIndex].buffer.setSize(0, 0);
+        irSlots[irIndex].occupied = false;
         auto* convProcessor = getConvolutionReverbProcessor();
         if (convProcessor) convProcessor->getConvolutionReverb()->clearIRBuffer(irIndex);
     }
@@ -182,19 +212,42 @@ void MareverbAudioProcessor::clearIRs() {
     for (int irIndex = 0; irIndex < MAX_IR_COUNT; ++irIndex) clearIR(irIndex);
 }
 
+void MareverbAudioProcessor::setIRSwapInterval(int irIndex, int minTime, int maxTime) {
+    if (validateSwapInterval(minTime, maxTime)) {
+        auto& slot = irSlots[irIndex];
+        slot.swapMin = minTime;
+        slot.swapMax = maxTime;
+        slot.resetCountdown(irRNG);
+    }   
+}
+
 // Time
 
 void MareverbAudioProcessor::advancePhase() {
     constexpr float positionRateScale = 0.2f, fieldRateScale = 0.05f;
-    const float positionFreq = apvts.getRawParameterValue(ParamID::positionRate)->load() * positionRateScale,
-                fieldFreq = apvts.getRawParameterValue(ParamID::fieldRate)->load() * fieldRateScale;
-
     const float blockDur = static_cast<float>(getBlockSize()) / static_cast<float>(getSampleRate());
-    const float positionPhaseIncrement = juce::MathConstants<float>::twoPi * positionFreq * blockDur,
-                fieldPhaseIncrement = juce::MathConstants<float>::twoPi * fieldFreq * blockDur;
+
+    const float positionFreq = apvts.getRawParameterValue(ParamID::positionRate)->load() * positionRateScale;
+    const float fieldFreq = apvts.getRawParameterValue(ParamID::fieldRate)->load() * fieldRateScale;
+
+    const float positionPhaseIncrement = juce::MathConstants<float>::twoPi * positionFreq * blockDur;
+    const float fieldPhaseIncrement = juce::MathConstants<float>::twoPi * fieldFreq * blockDur;
 
     positionTime += positionPhaseIncrement; 
     fieldTime += fieldPhaseIncrement;
+}
+
+void MareverbAudioProcessor::advanceSwapTimers(float dt) {
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        auto& slot = irSlots[i];
+        if (!slot.swapEnabled()) continue;
+
+        slot.swapCountdown -= dt;
+        if (slot.swapCountdown <= 0.0f) {
+            loadRandomIR(i);
+            slot.resetCountdown(irRNG);
+        }
+    }
 }
 
 // Binaural processing
@@ -208,8 +261,8 @@ void MareverbAudioProcessor::processBinaural(const std::array<float, MAX_IR_COUN
         // ILD
         const float pan = std::sinf(azimuth);
         const float gainFB = 0.75f + (0.25f * std::cosf(azimuth)); // Front-back
-        float gainL = std::sqrtf(0.5f * (1.0f - pan)) * gainFB, // L-R
-              gainR = std::sqrtf(0.5f * (1.0f + pan)) * gainFB; 
+        float gainL = std::sqrtf(0.5f * (1.0f - pan)) * gainFB; // L-R
+        float gainR = std::sqrtf(0.5f * (1.0f + pan)) * gainFB; 
 
         gainL = juce::jmap(spread, 1.0f, gainL); 
         gainR = juce::jmap(spread, 1.0f, gainR);
@@ -339,6 +392,10 @@ void MareverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     // Control rate updates
     controlCounter += buffer.getNumSamples();
     if (controlCounter >= static_cast<int>(getSampleRate() / CONTROL_RATE)) {
+        // IR swap timers
+        const float dt = static_cast<float>(controlCounter) / static_cast<float>(getSampleRate());
+        advanceSwapTimers(dt);
+
         // Position + field
         motionController.updateField();
         motionController.updatePosition();
@@ -371,11 +428,7 @@ void MareverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     mainProcessor->processBlock(buffer, midiMessages);
 }
 
-// GUI
-
 juce::AudioProcessorEditor* MareverbAudioProcessor::createEditor() { return new MareverbAudioProcessorEditor (*this); }
-
-// State
 
 void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) { 
     juce::MemoryOutputStream mos(destData, true);
@@ -390,6 +443,7 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
     }
 }
 
+// Parameters
 Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState& parameters) {
     Settings settings;
 

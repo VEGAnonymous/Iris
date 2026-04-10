@@ -4,6 +4,7 @@
 #include "Defines.h"
 #include "MotionController.h"
 #include "PolarMap.h"
+#include "Utilities.h"
 
 #include <JuceHeader.h>
 #include <array>
@@ -17,23 +18,36 @@ private:
     // Parameters
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void updateParameters();
+    void updateSwapIntervals();
 
     // IR management
-    std::unique_ptr<juce::FileChooser> irFileChooser, irDirectoryChooser;
+    
+    struct IRSlot {
+        juce::File file {};
+        juce::AudioBuffer<float> buffer {};
+        bool occupied = false;
 
-    juce::Random irRNG;
+        // Self-swap
+        float swapMin = 0.0f, swapMax = 0.0f; // seconds
+        float swapCountdown = 0.0f;
+
+        bool swapEnabled() const { return validateSwapInterval(swapMin, swapMax); }
+        void resetCountdown(juce::Random& rng) { swapCountdown = juce::jmap(rng.nextFloat(), swapMin, swapMax); }
+    };
+
+    std::array<IRSlot, MAX_IR_COUNT> irSlots;
 
     struct IRDirectory {
         juce::File irDirectory;
         bool active = true;
     };
+
     std::vector<IRDirectory> irDirectories;
     juce::Array<juce::File> irFiles;
 
     juce::AudioFormatManager formatManager;
-
-    std::array<juce::File, MAX_IR_COUNT> activeIRFiles;
-    std::array<juce::AudioBuffer<float>, MAX_IR_COUNT> activeIRBuffers;
+    juce::Random irRNG;
+    std::unique_ptr<juce::FileChooser> irFileChooser, irDirectoryChooser;
 
     void saveDirectories();
     void loadDirectories();
@@ -53,11 +67,14 @@ private:
     void clearIR(int irIndex);
     void clearIRs();
 
+    void setIRSwapInterval(int irIndex, int minTime, int maxTime);
+
     // Time
     float positionTime = 0.0f, fieldTime = 0.0f;
     int controlCounter = 0;
 
     void advancePhase();
+    void advanceSwapTimers(float dt);
 
     // Binaural processing
     void processBinaural(const std::array<float, MAX_IR_COUNT>& rawWeights, const std::vector<PolarCoordinate>& relatives);
@@ -117,6 +134,11 @@ public:
     std::mutex fieldMutex;
     std::atomic<bool> fieldChanged { false }; // Notify editor
     std::atomic<bool> updateField { false }; // Editor forced update (e.g., parameter changes)
+
+    inline const IRSlot& getIRSlot(int index) const {
+        jassert(index >= 0 && index < MAX_IR_COUNT);
+        return irSlots[index];
+    }
 
     // Parameters
     juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
