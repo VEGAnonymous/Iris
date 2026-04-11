@@ -31,7 +31,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModA, "Position Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModB, "Position Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     
-    layout.add(std::make_unique<juce::AudioParameterInt>(ParamID::fieldSelect, "Field Select", 0, MAX_IR_COUNT, 0));
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::fieldPattern, "Field Pattern", fieldPatterns, static_cast<int>(FieldPattern::RING)));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Field Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModA, "Field Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
@@ -61,8 +60,8 @@ void MareverbAudioProcessor::updateParameters() {
         settings.positionModB}
     );
     motionController.setFieldParameters({
-        MAX_IR_COUNT, 
-        settings.fieldSelect, 
+        MAX_IR_COUNT,
+        apvts.state.getProperty(PropertyID::selectedIR),
         settings.fieldPattern, 
         settings.fieldRate, 
         settings.fieldModA, 
@@ -219,7 +218,7 @@ void MareverbAudioProcessor::clearIRs() {
     for (int irIndex = 0; irIndex < MAX_IR_COUNT; ++irIndex) clearIR(irIndex);
 }
 
-void MareverbAudioProcessor::setIRSwapInterval(int irIndex, int minTime, int maxTime) {
+void MareverbAudioProcessor::setIRSwapInterval(int irIndex, float minTime, float maxTime) {
     if (validateSwapInterval(minTime, maxTime)) {
         auto& slot = irSlots[irIndex];
         slot.swapMin = minTime;
@@ -312,7 +311,6 @@ void MareverbAudioProcessor::updateWeights() {
 void MareverbAudioProcessor::connectAudioNodes() {
     if (!mainProcessor->getConnections().empty()) return;
     int inputChannels = audioInputNode->getProcessor()->getTotalNumOutputChannels(); 
-    int outputChannels = 2;
     for (int ch = 0; ch < inputChannels; ++ch) {
         mainProcessor->addConnection({ { audioInputNode->nodeID, ch }, { convolutionVerbNode->nodeID, ch } });
         mainProcessor->addConnection({ { convolutionVerbNode->nodeID, ch }, { cutFilterNode->nodeID, ch } });
@@ -337,6 +335,9 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     mixer(HOP_SIZE) {
 
     // Init properties
+    if (!apvts.state.hasProperty(PropertyID::selectedIR))
+        apvts.state.setProperty(PropertyID::selectedIR, 0, nullptr);
+
     juce::PropertiesFile::Options options;
     options.applicationName = "Mareverb";
     options.filenameSuffix = ".amre";
@@ -382,7 +383,11 @@ bool MareverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) 
 
 // DSP
 void MareverbAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
-    juce::dsp::ProcessSpec spec{ sampleRate, static_cast<juce::uint32>(samplesPerBlock), getNumOutputChannels() };
+    juce::dsp::ProcessSpec spec { 
+        sampleRate, 
+        static_cast<juce::uint32>(samplesPerBlock), 
+        static_cast<juce::uint32>(getTotalNumOutputChannels()) 
+    };
 
     mainProcessor->setPlayConfigDetails(getMainBusNumInputChannels(), getMainBusNumOutputChannels(), sampleRate, samplesPerBlock);
     mainProcessor->prepareToPlay(sampleRate, samplesPerBlock);
@@ -487,7 +492,6 @@ Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState&
     settings.positionModA = parameters.getRawParameterValue(ParamID::positionModA)->load();
     settings.positionModB = parameters.getRawParameterValue(ParamID::positionModB)->load();
 
-    settings.fieldSelect = static_cast<int>(parameters.getRawParameterValue(ParamID::fieldSelect)->load());
     settings.fieldPattern = static_cast<FieldPattern>(parameters.getRawParameterValue(ParamID::fieldPattern)->load());
     settings.fieldRate = parameters.getRawParameterValue(ParamID::fieldRate)->load();
     settings.fieldModA = parameters.getRawParameterValue(ParamID::fieldModA)->load();

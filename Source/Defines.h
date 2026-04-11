@@ -37,7 +37,6 @@ namespace ParamID {
         positionModA = "Position Mod A",
         positionModB = "Position Mod B",
 
-        fieldSelect = "Field Select",
         fieldPattern = "Field Pattern",
         fieldRate = "Field Rate",
         fieldModA = "Field Mod A",
@@ -45,6 +44,10 @@ namespace ParamID {
 
     inline juce::String irSwapMin(int i) { return "IR " + juce::String(i) + " Swap Min"; }
     inline juce::String irSwapMax(int i) { return "IR " + juce::String(i) + " Swap Max"; }
+}
+
+namespace PropertyID {
+    static constexpr auto selectedIR = "Selected IR";
 }
 
 const juce::StringArray weightingModes { "Absolute", "Relative" };
@@ -69,7 +72,6 @@ struct Settings {
     WeightingMode weightingMode; float strength, spread;
     PositionPattern positionPattern;
     float positionRate, positionModA, positionModB;
-    int fieldSelect;
     FieldPattern fieldPattern;
     float fieldRate, fieldModA, fieldModB;
 
@@ -80,7 +82,6 @@ struct Settings {
         positionPattern(PositionPattern::LISSAJOUS),
         positionRate(0.0f), positionModA(0.5f), positionModB(0.5f),
 
-        fieldSelect(0),
         fieldPattern(FieldPattern::RING),
         fieldRate(0.0f), fieldModA(0.5f), fieldModB(0.5f)
     {}

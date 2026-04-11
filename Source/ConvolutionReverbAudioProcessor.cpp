@@ -21,7 +21,7 @@ bool ConvolutionReverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& 
 }
 
 // DSP
-void ConvolutionReverbAudioProcessor::prepareToPlay(double sampleRate, int maxBlockSize) {
+void ConvolutionReverbAudioProcessor::prepareToPlay(double /* sampleRate */, int /* maxBlockSize */) {
     setDecay(decay); 
     setWeights(weights);
 }
@@ -38,7 +38,6 @@ void ConvolutionReverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buf
 }
 
 // State
-
 void ConvolutionReverbAudioProcessor::setDecay(float nDecay) {
     if (nDecay != decay) { 
         decay = nDecay; 

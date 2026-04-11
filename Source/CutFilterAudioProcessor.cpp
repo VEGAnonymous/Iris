@@ -17,7 +17,11 @@ bool CutFilterAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts)
 
 // DSP
 void CutFilterAudioProcessor::prepareToPlay(double sampleRate, int maxBlockSize) {
-    juce::dsp::ProcessSpec spec { sampleRate, static_cast<juce::uint32>(maxBlockSize), getNumOutputChannels() };
+    juce::dsp::ProcessSpec spec { 
+        sampleRate, 
+        static_cast<juce::uint32>(maxBlockSize), 
+        static_cast<juce::uint32>(getTotalNumOutputChannels()) 
+    };
     
     setLowCutCutoff(lowCutCutoff);
     setHighCutCutoff(highCutCutoff);
@@ -34,7 +38,6 @@ void CutFilterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juc
 }
 
 // State
-
 void CutFilterAudioProcessor::setLowCutCutoff(float nCutoff) {
     lowCutCutoff = nCutoff;
     auto lowCutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(lowCutCutoff, getSampleRate(), 1);

@@ -39,11 +39,11 @@ void MareverbAudioProcessorEditor::initComponents() {
     // Pattern combo boxes
     positionPatternControl.addItemList(positionPatterns, 1);
     positionPatternControl.setSelectedId(
-        static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load()) + 1, true);
+        static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load()) + 1, juce::dontSendNotification);
 
     fieldPatternControl.addItemList(fieldPatterns, 1);
     fieldPatternControl.setSelectedId(
-        static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load()) + 1, true);
+        static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load()) + 1, juce::dontSendNotification);
 
     // Position / field tab selector
     // HACK: Don't repeat yourself
@@ -167,8 +167,7 @@ void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
 }
 
 void MareverbAudioProcessorEditor::resized() {
-    auto controls = getControls();
-    auto fillFlex = [controls](juce::FlexBox& flex, ControlGroup group) {
+    auto fillFlex = [this](juce::FlexBox& flex, ControlGroup group) {
         for (const auto& control : controls)
             if (control.group == group)
                 flex.items.add(juce::FlexItem(*control.component).withFlex(1.0f).withHeight(80).withMargin(10));

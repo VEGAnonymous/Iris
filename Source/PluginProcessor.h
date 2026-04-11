@@ -70,7 +70,7 @@ private:
     void clearIR(int irIndex);
     void clearIRs();
 
-    void setIRSwapInterval(int irIndex, int minTime, int maxTime);
+    void setIRSwapInterval(int irIndex, float minTime, float maxTime);
 
     // Time
     float positionTime = 0.0f, fieldTime = 0.0f;
