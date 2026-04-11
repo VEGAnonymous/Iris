@@ -67,7 +67,9 @@ private:
     juce::TextButton weightingModeControl;
     juce::AudioProcessorValueTreeState::ButtonAttachment weightingModeControlAttachment;
 
-    juce::TextButton positionTabSelect, fieldTabSelect;
+    juce::TextButton positionTabButton, fieldTabButton;
+
+    juce::TextButton clearAllButton, randomAllButton;
 
     // ComboBoxes
     juce::ComboBox positionPatternControl, fieldPatternControl;

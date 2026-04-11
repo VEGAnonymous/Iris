@@ -114,117 +114,12 @@ void MareverbAudioProcessor::loadDirectories() {
     collectIRs();
 }
 
-void MareverbAudioProcessor::chooseIR(int irIndex) {
-    irFileChooser = std::make_unique<juce::FileChooser>(
-        "Load an impulse response...", juce::File{}, formatManager.getWildcardForAllFormats());
-    irFileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
-        [this, irIndex](const juce::FileChooser& fileChooser) {
-            if (fileChooser.getResults().isEmpty()) return;
-            loadIR(irIndex, fileChooser.getResult());
-        });
-}
-
-void MareverbAudioProcessor::chooseIRDirectory() {
-    irDirectoryChooser = std::make_unique<juce::FileChooser>(
-        "Choose a directory...", juce::File{});
-    irDirectoryChooser->launchAsync(
-        juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
-        [this](const juce::FileChooser& fileChooser) {
-            if (fileChooser.getResults().isEmpty()) return;
-            addIRDirectory(fileChooser.getResult());
-        });
-}
-
-void MareverbAudioProcessor::addIRDirectory(juce::File dir) {
-    if (dir.isDirectory()) {
-        irDirectories.push_back({dir, true});
-        collectIRs();
-        saveDirectories();
-    }
-}
-void MareverbAudioProcessor::removeIRDirectory(int index) { 
-    if (index >= 1 && index < static_cast<int>(irDirectories.size())) { // index 0 = factory
-        irDirectories.erase(irDirectories.begin() + index);
-        collectIRs();
-        saveDirectories();
-    }
-}
-void MareverbAudioProcessor::activateIRDirectory(int index, bool nState) {
-    if (index >= 0 && index < static_cast<int>(irDirectories.size())) {
-        irDirectories[index].active = nState;
-        collectIRs();
-        saveDirectories();
-    }
-}
-
 void MareverbAudioProcessor::collectIRs() {
     irFiles.clear();
     for (const auto& dir : irDirectories) {
         if (!dir.active || !dir.irDirectory.isDirectory()) continue;
         irFiles.addArray(dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats()));
     }
-}
-
-bool MareverbAudioProcessor::loadIR(int irIndex, juce::File irFile) {
-    std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(irFile));
-    if (reader == nullptr) return false;
-
-    // Read samples to buffer in activeIRBuffers
-    const int numChannels = static_cast<int>(reader->numChannels); 
-    const int numSamples = static_cast<int>(reader->lengthInSamples);
-    
-    auto& buffer = irSlots[irIndex].buffer;
-    buffer.setSize(numChannels, numSamples);
-    if (reader->read(&buffer, 0, numSamples, 0, true, true)) {
-        irSlots[irIndex].file = irFile; // File validated
-
-        // Set IR buffer in convolution processor
-        auto* convProcessor = getConvolutionReverbProcessor();
-        if (convProcessor) {
-            convProcessor->getConvolutionReverb()->setIRBuffer(irIndex, buffer);
-            irSlots[irIndex].occupied = true;
-            return true;
-        }
-    }
-    return false;
-}
-
-bool MareverbAudioProcessor::loadRandomIR(int irIndex) {
-    if (irFiles.isEmpty() || !validateIRIndex(irIndex)) return false;
-
-    int idx = irRNG.nextInt(irFiles.size());
-    juce::File randomIR = irFiles[idx];
-    return loadIR(irIndex, randomIR);
-}
-
-bool MareverbAudioProcessor::loadRandomIRs() {
-    if (irFiles.isEmpty()) return false;
-    for (int irIndex = 0; irIndex < MAX_IR_COUNT; ++irIndex)
-       if (!loadRandomIR(irIndex)) return false;
-    return true;
-}
-
-void MareverbAudioProcessor::clearIR(int irIndex) {
-    if (validateIRIndex(irIndex)) {
-        irSlots[irIndex].file = juce::File{};
-        irSlots[irIndex].buffer.setSize(0, 0);
-        irSlots[irIndex].occupied = false;
-        auto* convProcessor = getConvolutionReverbProcessor();
-        if (convProcessor) convProcessor->getConvolutionReverb()->clearIRBuffer(irIndex);
-    }
-}
-
-void MareverbAudioProcessor::clearIRs() {
-    for (int irIndex = 0; irIndex < MAX_IR_COUNT; ++irIndex) clearIR(irIndex);
-}
-
-void MareverbAudioProcessor::setIRSwapInterval(int irIndex, float minTime, float maxTime) {
-    if (validateSwapInterval(minTime, maxTime)) {
-        auto& slot = irSlots[irIndex];
-        slot.swapMin = minTime;
-        slot.swapMax = maxTime;
-        slot.resetCountdown(irRNG);
-    }   
 }
 
 // Time
@@ -371,7 +266,8 @@ MareverbAudioProcessor::MareverbAudioProcessor()
 MareverbAudioProcessor::~MareverbAudioProcessor() { }
 
 // Boilerplate
-double MareverbAudioProcessor::getTailLengthSeconds() const { return 0.0; }
+
+double MareverbAudioProcessor::getTailLengthSeconds() const { return 0.0; } // TODO: Replace with actual value
 
 #ifndef JucePlugin_PreferredChannelConfigurations
 bool MareverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
@@ -382,6 +278,7 @@ bool MareverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) 
 #endif
 
 // DSP
+
 void MareverbAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     juce::dsp::ProcessSpec spec { 
         sampleRate, 
@@ -475,6 +372,7 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
 }
 
 // Parameters
+
 Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState& parameters) {
     Settings settings;
 
@@ -500,6 +398,120 @@ Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState&
     return settings;
 }
 
-// INSTANCING
+// IR management
+
+void MareverbAudioProcessor::chooseIR(int irIndex) {
+    irFileChooser = std::make_unique<juce::FileChooser>(
+        "Load an impulse response...", juce::File{}, formatManager.getWildcardForAllFormats());
+    irFileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+        [this, irIndex](const juce::FileChooser& fileChooser) {
+            if (fileChooser.getResults().isEmpty()) return;
+            loadIR(irIndex, fileChooser.getResult());
+        });
+}
+
+void MareverbAudioProcessor::chooseIRDirectory() {
+    irDirectoryChooser = std::make_unique<juce::FileChooser>(
+        "Choose a directory...", juce::File{});
+    irDirectoryChooser->launchAsync(
+        juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+        [this](const juce::FileChooser& fileChooser) {
+            if (fileChooser.getResults().isEmpty()) return;
+            addIRDirectory(fileChooser.getResult());
+        });
+}
+
+void MareverbAudioProcessor::addIRDirectory(juce::File dir) {
+    if (dir.isDirectory()) {
+        irDirectories.push_back({ dir, true });
+        collectIRs();
+        saveDirectories();
+    }
+}
+void MareverbAudioProcessor::removeIRDirectory(int index) {
+    if (index >= 1 && index < static_cast<int>(irDirectories.size())) { // index 0 = factory
+        irDirectories.erase(irDirectories.begin() + index);
+        collectIRs();
+        saveDirectories();
+    }
+}
+void MareverbAudioProcessor::activateIRDirectory(int index, bool nState) {
+    if (index >= 0 && index < static_cast<int>(irDirectories.size())) {
+        irDirectories[index].active = nState;
+        collectIRs();
+        saveDirectories();
+    }
+}
+
+bool MareverbAudioProcessor::loadIR(int irIndex, juce::File irFile) {
+    DBG("Loading IR file into slot " << irIndex);
+    if (!validateIRIndex(irIndex)) return false;
+
+    std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(irFile));
+    if (reader == nullptr) return false;
+
+    // Read samples to buffer in activeIRBuffers
+    const int numChannels = static_cast<int>(reader->numChannels);
+    const int numSamples = static_cast<int>(reader->lengthInSamples);
+
+    auto& buffer = irSlots[irIndex].buffer;
+    DBG("Obtained buffer ref for slot " << irIndex);
+    buffer.setSize(numChannels, numSamples);
+    if (reader->read(&buffer, 0, numSamples, 0, true, true)) {
+        irSlots[irIndex].file = irFile; // File validated
+
+        // Set IR buffer in convolution processor
+        auto* convProcessor = getConvolutionReverbProcessor();
+        if (convProcessor) {
+            DBG("Calling internal set buffer " << irIndex);
+            convProcessor->getConvolutionReverb()->setIRBuffer(irIndex, buffer);
+            irSlots[irIndex].occupied = true;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool MareverbAudioProcessor::loadRandomIR(int irIndex) {
+    if (irFiles.isEmpty() || !validateIRIndex(irIndex)) return false;
+
+    int idx = irRNG.nextInt(irFiles.size());
+    juce::File randomIR = irFiles[idx];
+    DBG("Generated random index: " << idx);
+    return loadIR(irIndex, randomIR);
+}
+
+bool MareverbAudioProcessor::loadRandomIRs() {
+    if (irFiles.isEmpty()) return false;
+    for (int irIndex = 0; irIndex < MAX_IR_COUNT; ++irIndex)
+        if (!loadRandomIR(irIndex)) return false;
+    return true;
+}
+
+void MareverbAudioProcessor::clearIR(int irIndex) {
+    if (validateIRIndex(irIndex)) {
+        DBG("Clearing IR slot " << irIndex);
+        irSlots[irIndex].file = juce::File{};
+        irSlots[irIndex].buffer.setSize(0, 0);
+        irSlots[irIndex].occupied = false;
+        auto* convProcessor = getConvolutionReverbProcessor();
+        if (convProcessor) convProcessor->getConvolutionReverb()->clearIRBuffer(irIndex);
+    }
+}
+
+void MareverbAudioProcessor::clearIRs() {
+    for (int irIndex = 0; irIndex < MAX_IR_COUNT; ++irIndex) clearIR(irIndex);
+}
+
+void MareverbAudioProcessor::setIRSwapInterval(int irIndex, float minTime, float maxTime) {
+    if (validateSwapInterval(minTime, maxTime)) {
+        auto& slot = irSlots[irIndex];
+        slot.swapMin = minTime;
+        slot.swapMax = maxTime;
+        slot.resetCountdown(irRNG);
+    }
+}
+
+// Instancing
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new MareverbAudioProcessor(); }

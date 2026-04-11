@@ -55,22 +55,7 @@ private:
     void saveDirectories();
     void loadDirectories();
 
-    void chooseIR(int irIndex);
-    void chooseIRDirectory();
-
-    void addIRDirectory(juce::File dir);
-    void removeIRDirectory(int index);
-    void activateIRDirectory(int index, bool nState);
-
     void collectIRs();
-
-    bool loadIR(int irIndex, juce::File file);
-    bool loadRandomIR(int irIndex);
-    bool loadRandomIRs();
-    void clearIR(int irIndex);
-    void clearIRs();
-
-    void setIRSwapInterval(int irIndex, float minTime, float maxTime);
 
     // Time
     float positionTime = 0.0f, fieldTime = 0.0f;
@@ -131,22 +116,38 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-    // GUI concurrency
-    std::atomic<PolarCoordinate> position { {0.0f, 0.0f} };
-    std::atomic<bool> positionChanged { false };
-
-    std::vector<PolarCoordinate> fieldCoordinates;
-    std::mutex fieldMutex;
-    std::atomic<bool> fieldChanged { false }; // Notify editor
-    std::atomic<bool> updateField { false }; // Editor forced update (e.g., parameter changes)
-
-    inline const IRSlot& getIRSlot(int index) const {
-        jassert(index >= 0 && index < MAX_IR_COUNT);
-        return irSlots[index];
-    }
-
     // Parameters
     juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
 
     static Settings getSettings(juce::AudioProcessorValueTreeState& parameters);
+
+    // GUI concurrency
+    std::atomic<PolarCoordinate> position{ {0.0f, 0.0f} };
+    std::atomic<bool> positionChanged{ false };
+
+    std::vector<PolarCoordinate> fieldCoordinates;
+    std::mutex fieldMutex;
+    std::atomic<bool> fieldChanged{ false }; // Notify editor
+    std::atomic<bool> updateField{ false }; // Editor forced update (e.g., parameter changes)
+
+    // IR management
+    void chooseIR(int irIndex);
+    void chooseIRDirectory();
+
+    void addIRDirectory(juce::File dir);
+    void removeIRDirectory(int index);
+    void activateIRDirectory(int index, bool nState);
+
+    bool loadIR(int irIndex, juce::File file);
+    bool loadRandomIR(int irIndex);
+    bool loadRandomIRs();
+    void clearIR(int irIndex);
+    void clearIRs();
+
+    void setIRSwapInterval(int irIndex, float minTime, float maxTime);
+
+    inline const IRSlot& getIRSlot(int index) const {
+        jassert(validateIRIndex(index));
+        return irSlots[index];
+    }
 };

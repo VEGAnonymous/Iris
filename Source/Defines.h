@@ -4,22 +4,24 @@
 
 // Defines
 static constexpr auto EPSILON = 1e-3f,
-                      sqrt2_2 = juce::MathConstants<float>::sqrt2 / 2.0f;
-                      
-static constexpr auto REFRESH_RATE = 30;
-static constexpr auto CONTROL_RATE = 25.0f;
-
-static constexpr auto N_CHANNELS = 2,
-                      MAX_IR_COUNT = 8;
-
-static constexpr auto SWAP_INTERVAL_MIN = 5.0f,
-                      SWAP_INTERVAL_MAX = 60.0f;
+                      sqrt2_2 = juce::MathConstants<float>::sqrt2 / 2.0f;       
 
 static constexpr auto L = 512,
                       PARTITION_SIZE = 2 * L,
                       FFT_SIZE = 4 * L, // 2048
                       FFT_ORDER = 11, // 2^11, hardcoded
                       HOP_SIZE = FFT_SIZE / 4; // L
+
+static constexpr auto N_CHANNELS = 2,
+                      MAX_IR_COUNT = 8,
+                      MAX_IR_PARTITIONS = 512,
+                      MAX_IR_SAMPLES = MAX_IR_PARTITIONS * PARTITION_SIZE;
+
+static constexpr auto REFRESH_RATE = 30;
+static constexpr auto CONTROL_RATE = 25.0f;
+
+static constexpr auto SWAP_INTERVAL_MIN = 5.0f,
+                      SWAP_INTERVAL_MAX = 60.0f;
 
 namespace ParamID {
     static constexpr auto 
@@ -56,6 +58,8 @@ const juce::StringArray fieldPatterns { "Vanilla", "Ring", "Orbits", "Random", "
 
 // Aliases
 using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
+
+using Bounds = juce::Rectangle<int>;
 
 // Enums
 enum class WeightingMode { ABSOLUTE, RELATIVE };
