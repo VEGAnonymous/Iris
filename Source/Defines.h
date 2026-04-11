@@ -55,10 +55,13 @@ const juce::StringArray fieldPatterns { "Vanilla", "Ring", "Orbits", "Random", "
 using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
 
 // Enums
-enum class Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
 enum class WeightingMode { ABSOLUTE, RELATIVE };
+
+enum class Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
 enum class PositionPattern { MANUAL, ORBIT, SPIRAL, LISSAJOUS, FLORAL, RANDOM_DISCRETE, RANDOM_WALK };
 enum class FieldPattern { MANUAL, RING, ORBITS, RANDOM_DISCRETE, RANDOM_WALK };
+
+enum class ControlGroup { GLOBAL, INTERACTION, POSITION, FIELD };
 
 // Structs
 struct Settings {
@@ -81,6 +84,11 @@ struct Settings {
         fieldPattern(FieldPattern::RING),
         fieldRate(0.0f), fieldModA(0.5f), fieldModB(0.5f)
     {}
+};
+
+struct ControlDef {
+    juce::Component* component;
+    ControlGroup group;
 };
 
 struct CartesianCoordinate { 

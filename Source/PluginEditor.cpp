@@ -29,6 +29,46 @@ void MareverbAudioProcessorEditor::timerCallback() {
     }
 }
 
+void MareverbAudioProcessorEditor::initComponents() {
+    // Weighting mode toggle switch
+    weightingModeControl.setClickingTogglesState(true);
+    auto updateWeightingModeText = [this] { weightingModeControl.setButtonText(weightingModes[weightingModeControl.getToggleState()]); };
+    updateWeightingModeText();
+    weightingModeControl.onStateChange = updateWeightingModeText;
+
+    // Pattern combo boxes
+    positionPatternControl.addItemList(positionPatterns, 1);
+    positionPatternControl.setSelectedId(
+        static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load()) + 1, true);
+
+    fieldPatternControl.addItemList(fieldPatterns, 1);
+    fieldPatternControl.setSelectedId(
+        static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load()) + 1, true);
+
+    // Position / field tab selector
+    // HACK: Don't repeat yourself
+    auto positionControls = getControlsGroup(ControlGroup::POSITION);
+    auto fieldControls = getControlsGroup(ControlGroup::FIELD);
+
+    auto selectPositionTab = [this, positionControls, fieldControls] {
+        for (auto& positionControl : positionControls) positionControl.component->setVisible(true);
+        for (auto& fieldControl : fieldControls) fieldControl.component->setVisible(false); 
+    };
+
+    auto selectFieldTab = [this, positionControls, fieldControls] {
+        for (auto& positionControl : positionControls) positionControl.component->setVisible(false);
+        for (auto& fieldControl : fieldControls) fieldControl.component->setVisible(true);
+    };
+
+    positionTabSelect.setButtonText("POSITION");
+    positionTabSelect.onClick = selectPositionTab;
+
+    fieldTabSelect.setButtonText("FIELD");
+    fieldTabSelect.onClick = selectFieldTab;
+
+    selectPositionTab();
+}
+
 /* PUBLIC */
 
 MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcessor& p)
@@ -55,18 +95,19 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     fieldModAControlAttachment(audioProcessor.apvts, ParamID::fieldModA, fieldModAControl),
     fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl) {
 
-    setSize(1216, 621);
+    setSize(1046, 721);
 
     // Attach listeners
     for (const auto& id : paramIDs) audioProcessor.apvts.addParameterListener(id, this);
 
     // Add components
     addAndMakeVisible(polarMapComponent);
-    for (auto* control : getControls()) addAndMakeVisible(control);
+    addAndMakeVisible(positionTabSelect);
+    addAndMakeVisible(fieldTabSelect);
+    for (auto& control : getControls()) addAndMakeVisible(control.component);
 
-    // Control settings
-    positionPatternControl.addItemList(positionPatterns, 1);
-    fieldPatternControl.addItemList(fieldPatterns, 1);
+    // Setup components
+    initComponents();
 
     startTimerHz(REFRESH_RATE);
 }
@@ -80,51 +121,114 @@ MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
 
 void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
     g.fillAll(juce::Colours::black);
+
+    auto bounds = getLocalBounds();
+
+    g.setColour(juce::Colours::darkgrey.withAlpha(0.8f));
+
+    // Left panel
+    auto leftPanel = bounds.removeFromLeft(621);
+
+    auto mapArea = leftPanel.removeFromTop(621);
+    auto& positionFieldControlsArea = leftPanel;
+    g.setColour(juce::Colours::darkgrey.withAlpha(0.2f));
+    g.fillRect(positionFieldControlsArea);
+
+    // Right panel
+    auto& rightPanel = bounds;
+
+    auto topBarArea = rightPanel.removeFromTop(81); // Randomize / Clear All, settings modal, Mareverb title
+    g.setColour(juce::Colours::darkgrey.withAlpha(0.9f));
+    g.fillRect(topBarArea);
+
+    auto irGridArea = rightPanel.removeFromTop(160);
+    g.setColour(juce::Colours::darkgrey.withAlpha(0.8f));
+    g.fillRect(irGridArea);
+
+    auto irHeaderArea = rightPanel.removeFromTop(40);
+    g.setColour(juce::Colours::darkgrey.withAlpha(0.7f));
+    g.fillRect(irHeaderArea);
+    
+    auto irWaveformArea = rightPanel.removeFromTop(140);
+    g.setColour(juce::Colours::darkgrey.withAlpha(0.6f));
+    g.fillRect(irWaveformArea);
+
+    auto irControlsArea = rightPanel.removeFromTop(100);
+    g.setColour(juce::Colours::darkgrey.withAlpha(0.5f));
+    g.fillRect(irControlsArea);
+
+    auto interactionControlsArea = rightPanel.removeFromTop(100);
+    g.setColour(juce::Colours::darkgrey.withAlpha(0.4f));
+    g.fillRect(interactionControlsArea);
+
+    auto globalControlsArea = rightPanel.removeFromTop(100);
+    g.setColour(juce::Colours::darkgrey.withAlpha(0.3f));
+    g.fillRect(globalControlsArea);
 }
 
 void MareverbAudioProcessorEditor::resized() {
+    auto controls = getControls();
+    auto fillFlex = [controls](juce::FlexBox& flex, ControlGroup group) {
+        for (const auto& control : controls)
+            if (control.group == group)
+                flex.items.add(juce::FlexItem(*control.component).withFlex(1.0f).withHeight(80).withMargin(10));
+        };
+
     auto bounds = getLocalBounds();
 
-    // Map
-    auto mareMapArea = bounds.removeFromLeft(621);
-    polarMapComponent.setBounds(mareMapArea);
+    // Left panel
+    auto leftPanel = bounds.removeFromLeft(621);
 
-    // Parameter rows
-    juce::FlexBox positionControlRow;
-    std::vector<juce::Component*> positionControls = { &positionPatternControl, &positionRateControl, &positionModAControl, &positionModBControl };
-    for (auto* control : positionControls) 
-        positionControlRow.items.add(juce::FlexItem(*control).withFlex(1.0f).withMaxHeight(90));
+    auto mapArea = leftPanel.removeFromTop(621);
+    polarMapComponent.setBounds(mapArea);
 
-    juce::FlexBox fieldControlRow;
-    std::vector<juce::Component*> fieldControls = { &fieldPatternControl, &fieldRateControl, &fieldModAControl, &fieldModBControl };
-    for (auto* control : fieldControls)
-        fieldControlRow.items.add(juce::FlexItem(*control).withFlex(1.0f).withMaxHeight(90));
+    auto& positionFieldControlsArea = leftPanel;
+
+    juce::FlexBox positionFieldTabSelector;
+    positionFieldTabSelector.flexDirection = juce::FlexBox::Direction::column;
+    positionFieldTabSelector.items.add(juce::FlexItem(positionTabSelect).withFlex(1.0f));
+    positionFieldTabSelector.items.add(juce::FlexItem(fieldTabSelect).withFlex(1.0f));
+    positionFieldTabSelector.performLayout(positionFieldControlsArea.removeFromLeft(static_cast<int>(positionFieldControlsArea.getWidth() * 0.15f)));
+
+    juce::FlexBox positionControlRow, fieldControlRow;
+    fillFlex(positionControlRow, ControlGroup::POSITION);
+    fillFlex(fieldControlRow, ControlGroup::FIELD);
+    positionControlRow.performLayout(positionFieldControlsArea);
+    fieldControlRow.performLayout(positionFieldControlsArea);
+
+    // Right panel
+    auto& rightPanel = bounds;
+
+    auto topBarArea = rightPanel.removeFromTop(81); // Randomize / Clear All, settings modal, Mareverb title
+
+    auto irGridArea = rightPanel.removeFromTop(160);
+
+    auto irHeaderArea = rightPanel.removeFromTop(40); // IR (indicator color) - filename, Clear button
+
+    auto irWaveformArea = rightPanel.removeFromTop(140);
+
+    auto irControlsArea = rightPanel.removeFromTop(100); // Load (Manual) button, Load (Random) button, Auto Min textbox, Auto Max textbox
+
+    auto interactionControlsArea = rightPanel.removeFromTop(100); // Weighting Mode, Strength, Spread
 
     juce::FlexBox interactionControlRow;
-    std::vector<juce::Component*> interactionControls = { &weightingModeControl, &strengthControl, &spreadControl };
-    for (auto* control : interactionControls)
-        interactionControlRow.items.add(juce::FlexItem(*control).withFlex(1.0f).withMaxHeight(90));
+    fillFlex(interactionControlRow, ControlGroup::INTERACTION);
+    interactionControlRow.performLayout(interactionControlsArea);
+
+    auto globalControlsArea = rightPanel.removeFromTop(100); // Low Cut, High Cut, Decay, Mix
 
     juce::FlexBox globalControlRow;
-    std::vector<juce::Component*> globalControls = { &globalMixControl, &decayControl, &lowCutControl, &highCutControl };
-    for (auto* control : globalControls) 
-        globalControlRow.items.add(juce::FlexItem(*control).withFlex(1.0f).withMaxHeight(90));
+    fillFlex(globalControlRow, ControlGroup::GLOBAL);
+    globalControlRow.performLayout(globalControlsArea.removeFromLeft(static_cast<int>(globalControlsArea.getWidth() * 0.8f)));
 
-    // Main parameter column
-    juce::FlexBox uiColumn;
-    uiColumn.flexDirection = juce::FlexBox::Direction::column;
-    uiColumn.items.add(juce::FlexItem(positionControlRow).withFlex(1.0f));
-    uiColumn.items.add(juce::FlexItem(fieldControlRow).withFlex(1.0f));
-    uiColumn.items.add(juce::FlexItem(interactionControlRow).withFlex(1.0f));
-    uiColumn.items.add(juce::FlexItem(globalControlRow).withFlex(1.0f));
-    uiColumn.performLayout(bounds);
 }
 
-std::vector<juce::Component*> MareverbAudioProcessorEditor::getControls() {
-    return { 
-        &globalMixControl, &decayControl, &lowCutControl, &highCutControl,
-        &weightingModeControl, &strengthControl, &spreadControl,
-        &positionPatternControl, &positionRateControl, &positionModAControl, &positionModBControl,
-        &fieldPatternControl, &fieldRateControl, &fieldModAControl, &fieldModBControl 
-    };
+std::vector<ControlDef> MareverbAudioProcessorEditor::getControls() { return controls; }
+
+std::vector<ControlDef> MareverbAudioProcessorEditor::getControlsGroup(ControlGroup group) {
+    std::vector<ControlDef> groupControls;
+    for (const auto& control : controls)
+        if (control.group == group)
+            groupControls.push_back(control);
+    return groupControls;
 }

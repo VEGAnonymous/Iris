@@ -25,14 +25,34 @@ private:
     };
 
     // Controls
+    std::vector<ControlDef> controls { {
+        { &globalMixControl,       ControlGroup::GLOBAL },
+        { &decayControl,           ControlGroup::GLOBAL },
+        { &lowCutControl,          ControlGroup::GLOBAL },
+        { &highCutControl,         ControlGroup::GLOBAL },
+        { &weightingModeControl,   ControlGroup::INTERACTION },
+        { &strengthControl,        ControlGroup::INTERACTION },
+        { &spreadControl,          ControlGroup::INTERACTION },
+        { &positionPatternControl, ControlGroup::POSITION },
+        { &positionRateControl,    ControlGroup::POSITION },
+        { &positionModAControl,    ControlGroup::POSITION },
+        { &positionModBControl,    ControlGroup::POSITION },
+        { &fieldPatternControl,    ControlGroup::FIELD },
+        { &fieldRateControl,       ControlGroup::FIELD },
+        { &fieldModAControl,       ControlGroup::FIELD },
+        { &fieldModBControl,       ControlGroup::FIELD },
+    } };
+
+    // Sliders
     struct Rotary : juce::Slider {
         Rotary() : juce::Slider (
             juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag,
-            juce::Slider::TextEntryBoxPosition::TextBoxBelow
+            juce::Slider::TextEntryBoxPosition::NoTextBox
         ) {}
     };
 
-    Rotary globalMixControl, decayControl, lowCutControl, highCutControl,
+    Rotary 
+        globalMixControl, decayControl, lowCutControl, highCutControl,
         strengthControl, spreadControl,
         positionRateControl, positionModAControl, positionModBControl,
         fieldRateControl, fieldModAControl, fieldModBControl;
@@ -43,26 +63,30 @@ private:
         positionRateControlAttachment, positionModAControlAttachment, positionModBControlAttachment,
         fieldRateControlAttachment, fieldModAControlAttachment, fieldModBControlAttachment;
 
-    juce::ToggleButton weightingModeControl; // TODO: Change this? Need a two-choice toggle control, not a tickbox
+    // Buttons
+    juce::TextButton weightingModeControl;
     juce::AudioProcessorValueTreeState::ButtonAttachment weightingModeControlAttachment;
 
+    juce::TextButton positionTabSelect, fieldTabSelect;
+
+    // ComboBoxes
     juce::ComboBox positionPatternControl, fieldPatternControl;
     juce::AudioProcessorValueTreeState::ComboBoxAttachment positionPatternControlAttachment, fieldPatternControlAttachment;
 
-    // TODO: Add control for fieldSelect
-    // Need a custom component (perhaps based off juce::Label)
-    // Text box that you can drag up and down to change the value (not Slider)
-
-    std::vector<juce::Component*> getControls();
-    
     // Components
     PolarMapComponent polarMapComponent;
+
+    void initComponents();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MareverbAudioProcessorEditor)
 
 public:
     MareverbAudioProcessorEditor(MareverbAudioProcessor&);
     ~MareverbAudioProcessorEditor() override;
+
     void paint(juce::Graphics&) override;
     void resized() override;
+
+    std::vector<ControlDef> getControls();
+    std::vector<ControlDef> getControlsGroup(ControlGroup group);
 };

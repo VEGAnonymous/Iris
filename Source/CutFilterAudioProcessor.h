@@ -14,15 +14,6 @@ private:
 
 	// Parameters
 	float lowCutCutoff = 20.0f, highCutCutoff = 20000.0f;
-
-	void updateFilter(float lowCutCutoff, float highCutCutoff, double sampleRate) {
-		auto lowCoeffs = juce::dsp::FilterDesign<float>
-			::designIIRHighpassHighOrderButterworthMethod(lowCutCutoff, sampleRate, 1);
-
-		auto highCoeffs = juce::dsp::FilterDesign<float>
-			::designIIRLowpassHighOrderButterworthMethod(highCutCutoff, sampleRate, 1);
-	}
-
 public:
 	CutFilterAudioProcessor();
 	~CutFilterAudioProcessor() override;
