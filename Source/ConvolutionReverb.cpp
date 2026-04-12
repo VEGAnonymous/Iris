@@ -12,7 +12,7 @@ void ConvolutionReverb::updateMaxIRPartitionCount() {
 		if (!ir.empty()) maxIRPartitionCount = std::max(maxIRPartitionCount, static_cast<int>(ir[0].size()));
 
 	// Resize members
-	for (int channel = 0; channel < inputChannels; ++channel) mixedSpectra[channel].resize(maxIRPartitionCount);
+	for (int channel = 0; channel < N_CHANNELS; ++channel) mixedSpectra[channel].resize(maxIRPartitionCount);
 	irEnvelopes.resize(maxIRPartitionCount);
 
 	DBG("Updated max IR partition count");
@@ -26,7 +26,6 @@ void ConvolutionReverb::updateIRFFT(int irIndex) {
 
 	const auto& irBuffer = irBuffers[irIndex];
 	const int channelCount = irBuffer.getNumChannels();
-	irSpectra[irIndex].resize(channelCount);
 
 	// Each channel
 	for (int channel = 0; channel < channelCount; ++channel) {
@@ -58,7 +57,7 @@ void ConvolutionReverb::mixSpectrum() {
 	juce::ScopedReadLock lock(irLock);
 
 	// Each channel
-	for (int channel = 0; channel < inputChannels; ++channel) {
+	for (int channel = 0; channel < N_CHANNELS; ++channel) {
 		juce::FloatVectorOperations::clear(mixedSpectra[channel].data()->data(), maxIRPartitionCount * FFT_SIZE);
 		
 		// Each partition
@@ -145,12 +144,12 @@ void ConvolutionReverb::overlapAdd(int channel) {
 	int& writeIndex = outputWriteIndex[channel];
 	for (int i = 0; i < HOP_SIZE; ++i) {
 		outputBuffers[channel][writeIndex] = outputFrame[i];
-		writeIndex = (writeIndex + 1) & (outputSize - 1);
+		writeIndex = (writeIndex + 1) & (OUTPUT_SIZE - 1);
 	}
 }
 
 void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
-	DBG("Processing a hop");
+	// DBG("Processing a hop");
 	juce::ScopedReadLock lock(irLock);
 
 	// Passthrough case (no IRs loaded)
@@ -158,7 +157,7 @@ void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
 		int& writeIndex = outputWriteIndex[channel];
 		for (int j = 0; j < HOP_SIZE; ++j) {
 			outputBuffers[channel][writeIndex] = 0.0f;
-			writeIndex = (writeIndex + 1) & (outputSize - 1);
+			writeIndex = (writeIndex + 1) & (OUTPUT_SIZE - 1);
 		} if (channel == 0) hopCounter++;
 		return;
 	}
@@ -179,7 +178,7 @@ void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
 	// Accumulate convolution
 	accumulateSpectra(channel);
 
-	DBG("Accumulated spectra");
+	// DBG("Accumulated spectra");
 
 	// IFFT in-place
 	fft.performRealOnlyInverseTransform(accumulators[channel].data());
@@ -196,38 +195,13 @@ void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
 
 /* PUBLIC */
 
-ConvolutionReverb::ConvolutionReverb(int channels) : irBuffers(), fft(FFT_ORDER), 
+ConvolutionReverb::ConvolutionReverb() : irBuffers(), fft(FFT_ORDER), 
 	hannWindow(PARTITION_SIZE, juce::dsp::WindowingFunction<float>::WindowingMethod::hann, false) {
-	setInputChannels(channels);
 }
 
 int ConvolutionReverb::wrapIndex(int index, int size) {
 	if (index < 0) index += size * ((-index / size) + 1);
 	return index % size;
-}
-
-void ConvolutionReverb::setInputChannels(int n) {
-	inputChannels = n;
-
-	irWeights.assign(n, std::array<float, MAX_IR_COUNT> {0.0f});
-
-	inputBuffers.assign(n, std::array<float, PARTITION_SIZE> {0.0f});
-	inputWriteIndex.resize(n);
-
-	inputPartitions.assign(n, {});
-
-	spectraIndex.resize(n);
-	inputSpectra.resize(n); 
-	mixedSpectra.resize(n);
-
-	accumulators.assign(inputChannels, {});
-	overlapBuffersA.assign(n, {std::array<float, PARTITION_SIZE>{0.0f}, std::array<float, PARTITION_SIZE>{0.0f} });
-	overlapBuffersB.assign(n, std::array<float, HOP_SIZE> {0.0f});
-	convSaveCount = 0;
-
-	outputBuffers.assign(inputChannels, std::vector<float>(outputSize, 0.0f));
-	outputWriteIndex.resize(n); 
-	outputReadIndex.resize(n);
 }
 
 void ConvolutionReverb::setIRBuffer(int index, juce::AudioBuffer<float> irBuffer) {
@@ -242,12 +216,12 @@ void ConvolutionReverb::clearIRBuffer(int index) {
 	if (validateIRIndex(index)) {
 		DBG("Clearing internal IR spectra: " << index);
 		juce::ScopedWriteLock lock(irLock);
-		irSpectra[index].clear();
+		irSpectra[index].fill({});
 		updateMaxIRPartitionCount();
 	}
 }
 
-void ConvolutionReverb::setWeights(std::vector<std::array<float, MAX_IR_COUNT>> weights) {
+void ConvolutionReverb::setWeights(std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> weights) {
 	irWeights = weights;
 	mixSpectrum();
 }
@@ -265,10 +239,9 @@ void ConvolutionReverb::setDecay(float decay) {
 
 void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {
 	const int blockSize = in.getNumSamples();
-	if (in.getNumChannels() != inputChannels) setInputChannels(in.getNumChannels());
 
 	// Each channel
-	for (int channel = 0; channel < inputChannels; ++channel) { 
+	for (int channel = 0; channel < N_CHANNELS; ++channel) { 
 		const float* start = in.getReadPointer(channel);
 
 		// Each sample in input block
@@ -288,7 +261,7 @@ void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {
 		for (int i = 0; i < blockSize; ++i)
 			if (readIndex != writeIndex) {
 				outPtr[i] = outputBuffers[channel][readIndex];
-				readIndex = (readIndex + 1) & (outputSize - 1);
+				readIndex = (readIndex + 1) & (OUTPUT_SIZE - 1);
 			} else outPtr[i] = 0.0f;
 
 	}

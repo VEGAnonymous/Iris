@@ -226,7 +226,7 @@ CutFilterAudioProcessor* MareverbAudioProcessor::getCutFilterProcessor() const {
 MareverbAudioProcessor::MareverbAudioProcessor()
     : AudioProcessor(BusesProperties().withInput("Input", juce::AudioChannelSet::stereo(), true)
         .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-    mainProcessor(new juce::AudioProcessorGraph()), motionController(&polarMap, &positionTime, &fieldTime), irWeights(2),
+    mainProcessor(new juce::AudioProcessorGraph()), motionController(&polarMap, &positionTime, &fieldTime),
     mixer(HOP_SIZE) {
 
     // Init properties

@@ -5,7 +5,7 @@
 
 ConvolutionReverbAudioProcessor::ConvolutionReverbAudioProcessor() : AudioProcessor(BusesProperties()
     .withInput("Input", juce::AudioChannelSet::stereo(), true)
-    .withOutput("Output", juce::AudioChannelSet::stereo(), true)), convolutionReverb(2), weights(2) {
+    .withOutput("Output", juce::AudioChannelSet::stereo(), true)) {
 }
 
 ConvolutionReverbAudioProcessor::~ConvolutionReverbAudioProcessor() {}
@@ -45,7 +45,7 @@ void ConvolutionReverbAudioProcessor::setDecay(float nDecay) {
     }
 }
 
-void ConvolutionReverbAudioProcessor::setWeights(std::vector<std::array<float, MAX_IR_COUNT>> nWeights) {
+void ConvolutionReverbAudioProcessor::setWeights(std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> nWeights) {
     if (nWeights != weights) {
         weights = nWeights;
         convolutionReverb.setWeights(nWeights);

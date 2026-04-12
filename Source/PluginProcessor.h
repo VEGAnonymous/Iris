@@ -72,7 +72,7 @@ private:
     MotionController motionController;
 
     // Weights
-    std::vector<std::array<float, MAX_IR_COUNT>> irWeights {};
+    std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {};
     void updateWeights();
 
     // Processor graph

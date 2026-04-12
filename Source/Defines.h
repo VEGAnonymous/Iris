@@ -10,7 +10,8 @@ static constexpr auto L = 512,
                       PARTITION_SIZE = 2 * L,
                       FFT_SIZE = 4 * L, // 2048
                       FFT_ORDER = 11, // 2^11, hardcoded
-                      HOP_SIZE = FFT_SIZE / 4; // L
+                      HOP_SIZE = FFT_SIZE / 4, // L
+                      OUTPUT_SIZE = 4 * L;
 
 static constexpr auto N_CHANNELS = 2,
                       MAX_IR_COUNT = 8,

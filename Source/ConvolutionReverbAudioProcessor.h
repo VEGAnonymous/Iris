@@ -14,7 +14,7 @@ private:
 	// Parameters
 	float decay = 0.5f;
 
-	std::vector<std::array<float, MAX_IR_COUNT>> weights;
+	std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> weights;
 
 public:
 	ConvolutionReverbAudioProcessor();
@@ -48,7 +48,7 @@ public:
 	// Parameters
 	void setDecay(float nDecay);
 
-	void setWeights(std::vector<std::array<float, MAX_IR_COUNT>> nWeights);
+	void setWeights(std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> nWeights);
 
 	ConvolutionReverb* getConvolutionReverb();
 };
