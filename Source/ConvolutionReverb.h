@@ -8,6 +8,9 @@
 
 class ConvolutionReverb {
 private:
+    // STATE
+    std::shared_ptr<ConvolutionStateHolder> convolutionState;
+
     // Concurrency
     juce::ReadWriteLock irLock;
 
@@ -37,13 +40,6 @@ private:
     std::array<int, N_CHANNELS> outputReadIndex = {0};
 
     // FFT and spectra
-    using SpectraData =
-        std::array< // Channels
-            std::vector< // Partitions
-                std::array<float, FFT_SIZE> // Packed FFT output
-            >,
-        N_CHANNELS>;
-
     juce::dsp::WindowingFunction<float> hannWindow;
     juce::dsp::FFT fft;
 
@@ -68,7 +64,7 @@ private:
     void processHop(int channel);
 
 public:
-    ConvolutionReverb();
+    ConvolutionReverb(std::shared_ptr<ConvolutionStateHolder> stateHolder);
     ~ConvolutionReverb() = default;
 
     static int wrapIndex(int index, int size);

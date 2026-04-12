@@ -41,7 +41,7 @@ void ConvolutionReverb::updateIRFFT(int irIndex) {
 				std::min(irBuffer.getNumSamples() - sampleOffset, PARTITION_SIZE));
 
 			// Forward FFT in-place
-			fft.performRealOnlyForwardTransform(irPartition.data()); 
+			fft.performRealOnlyForwardTransform(irPartition.data());
 
 			// Store FFT spectra
 			auto& spectraDest = irSpectra[irIndex][channel][partition];
@@ -193,8 +193,8 @@ void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
 
 /* PUBLIC */
 
-ConvolutionReverb::ConvolutionReverb() : irBuffers(), fft(FFT_ORDER), 
-	hannWindow(PARTITION_SIZE, juce::dsp::WindowingFunction<float>::WindowingMethod::hann, false) {
+ConvolutionReverb::ConvolutionReverb(std::shared_ptr<ConvolutionStateHolder> stateHolder) : convolutionState(stateHolder), 
+	fft(FFT_ORDER), hannWindow(PARTITION_SIZE, juce::dsp::WindowingFunction<float>::WindowingMethod::hann, false) {
 
 	// Preallocate spectra storage
 	for (int ir = 0; ir < MAX_IR_COUNT; ++ir)
@@ -249,6 +249,7 @@ void ConvolutionReverb::setDecay(float decay) {
 }
 
 void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {
+	auto state = std::atomic_load(&convolutionState->state);
 	const int blockSize = in.getNumSamples();
 
 	// Each channel

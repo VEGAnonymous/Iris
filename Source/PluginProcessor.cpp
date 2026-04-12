@@ -239,9 +239,13 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     options.osxLibrarySubFolder = "Application Support";
     applicationProperties.setStorageParameters(options);
 
+    // Init DSP state
+    convolutionState = std::make_shared<ConvolutionStateHolder>();
+    convolutionState->state = std::make_shared<ConvolutionState>();
+
     // Init nodes
     audioInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioInputNode));
-    convolutionVerbNode = mainProcessor->addNode(std::make_unique<ConvolutionReverbAudioProcessor>());
+    convolutionVerbNode = mainProcessor->addNode(std::make_unique<ConvolutionReverbAudioProcessor>(convolutionState));
     cutFilterNode = mainProcessor->addNode(std::make_unique<CutFilterAudioProcessor>());
     audioOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioOutputNode));
 

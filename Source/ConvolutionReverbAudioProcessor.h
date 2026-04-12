@@ -10,14 +10,15 @@ class ConvolutionReverbAudioProcessor : public juce::AudioProcessor {
 private:
 	// DSP
 	ConvolutionReverb convolutionReverb;
+	std::shared_ptr<ConvolutionStateHolder> convolutionState;
 
 	// Parameters
 	float decay = 0.5f;
 
-	std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> weights;
+	std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> weights {0};
 
 public:
-	ConvolutionReverbAudioProcessor();
+	ConvolutionReverbAudioProcessor(std::shared_ptr<ConvolutionStateHolder> stateHolder);
 	~ConvolutionReverbAudioProcessor() override;
 
 	// Boilerplate

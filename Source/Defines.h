@@ -62,6 +62,13 @@ using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
 
 using Bounds = juce::Rectangle<int>;
 
+using SpectraData =
+std::array< // Channels
+    std::vector< // Partitions
+        std::array<float, FFT_SIZE> // Packed FFT output
+    >,
+N_CHANNELS>;
+
 // Enums
 enum class WeightingMode { ABSOLUTE, RELATIVE };
 
@@ -95,6 +102,17 @@ struct Settings {
 struct ControlDef {
     juce::Component* component;
     ControlGroup group;
+};
+
+struct ConvolutionState {
+    std::array<SpectraData, MAX_IR_COUNT> irSpectra;
+    SpectraData mixedSpectra;
+    std::vector<float> irEnvelopes;
+    int maxIRPartitionCount = 0;
+};
+
+struct ConvolutionStateHolder {
+    std::shared_ptr<ConvolutionState> state;
 };
 
 struct CartesianCoordinate { 

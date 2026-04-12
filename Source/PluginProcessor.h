@@ -24,7 +24,6 @@ private:
     void updateSwapIntervals();
 
     // IR management
-    
     struct IRSlot {
         juce::File file {};
         juce::AudioBuffer<float> buffer {};
@@ -79,6 +78,8 @@ private:
     std::unique_ptr<juce::AudioProcessorGraph> mainProcessor;
     juce::AudioProcessorGraph::Node::Ptr audioInputNode, audioOutputNode, convolutionVerbNode, cutFilterNode;
     juce::dsp::DryWetMixer<float> mixer;
+
+    std::shared_ptr<ConvolutionStateHolder> convolutionState;
 
     void connectAudioNodes();
 
