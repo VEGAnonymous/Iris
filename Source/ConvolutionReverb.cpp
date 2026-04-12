@@ -8,12 +8,8 @@
 void ConvolutionReverb::updateMaxIRPartitionCount() {
 	// Find # partitions in longest IR
 	maxIRPartitionCount = 0;
-	for (const auto& ir : irSpectra)
-		if (!ir.empty()) maxIRPartitionCount = std::max(maxIRPartitionCount, static_cast<int>(ir[0].size()));
-
-	// Resize members
-	for (int channel = 0; channel < N_CHANNELS; ++channel) mixedSpectra[channel].resize(maxIRPartitionCount);
-	irEnvelopes.resize(maxIRPartitionCount);
+	for (int ir = 0; ir < MAX_IR_COUNT; ++ir)
+		maxIRPartitionCount = std::max(maxIRPartitionCount, irPartitionCounts[ir]);
 
 	DBG("Updated max IR partition count");
 
@@ -25,32 +21,35 @@ void ConvolutionReverb::updateIRFFT(int irIndex) {
 	DBG("Updating IRFFT: " << irIndex);
 
 	const auto& irBuffer = irBuffers[irIndex];
-	const int channelCount = irBuffer.getNumChannels();
+	const int channelCount = std::min(irBuffer.getNumChannels(), N_CHANNELS);
+	const int partitionCount = (irBuffer.getNumSamples() + PARTITION_SIZE - 1) / PARTITION_SIZE;
+
+	irChannelCounts[irIndex] = channelCount;
+	irPartitionCounts[irIndex] = partitionCount;
 
 	// Each channel
 	for (int channel = 0; channel < channelCount; ++channel) {
-		int partitionCount = (irBuffer.getNumSamples() + PARTITION_SIZE - 1) / PARTITION_SIZE;
-		irSpectra[irIndex][channel].resize(partitionCount);
 
 		// Each partition
-		for (int sampleIndex = 0; sampleIndex < irBuffer.getNumSamples(); sampleIndex += PARTITION_SIZE) {
-			// Copy 2L samples from IR buffer to partition buffer (rest are 0.0f)
+		for (int partition = 0; partition < partitionCount; ++partition) {
 			std::fill(irPartition.begin(), irPartition.end(), 0.0f);
+
+			// Copy 2L samples from IR buffer to partition buffer (rest are 0.0f)
+			int sampleOffset = partition * PARTITION_SIZE;
 			juce::FloatVectorOperations::copy(irPartition.data(),
-				irBuffer.getReadPointer(channel) + sampleIndex,
-				std::min(irBuffer.getNumSamples() - sampleIndex, PARTITION_SIZE));
+				irBuffer.getReadPointer(channel) + sampleOffset,
+				std::min(irBuffer.getNumSamples() - sampleOffset, PARTITION_SIZE));
 
 			// Forward FFT in-place
 			fft.performRealOnlyForwardTransform(irPartition.data()); 
 
 			// Store FFT spectra
-			int partitionIndex = sampleIndex / PARTITION_SIZE;
-			auto& spectraDest = irSpectra[irIndex][channel][partitionIndex];
+			auto& spectraDest = irSpectra[irIndex][channel][partition];
 			juce::FloatVectorOperations::copy(spectraDest.data(), irPartition.data(), FFT_SIZE);
 		}
 	}
 	updateMaxIRPartitionCount();
-	// DBG("Computed FFT for buffer " << irIndex);
+	DBG("Computed FFT for buffer " << irIndex);
 }
 
 void ConvolutionReverb::mixSpectrum() {
@@ -67,9 +66,9 @@ void ConvolutionReverb::mixSpectrum() {
 			// Each IR
 			for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
 				// Use only existing IRs, channels, and partitions
-				if (irSpectra[ir].empty()) continue;
-				int irChannel = std::min(channel, static_cast<int>(irSpectra[ir].size()) - 1); 
-				if (partition >= irSpectra[ir][irChannel].size()) continue;
+				if (irPartitionCounts[ir] == 0) continue;
+				int irChannel = std::min(channel, static_cast<int>(irChannelCounts[ir] - 1));
+				if (partition >= irPartitionCounts[ir]) continue;
 
 				// Store weighted sum of IRs in irSpectra to mixedSpectra
 				const float* irSrc = irSpectra[ir][irChannel][partition].data();
@@ -84,8 +83,7 @@ void ConvolutionReverb::mixSpectrum() {
 
 void ConvolutionReverb::accumulateSpectra(int channel) {
 	// Store input spectra in circular buffer
-	int historySize = 2 * maxIRPartitionCount;
-	if (inputSpectra[channel].size() != historySize) inputSpectra[channel].assign(historySize, std::array<float, FFT_SIZE>{0.0f});
+	const int historySize = 2 * maxIRPartitionCount;
 
 	auto& spectraDest = inputSpectra[channel][spectraIndex[channel]];
 	juce::FloatVectorOperations::copy(spectraDest.data(), inputPartitions[channel].data(), FFT_SIZE);
@@ -95,13 +93,13 @@ void ConvolutionReverb::accumulateSpectra(int channel) {
 	std::fill(accumulator.begin(), accumulator.end(), 0.0f);
 
 	// Each partition
-	for (int partitionIndex = 0; partitionIndex < maxIRPartitionCount; ++partitionIndex) {
+	for (int partition = 0; partition < maxIRPartitionCount; ++partition) {
 		// Multiply every *second* past input spectrum with mixedSpectra
-		int pastIndex = spectraIndex[channel] - (2 * partitionIndex);
+		int pastIndex = spectraIndex[channel] - (2 * partition);
 		pastIndex = wrapIndex(pastIndex, historySize);
 
 		auto& pastSpectra = inputSpectra[channel][pastIndex];
-		auto& mixSpectra = mixedSpectra[channel][partitionIndex];
+		auto& mixSpectra = mixedSpectra[channel][partition];
 
 		// Complex multiply Re-Im pairs
 		// TODO: Optimize with SIMD
@@ -197,6 +195,18 @@ void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
 
 ConvolutionReverb::ConvolutionReverb() : irBuffers(), fft(FFT_ORDER), 
 	hannWindow(PARTITION_SIZE, juce::dsp::WindowingFunction<float>::WindowingMethod::hann, false) {
+
+	// Preallocate spectra storage
+	for (int ir = 0; ir < MAX_IR_COUNT; ++ir)
+		for (int ch = 0; ch < N_CHANNELS; ++ch)
+			irSpectra[ir][ch].resize(MAX_IR_PARTITIONS);
+
+	for (int ch = 0; ch < N_CHANNELS; ++ch) {
+		mixedSpectra[ch].resize(MAX_IR_PARTITIONS);
+		inputSpectra[ch].resize(2 * MAX_IR_PARTITIONS);
+	}
+
+	irEnvelopes.resize(MAX_IR_PARTITIONS);
 }
 
 int ConvolutionReverb::wrapIndex(int index, int size) {
@@ -216,7 +226,8 @@ void ConvolutionReverb::clearIRBuffer(int index) {
 	if (validateIRIndex(index)) {
 		DBG("Clearing internal IR spectra: " << index);
 		juce::ScopedWriteLock lock(irLock);
-		irSpectra[index].fill({});
+		irPartitionCounts[index] = 0;
+		irChannelCounts[index] = 0;
 		updateMaxIRPartitionCount();
 	}
 }

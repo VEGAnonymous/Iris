@@ -16,6 +16,9 @@ private:
     std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {};
     std::vector<float> irEnvelopes {};
 
+    std::array<int, MAX_IR_COUNT> irPartitionCounts {};
+    std::array<int, MAX_IR_COUNT> irChannelCounts {};
+
     int maxIRPartitionCount = 0;
     
     // Audio buffers
