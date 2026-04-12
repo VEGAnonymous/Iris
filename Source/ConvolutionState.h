@@ -10,7 +10,7 @@ private:
     std::array<float, FFT_SIZE*2> irPartition {0};
 
 public:
-    std::array<SpectraData, MAX_IR_COUNT> irSpectra;
+    std::array<std::shared_ptr<SpectraData>, MAX_IR_COUNT> irSpectra;
     std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {};
     std::vector<float> irEnvelopes {0.0f};
 

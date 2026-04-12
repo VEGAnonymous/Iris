@@ -5,12 +5,14 @@
 
 ConvolutionState::ConvolutionState() : fft(FFT_SIZE) {
 	// Preallocate spectra storage
-	for (int ir = 0; ir < MAX_IR_COUNT; ++ir)
-		for (int ch = 0; ch < N_CHANNELS; ++ch)
-			irSpectra[ir][ch].resize(MAX_IR_PARTITIONS);
+	for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
+		irSpectra[ir] = std::make_shared<SpectraData>();
+		for (int channel = 0; channel < N_CHANNELS; ++channel)
+			(*irSpectra[ir])[channel].resize(MAX_IR_PARTITIONS);
+	}
 
-	for (int ch = 0; ch < N_CHANNELS; ++ch)
-		mixedSpectra[ch].resize(MAX_IR_PARTITIONS);
+	for (int channel = 0; channel < N_CHANNELS; ++channel)
+		mixedSpectra[channel].resize(MAX_IR_PARTITIONS);
 
 	irEnvelopes.resize(MAX_IR_PARTITIONS);
 }
@@ -37,6 +39,9 @@ void ConvolutionState::updateMaxIRPartitionCount() {
 void ConvolutionState::setIR(int irIndex, const juce::AudioBuffer<float>& irBuffer) {
 	DBG("Updating IRFFT: " << irIndex);
 
+	auto nSpectra = std::make_shared<SpectraData>();
+	
+
 	const int channelCount = std::min(irBuffer.getNumChannels(), N_CHANNELS);
 	const int partitionCount = (irBuffer.getNumSamples() + PARTITION_SIZE - 1) / PARTITION_SIZE;
 
@@ -45,6 +50,7 @@ void ConvolutionState::setIR(int irIndex, const juce::AudioBuffer<float>& irBuff
 
 	// Each channel
 	for (int channel = 0; channel < channelCount; ++channel) {
+		(*nSpectra)[channel].resize(MAX_IR_PARTITIONS);
 
 		// Each partition
 		for (int partition = 0; partition < partitionCount; ++partition) {
@@ -60,10 +66,11 @@ void ConvolutionState::setIR(int irIndex, const juce::AudioBuffer<float>& irBuff
 			fft.performRealOnlyForwardTransform(irPartition.data());
 
 			// Store FFT spectra
-			auto& spectraDest = irSpectra[irIndex][channel][partition];
+			auto& spectraDest = (*nSpectra)[channel][partition];
 			juce::FloatVectorOperations::copy(spectraDest.data(), irPartition.data(), FFT_SIZE);
 		}
 	}
+	irSpectra[irIndex] = nSpectra;
 	updateMaxIRPartitionCount();
 	DBG("Computed FFT for buffer " << irIndex);
 }
@@ -96,7 +103,7 @@ void ConvolutionState::mixSpectrum() {
 				if (partition >= irPartitionCounts[ir]) continue;
 
 				// Store weighted sum of IRs in irSpectra to mixedSpectra
-				const float* irSrc = irSpectra[ir][irChannel][partition].data();
+				const float* irSrc = (*irSpectra[ir])[irChannel][partition].data();
 				float* irMix = mixedSpectra[channel][partition].data();
 				float weight = irWeights[channel][ir] * envelope;
 				juce::FloatVectorOperations::addWithMultiply(irMix, irSrc, weight, FFT_SIZE);
