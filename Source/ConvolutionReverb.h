@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ConvolutionState.h"
 #include "Defines.h"
 
 #include <JuceHeader.h>
@@ -8,21 +9,8 @@
 
 class ConvolutionReverb {
 private:
-    // STATE
+    // State
     std::shared_ptr<ConvolutionStateHolder> convolutionState;
-
-    // Concurrency
-    juce::ReadWriteLock irLock;
-
-    // IRs
-    std::array<juce::AudioBuffer<float>, MAX_IR_COUNT> irBuffers {};
-    std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {};
-    std::vector<float> irEnvelopes {};
-
-    std::array<int, MAX_IR_COUNT> irPartitionCounts {};
-    std::array<int, MAX_IR_COUNT> irChannelCounts {};
-
-    int maxIRPartitionCount = 0;
     
     // Audio buffers
     std::array<std::array<float, PARTITION_SIZE>, N_CHANNELS> inputBuffers {}; 
@@ -46,20 +34,10 @@ private:
     std::array<int, N_CHANNELS> spectraIndex = {0};
     SpectraData inputSpectra {};
 
-    std::array<float, FFT_SIZE*2> irPartition {0};
-    std::array<SpectraData, MAX_IR_COUNT> irSpectra {};
-
-    SpectraData mixedSpectra;
-
     std::array<std::array<float, FFT_SIZE*2>, N_CHANNELS> accumulators {0};
 
-    // Preprocessing
-    void updateMaxIRPartitionCount();
-    void updateIRFFT(int index);
-    void mixSpectrum();
-
     // Hot path
-    void accumulateSpectra(int channel);
+    void accumulateSpectra(ConvolutionState* state, int channel);
     void overlapAdd(int channel);
     void processHop(int channel);
 
@@ -68,13 +46,6 @@ public:
     ~ConvolutionReverb() = default;
 
     static int wrapIndex(int index, int size);
-
-    void setIRBuffer(int index, juce::AudioBuffer<float> irBuffer);
-    void clearIRBuffer(int index);
-
-    void setWeights(std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> weights);
-
-    void setDecay(float decay);
 
     void process(juce::AudioBuffer<float>& in);
 };

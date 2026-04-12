@@ -44,8 +44,11 @@ void MareverbAudioProcessor::updateParameters() {
 
     mixer.setWetMixProportion(settings.globalMix);
 
-    auto* convProcessor = getConvolutionReverbProcessor();
-    if (convProcessor) convProcessor->setDecay(settings.decay);
+    if (settings.decay != decay) {
+        decay = settings.decay;
+        float nDecay = settings.decay;
+        buildConvolutionState([nDecay](ConvolutionState& s) { s.setDecay(nDecay); });
+    }
 
     auto* cutProcessor = getCutFilterProcessor();
     if (cutProcessor) {
@@ -173,7 +176,7 @@ void MareverbAudioProcessor::processBinaural(const std::array<float, MAX_IR_COUN
     }
 }
 
-// Polar map, motion
+// Convolution state
 
 void MareverbAudioProcessor::updateWeights() {
     std::array<float, MAX_IR_COUNT> distanceWeights{};
@@ -199,6 +202,19 @@ void MareverbAudioProcessor::updateWeights() {
     }
 
     processBinaural(distanceWeights, relatives); // Inject binaural cues, mutate irWeights
+}
+
+void MareverbAudioProcessor::buildConvolutionState(std::function<void(ConvolutionState&)> mutate) {
+    // Clone current state
+    auto next = std::make_shared<ConvolutionState>(*std::atomic_load(&convolutionState->state));
+
+    mutate(*next); // Mutate
+
+    // Mix spectrum
+    for (int ch = 0; ch < N_CHANNELS; ++ch) next->irWeights[ch] = irWeights[ch];
+    next->mixSpectrum();
+
+    std::atomic_store(&convolutionState->state, next); // Atomic swap
 }
 
 // Processor graph
@@ -347,8 +363,7 @@ void MareverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
         if (motionController.hasPositionUpdated() || motionController.hasFieldUpdated()) {
             polarMap.computeRelatives();
             updateWeights();
-            auto* convProcessor = getConvolutionReverbProcessor();
-            if (convProcessor) convProcessor->setWeights(irWeights);
+            buildConvolutionState([](ConvolutionState&) {});
         }
 
         controlCounter = 0;
@@ -451,27 +466,21 @@ bool MareverbAudioProcessor::loadIR(int irIndex, juce::File irFile) {
     DBG("Loading IR file into slot " << irIndex);
     if (!validateIRIndex(irIndex)) return false;
 
+    // Create reader for file
     std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(irFile));
-    if (reader == nullptr) return false;
+    if (!reader) return false;
 
-    // Read samples to buffer in activeIRBuffers
     const int numChannels = static_cast<int>(reader->numChannels);
     const int numSamples = static_cast<int>(reader->lengthInSamples);
 
-    auto& buffer = irSlots[irIndex].buffer;
-    DBG("Obtained buffer ref for slot " << irIndex);
-    buffer.setSize(numChannels, numSamples);
-    if (reader->read(&buffer, 0, numSamples, 0, true, true)) {
-        irSlots[irIndex].file = irFile; // File validated
-
-        // Set IR buffer in convolution processor
-        auto* convProcessor = getConvolutionReverbProcessor();
-        if (convProcessor) {
-            DBG("Calling internal set buffer " << irIndex);
-            convProcessor->getConvolutionReverb()->setIRBuffer(irIndex, buffer);
-            irSlots[irIndex].occupied = true;
-            return true;
-        }
+    // Read IR buffer, update state
+    auto& slot = irSlots[irIndex];
+    slot.buffer.setSize(numChannels, numSamples);
+    if (reader->read(&slot.buffer, 0, numSamples, 0, true, true)) {
+        slot.file = irFile; // File validated
+        slot.occupied = true;
+        buildConvolutionState([&](ConvolutionState& state) { state.setIR(irIndex, slot.buffer); });
+        return true;
     }
     return false;
 }
@@ -495,11 +504,15 @@ bool MareverbAudioProcessor::loadRandomIRs() {
 void MareverbAudioProcessor::clearIR(int irIndex) {
     if (validateIRIndex(irIndex)) {
         DBG("Clearing IR slot " << irIndex);
-        irSlots[irIndex].file = juce::File{};
-        irSlots[irIndex].buffer.setSize(0, 0);
-        irSlots[irIndex].occupied = false;
-        auto* convProcessor = getConvolutionReverbProcessor();
-        if (convProcessor) convProcessor->getConvolutionReverb()->clearIRBuffer(irIndex);
+        auto& slot = irSlots[irIndex];
+        slot.file = juce::File{};
+        slot.buffer.setSize(0, 0);
+        slot.occupied = false;
+        buildConvolutionState([irIndex](ConvolutionState& state) {
+            state.irPartitionCounts[irIndex] = 0;
+            state.irChannelCounts[irIndex] = 0;
+            state.updateMaxIRPartitionCount();
+        });
     }
 }
 

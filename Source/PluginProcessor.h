@@ -70,16 +70,20 @@ private:
     PolarMap polarMap;
     MotionController motionController;
 
-    // Weights
-    std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {};
+    // Convolution state
+    std::shared_ptr<ConvolutionStateHolder> convolutionState;
+
+    float decay = -1.0f;
+
+    std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {}; // Local copy
     void updateWeights();
+
+    void buildConvolutionState(std::function<void(ConvolutionState&)> mutate);
 
     // Processor graph
     std::unique_ptr<juce::AudioProcessorGraph> mainProcessor;
     juce::AudioProcessorGraph::Node::Ptr audioInputNode, audioOutputNode, convolutionVerbNode, cutFilterNode;
     juce::dsp::DryWetMixer<float> mixer;
-
-    std::shared_ptr<ConvolutionStateHolder> convolutionState;
 
     void connectAudioNodes();
 

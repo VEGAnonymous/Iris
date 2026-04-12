@@ -12,11 +12,6 @@ private:
 	ConvolutionReverb convolutionReverb;
 	std::shared_ptr<ConvolutionStateHolder> convolutionState;
 
-	// Parameters
-	float decay = 0.5f;
-
-	std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> weights {0};
-
 public:
 	ConvolutionReverbAudioProcessor(std::shared_ptr<ConvolutionStateHolder> stateHolder);
 	~ConvolutionReverbAudioProcessor() override;
@@ -45,11 +40,4 @@ public:
 
     void getStateInformation (juce::MemoryBlock& /*destData*/) override {}
 	void setStateInformation(const void* /*data*/, int /*sizeInBytes*/) override {}
-
-	// Parameters
-	void setDecay(float nDecay);
-
-	void setWeights(std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> nWeights);
-
-	ConvolutionReverb* getConvolutionReverb();
 };

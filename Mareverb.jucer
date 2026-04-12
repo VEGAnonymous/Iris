@@ -26,6 +26,10 @@
         </GROUP>
       </GROUP>
       <GROUP id="{E15B03E3-A046-6FC1-8173-A3A3183E8AF2}" name="DSP">
+        <FILE id="r2fbJK" name="ConvolutionState.cpp" compile="1" resource="0"
+              file="Source/ConvolutionState.cpp"/>
+        <FILE id="DN4d2O" name="ConvolutionState.h" compile="0" resource="0"
+              file="Source/ConvolutionState.h"/>
         <FILE id="LryTJc" name="ConvolutionReverbAudioProcessor.h" compile="0"
               resource="0" file="Source/ConvolutionReverbAudioProcessor.h"/>
         <FILE id="kpACVi" name="ConvolutionReverbAudioProcessor.cpp" compile="1"

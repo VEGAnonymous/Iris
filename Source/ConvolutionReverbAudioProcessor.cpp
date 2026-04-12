@@ -23,10 +23,7 @@ bool ConvolutionReverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& 
 }
 
 // DSP
-void ConvolutionReverbAudioProcessor::prepareToPlay(double /* sampleRate */, int /* maxBlockSize */) {
-    setDecay(decay); 
-    setWeights(weights);
-}
+void ConvolutionReverbAudioProcessor::prepareToPlay(double /* sampleRate */, int /* maxBlockSize */) {}
 
 void ConvolutionReverbAudioProcessor::releaseResources() { }
 
@@ -38,20 +35,3 @@ void ConvolutionReverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buf
 
     convolutionReverb.process(buffer);
 }
-
-// State
-void ConvolutionReverbAudioProcessor::setDecay(float nDecay) {
-    if (nDecay != decay) { 
-        decay = nDecay; 
-        convolutionReverb.setDecay(nDecay); 
-    }
-}
-
-void ConvolutionReverbAudioProcessor::setWeights(std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> nWeights) {
-    if (nWeights != weights) {
-        weights = nWeights;
-        convolutionReverb.setWeights(nWeights);
-    }
-}
-
-ConvolutionReverb* ConvolutionReverbAudioProcessor::getConvolutionReverb() { return &convolutionReverb; }
