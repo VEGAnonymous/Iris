@@ -58,9 +58,8 @@ private:
 
     // Time
     float positionTime = 0.0f, fieldTime = 0.0f;
-    int controlCounter = 0;
 
-    void advancePhase();
+    void advancePhase(float dt);
     void advanceSwapTimers(float dt);
 
     // Binaural processing
@@ -94,7 +93,11 @@ private:
     std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {}; // Local copy
     void updateWeights();
 
-    void buildConvolutionState();
+    std::shared_ptr<ConvolutionState> buildConvolutionState();
+
+    // Concurrency
+    juce::SpinLock flagLock;
+    std::shared_ptr<ConvolutionState> runControlCycle();
 
     // Processor graph
     std::unique_ptr<juce::AudioProcessorGraph> mainProcessor;
