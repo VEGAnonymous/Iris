@@ -73,12 +73,28 @@ private:
     // Convolution state
     std::shared_ptr<ConvolutionStateHolder> convolutionState;
 
-    float decay = -1.0f;
+    // HACK: Need thread safety here
+    struct ConvolutionStateFlags {
+        std::deque<int> irsChanged {};
+        std::deque<int> irsCleared {};
+        bool decayChanged = false;
+        bool weightsChanged = false;
 
+        void resetFlags() { 
+            irsChanged.clear();
+            irsCleared.clear();
+            decayChanged = false;
+            weightsChanged = false;
+        }
+    };
+
+    ConvolutionStateFlags stateFlags;
+
+    float decay = -1.0f;
     std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {}; // Local copy
     void updateWeights();
 
-    void buildConvolutionState(std::function<void(ConvolutionState&)> mutate);
+    void buildConvolutionState();
 
     // Processor graph
     std::unique_ptr<juce::AudioProcessorGraph> mainProcessor;

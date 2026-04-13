@@ -1,33 +1,15 @@
 #pragma once
 
-#include "Defines.h"
+#include "ConvolutionIRBank.h"
+#include "ConvolutionMixState.h"
 
-#include <JuceHeader.h>
+#include <memory>
 
-class ConvolutionState {
-private:
-    juce::dsp::FFT fft;
-    std::array<float, FFT_SIZE*2> irPartition {0};
+struct ConvolutionState {
+    std::shared_ptr<const ConvolutionIRBank> irBank;
+    ConvolutionMixState mixState;
 
-public:
-    std::array<std::shared_ptr<SpectraData>, MAX_IR_COUNT> irSpectra;
-    std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {};
-    std::vector<float> irEnvelopes {0.0f};
-
-    std::array<int, MAX_IR_COUNT> irPartitionCounts {};
-    std::array<int, MAX_IR_COUNT> irChannelCounts {};
-    int maxIRPartitionCount = 0;
-
-    SpectraData mixedSpectra;
-
-    ConvolutionState();
-    ConvolutionState(const ConvolutionState& other);
-    ~ConvolutionState() = default;
-
-    void updateMaxIRPartitionCount();
-    void setIR(int irIndex, const juce::AudioBuffer<float>& irBuffer);
-    void setDecay(float decay);
-    void mixSpectrum();
+    void prepare() { mixState.resize(irBank->getMaxPartitionCount()); }
 };
 
 struct ConvolutionStateHolder { std::shared_ptr<ConvolutionState> state; };

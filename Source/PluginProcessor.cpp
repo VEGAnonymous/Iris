@@ -198,17 +198,60 @@ void MareverbAudioProcessor::updateWeights() {
     processBinaural(distanceWeights, relatives); // Inject binaural cues, mutate irWeights
 }
 
-void MareverbAudioProcessor::buildConvolutionState(std::function<void(ConvolutionState&)> mutate) {
-    // Clone current state
-    auto next = std::make_shared<ConvolutionState>(*std::atomic_load(&convolutionState->state));
+void MareverbAudioProcessor::buildConvolutionState() {
+    auto currentState = std::atomic_load(&convolutionState->state);
+    jassert(currentState && currentState->irBank);
+    if (!currentState || !currentState->irBank) return;
+    auto nextState = std::make_shared<ConvolutionState>();
 
-    mutate(*next); // Mutate
+    // DBG("Building convolution state");
+    
+    // IR state
+    std::shared_ptr<const ConvolutionIRBank> irBank = currentState->irBank;
+    bool irChanged = !(stateFlags.irsChanged.empty() && stateFlags.irsCleared.empty());
+    if (irChanged) {
+        auto nBank = std::make_shared<ConvolutionIRBank>(*currentState->irBank);
 
-    // Mix spectrum
-    for (int ch = 0; ch < N_CHANNELS; ++ch) next->irWeights[ch] = irWeights[ch];
-    next->mixSpectrum();
+        while (!stateFlags.irsChanged.empty()) {
+            int irIndex = stateFlags.irsChanged.front();
+            DBG("Setting IR " << irIndex);
+            stateFlags.irsChanged.pop_front();
+            if (validateIRIndex(irIndex)) nBank->setIR(irIndex, irSlots[irIndex].buffer);
+        }
 
-    std::atomic_store(&convolutionState->state, next); // Atomic swap
+        while (!stateFlags.irsCleared.empty()) {
+            int irIndex = stateFlags.irsCleared.front();
+            DBG("Clearing IR " << irIndex);
+            stateFlags.irsCleared.pop_front();
+            if (validateIRIndex(irIndex)) nBank->clearIR(irIndex);
+        }
+
+        irBank = nBank;
+    }
+
+    nextState->irBank = irBank;
+    jassert(nextState->irBank);
+    nextState->prepare();
+
+    // Mix state
+    if (stateFlags.decayChanged || irChanged)
+        nextState->mixState.setDecay(decay, nextState->irBank->getMaxPartitionCount());
+    else
+        nextState->mixState.irEnvelopes = currentState->mixState.irEnvelopes;
+
+    if (stateFlags.weightsChanged) 
+        nextState->mixState.setWeights(irWeights);
+    else 
+        nextState->mixState.irWeights = currentState->mixState.irWeights;
+
+    if (stateFlags.weightsChanged || stateFlags.decayChanged || irChanged)
+        nextState->mixState.mixSpectrum(*nextState->irBank);
+    else {
+        nextState->mixState.mixedSpectra = currentState->mixState.mixedSpectra; }
+
+    stateFlags.resetFlags();
+
+    std::atomic_store(&convolutionState->state, nextState); // Atomic swap in new state
 }
 
 // Processor graph
@@ -251,7 +294,11 @@ MareverbAudioProcessor::MareverbAudioProcessor()
 
     // Init DSP state
     convolutionState = std::make_shared<ConvolutionStateHolder>();
-    convolutionState->state = std::make_shared<ConvolutionState>();
+
+    auto initialState = std::make_shared<ConvolutionState>();
+    initialState->irBank = std::make_shared<ConvolutionIRBank>();
+    initialState->prepare();
+    std::atomic_store(&convolutionState->state, initialState);
 
     // Init nodes
     audioInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioInputNode));
@@ -353,27 +400,22 @@ void MareverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
             }
         }
 
-        bool decayChanged = false, weightsChanged = false;
-
         // Decay
         float nDecay = apvts.getRawParameterValue(ParamID::decay)->load();
         if (nDecay != decay) {
             decay = nDecay;
-            decayChanged = true;
+            stateFlags.decayChanged = true;
         }
 
         // Weights
         if (motionController.hasPositionUpdated() || motionController.hasFieldUpdated()) {
             polarMap.computeRelatives();
             updateWeights();
-            weightsChanged = true;
+            stateFlags.weightsChanged = true;
         }
 
         // Build state
-        if (decayChanged || weightsChanged) {
-            if (decayChanged) buildConvolutionState([nDecay](ConvolutionState& state) { state.setDecay(nDecay); });
-            else buildConvolutionState([](ConvolutionState&) {});
-        }
+        buildConvolutionState();
 
         controlCounter = 0;
     }
@@ -488,7 +530,7 @@ bool MareverbAudioProcessor::loadIR(int irIndex, juce::File irFile) {
     if (reader->read(&slot.buffer, 0, numSamples, 0, true, true)) {
         slot.file = irFile; // File validated
         slot.occupied = true;
-        buildConvolutionState([&](ConvolutionState& state) { state.setIR(irIndex, slot.buffer); });
+        stateFlags.irsChanged.push_back(irIndex); // Request update
         return true;
     }
     return false;
@@ -517,11 +559,7 @@ void MareverbAudioProcessor::clearIR(int irIndex) {
         slot.file = juce::File{};
         slot.buffer.setSize(0, 0);
         slot.occupied = false;
-        buildConvolutionState([irIndex](ConvolutionState& state) {
-            state.irPartitionCounts[irIndex] = 0;
-            state.irChannelCounts[irIndex] = 0;
-            state.updateMaxIRPartitionCount();
-        });
+        stateFlags.irsCleared.push_back(irIndex); // Request update
     }
 }
 

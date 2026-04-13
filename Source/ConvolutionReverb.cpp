@@ -7,7 +7,7 @@
 
 void ConvolutionReverb::accumulateSpectra(ConvolutionState* state, int channel) {
 	// Store input spectra in circular buffer
-	const int partitionCount = state->maxIRPartitionCount;
+	const int partitionCount = state->irBank->getMaxPartitionCount();
 	const int historySize = 2 * MAX_IR_PARTITIONS;
 
 	auto& spectraDest = inputSpectra[channel][spectraIndex[channel]];
@@ -24,7 +24,7 @@ void ConvolutionReverb::accumulateSpectra(ConvolutionState* state, int channel) 
 		pastIndex = wrapIndex(pastIndex, historySize);
 
 		auto& pastSpectra = inputSpectra[channel][pastIndex];
-		auto& mixSpectra = state->mixedSpectra[channel][partition];
+		auto& mixSpectra = state->mixState.mixedSpectra[channel][partition];
 
 		// Complex multiply Re-Im pairs
 		// TODO: Optimize with SIMD
@@ -73,10 +73,10 @@ void ConvolutionReverb::overlapAdd(int channel) {
 
 void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
 	auto state = std::atomic_load(&convolutionState->state);
-	DBG("Processing a hop");
+	// DBG("Processing a hop");
 
 	// Passthrough case (no IRs loaded)
-	if (state->maxIRPartitionCount == 0) {
+	if (state->irBank->getMaxPartitionCount() == 0) {
 		int& writeIndex = outputWriteIndex[channel];
 		for (int j = 0; j < HOP_SIZE; ++j) {
 			outputBuffers[channel][writeIndex] = 0.0f;
@@ -101,7 +101,7 @@ void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
 	// Accumulate convolution
 	accumulateSpectra(state.get(), channel);
 
-	DBG("Accumulated spectra");
+	// DBG("Accumulated spectra");
 
 	// IFFT in-place
 	fft.performRealOnlyInverseTransform(accumulators[channel].data());
