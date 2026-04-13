@@ -44,12 +44,6 @@ void MareverbAudioProcessor::updateParameters() {
 
     mixer.setWetMixProportion(settings.globalMix);
 
-    if (settings.decay != decay) {
-        decay = settings.decay;
-        float nDecay = settings.decay;
-        buildConvolutionState([nDecay](ConvolutionState& s) { s.setDecay(nDecay); });
-    }
-
     auto* cutProcessor = getCutFilterProcessor();
     if (cutProcessor) {
         if (settings.lowCut != cutProcessor->getLowCutCutoff()) cutProcessor->setLowCutCutoff(settings.lowCut);
@@ -359,11 +353,26 @@ void MareverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
             }
         }
 
+        bool decayChanged = false, weightsChanged = false;
+
+        // Decay
+        float nDecay = apvts.getRawParameterValue(ParamID::decay)->load();
+        if (nDecay != decay) {
+            decay = nDecay;
+            decayChanged = true;
+        }
+
         // Weights
         if (motionController.hasPositionUpdated() || motionController.hasFieldUpdated()) {
             polarMap.computeRelatives();
             updateWeights();
-            buildConvolutionState([](ConvolutionState&) {});
+            weightsChanged = true;
+        }
+
+        // Build state
+        if (decayChanged || weightsChanged) {
+            if (decayChanged) buildConvolutionState([nDecay](ConvolutionState& state) { state.setDecay(nDecay); });
+            else buildConvolutionState([](ConvolutionState&) {});
         }
 
         controlCounter = 0;
