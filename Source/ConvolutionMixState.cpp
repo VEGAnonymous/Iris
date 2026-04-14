@@ -36,7 +36,7 @@ void ConvolutionMixState::mixSpectrum(const ConvolutionIRBank& irBank) {
 	const int maxPartitions = irBank.getMaxPartitionCount();
 
 	// Each channel
-	for (int channel = 0; channel < N_CHANNELS; ++channel) {
+	auto mixChannel = [&](int channel) {
 		juce::FloatVectorOperations::clear(mixedSpectra[channel].data()->data(), maxPartitions * FFT_SIZE);
 
 		// Each partition
@@ -58,6 +58,11 @@ void ConvolutionMixState::mixSpectrum(const ConvolutionIRBank& irBank) {
 				juce::FloatVectorOperations::addWithMultiply(irMix, irSrc, weight, FFT_SIZE);
 			}
 		}
-	}
+	};
+
+	// Parallelize
+	auto future = std::async(std::launch::async, mixChannel, 0);
+	mixChannel(1);
+	future.wait();
 	// DBG("Mixed spectrum");
 }
