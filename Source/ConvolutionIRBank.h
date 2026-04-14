@@ -9,13 +9,11 @@ private:
     juce::dsp::FFT fft;
 
     std::array<std::shared_ptr<SpectraData>, MAX_IR_COUNT> irSpectra;
-    std::array<float, FFT_SIZE*2> irPartition {0}; // Temp buffer
 
     std::array<int, MAX_IR_COUNT> irPartitionCounts {};
     std::array<int, MAX_IR_COUNT> irChannelCounts {};
 
     int maxPartitionCount = 0;
-    void updateMaxPartitionCount();
 
 public:
     ConvolutionIRBank();
@@ -24,6 +22,7 @@ public:
 
     void setIR(int irIndex, const juce::AudioBuffer<float>& irBuffer);
     void clearIR(int irIndex);
+    void updateMaxPartitionCount();
 
     const SpectraData& getSpectra(int irIndex) const;
     int getMaxPartitionCount() const;

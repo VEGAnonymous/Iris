@@ -12,7 +12,6 @@ ConvolutionIRBank::ConvolutionIRBank() : fft(FFT_ORDER) {
 
 ConvolutionIRBank::ConvolutionIRBank(const ConvolutionIRBank& other) : fft(FFT_ORDER) {
 	this->irSpectra = other.irSpectra;
-	this->irPartition = other.irPartition;
 	this->irPartitionCounts = other.irPartitionCounts;
 	this->irChannelCounts = other.irChannelCounts;
 	this->maxPartitionCount = other.maxPartitionCount;
@@ -32,6 +31,7 @@ void ConvolutionIRBank::setIR(int irIndex, const juce::AudioBuffer<float>& irBuf
 
 	DBG("Updating IRFFT: " << irIndex);
 
+	std::array<float, FFT_SIZE*2> irPartition {0};
 	auto nSpectra = std::make_shared<SpectraData>();
 
 	const int channelCount = std::min(irBuffer.getNumChannels(), N_CHANNELS);
@@ -63,14 +63,12 @@ void ConvolutionIRBank::setIR(int irIndex, const juce::AudioBuffer<float>& irBuf
 		}
 	}
 	irSpectra[irIndex] = nSpectra;
-	updateMaxPartitionCount();
 	DBG("Computed FFT for buffer " << irIndex);
 }
 
 void ConvolutionIRBank::clearIR(int irIndex) {
 	irPartitionCounts[irIndex] = 0;
 	irChannelCounts[irIndex] = 0;
-	updateMaxPartitionCount();
 }
 
 const SpectraData& ConvolutionIRBank::getSpectra(int irIndex) const { 

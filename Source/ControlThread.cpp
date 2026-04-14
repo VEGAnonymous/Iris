@@ -95,19 +95,31 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
     if (irChanged) {
         auto nBank = std::make_shared<ConvolutionIRBank>(*currentState->irBank);
 
+        std::vector<std::future<void>> irJobs; // Parallelize
+
         while (!irsChanged.empty()) {
+            // loadIR()
             int irIndex = irsChanged.front();
             DBG("Setting IR " << irIndex);
             irsChanged.pop_front();
-            if (validateIRIndex(irIndex)) nBank->setIR(irIndex, irManager.getIRSlot(irIndex).buffer);
+            if (validateIRIndex(irIndex)) {
+                const auto& buffer = irManager.getIRSlot(irIndex).buffer;
+                irJobs.push_back(std::async(std::launch::async,
+                    [&nBank, &buffer, irIndex]() { nBank->setIR(irIndex, buffer); }
+                ));
+            }
         }
 
         while (!irsCleared.empty()) {
+            // clear(IR)
             int irIndex = irsCleared.front();
             DBG("Clearing IR " << irIndex);
             irsCleared.pop_front();
             if (validateIRIndex(irIndex)) nBank->clearIR(irIndex);
         }
+
+        for (auto& job : irJobs) job.get();
+        nBank->updateMaxPartitionCount();
 
         irBank = nBank;
     }
@@ -225,9 +237,9 @@ void ControlThread::run() {
 
         // eepy
         auto elapsedTime = std::chrono::steady_clock::now() - startTime;
-        DBG("Elapsed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count() << " ms");
+        DBG("Control cycle: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count() << " ms");
         auto remainingTime = std::chrono::duration<double>(1.0f / CONTROL_RATE) - elapsedTime;
-        DBG("Sleeping for " << std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count() << " ms");
+        DBG("Headroom: " << std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count() << " ms");
         if (remainingTime > std::chrono::duration<double>::zero()) 
             wait(static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count()));
     }
