@@ -1,0 +1,234 @@
+#include "ControlThread.h"
+#include "Utilities.h"
+
+/* PRIVATE */
+
+void ControlThread::advancePhase(float dt) {
+    constexpr float positionRateScale = 0.2f, fieldRateScale = 0.05f;
+
+    const float positionFreq = apvts.getRawParameterValue(ParamID::positionRate)->load() * positionRateScale;
+    const float fieldFreq = apvts.getRawParameterValue(ParamID::fieldRate)->load() * fieldRateScale;
+
+    const float positionPhaseIncrement = juce::MathConstants<float>::twoPi * positionFreq * dt;
+    const float fieldPhaseIncrement = juce::MathConstants<float>::twoPi * fieldFreq * dt;
+
+    positionTime += positionPhaseIncrement;
+    fieldTime += fieldPhaseIncrement;
+}
+
+// Binaural processing
+
+void ControlThread::processBinaural(const std::array<float, MAX_IR_COUNT>& rawWeights,
+    const std::vector<PolarCoordinate>& relatives) {
+    const float spread = std::powf(apvts.getRawParameterValue(ParamID::spread)->load(), 1.5f);
+    for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
+        const float& azimuth = relatives[ir].theta;
+
+        // ILD
+        const float pan = std::sinf(azimuth);
+        const float gainFB = 0.75f + (0.25f * std::cosf(azimuth)); // Front-back
+        float gainL = std::sqrtf(0.5f * (1.0f - pan)) * gainFB; // L-R
+        float gainR = std::sqrtf(0.5f * (1.0f + pan)) * gainFB;
+
+        gainL = juce::jmap(spread, 1.0f, gainL);
+        gainR = juce::jmap(spread, 1.0f, gainR);
+
+        irWeights[0][ir] = rawWeights[ir] * gainL;
+        irWeights[1][ir] = rawWeights[ir] * gainR;
+    }
+}
+
+// Convolution state
+
+void ControlThread::updateWeights() {
+    std::array<float, MAX_IR_COUNT> distanceWeights{};
+
+    // Parameterize
+    WeightingMode weightingMode = static_cast<WeightingMode>(apvts.getRawParameterValue(ParamID::weightingMode)->load());
+    const float& strength = apvts.getRawParameterValue(ParamID::strength)->load();
+
+    float minDistance = juce::jmap(strength, 0.05f, 0.25f), maxWeight = 1.0f / (minDistance * minDistance), trim = 0.5f; // Absolute
+    float distanceFactor = juce::jmap(strength * strength, 0.5f, 3.5f); // Relative
+
+    // Compute inverse-distance weights
+    auto relatives = polarMap.getRelatives();
+    if (weightingMode == WeightingMode::RELATIVE) {
+        for (int ir = 0; ir < MAX_IR_COUNT; ++ir) distanceWeights[ir] = 1.0f / powf(relatives[ir].r + EPSILON, distanceFactor);
+        float sum = std::accumulate(distanceWeights.begin(), distanceWeights.end(), 0.0f);
+        if (sum > 0.0f) for (int ir = 0; ir < MAX_IR_COUNT; ++ir) distanceWeights[ir] /= sum; // Normalize weights sum to 1
+    }
+    else { // WeightingMode::ABSOLUTE
+        for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
+            float d = std::max(relatives[ir].r, minDistance);
+            distanceWeights[ir] = ((1.0f / (d * d)) / maxWeight) * trim;
+        }
+    }
+
+    processBinaural(distanceWeights, relatives); // Inject binaural cues, mutate irWeights
+}
+
+std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
+    auto currentState = std::atomic_load(&convolutionState->state);
+    jassert(currentState && currentState->irBank);
+    auto nextState = std::make_shared<ConvolutionState>();
+
+    DBG("Building convolution state");
+
+    // Get flags
+    std::deque<int> irsChanged, irsCleared;
+    bool decayChanged, weightsChanged;
+    {
+        juce::SpinLock::ScopedLockType lock(flagLock);
+
+        IRChanges irChanges = irManager.consumeIRChanges();
+        irsChanged = std::move(irChanges.irsChanged);
+        irsCleared = std::move(irChanges.irsCleared);
+        decayChanged = stateFlags.decayChanged;
+        weightsChanged = stateFlags.weightsChanged;
+
+        stateFlags.resetFlags();
+    }
+
+    // IR state
+    std::shared_ptr<const ConvolutionIRBank> irBank = currentState->irBank;
+    bool irChanged = !(irsChanged.empty() && irsCleared.empty());
+    if (irChanged) {
+        auto nBank = std::make_shared<ConvolutionIRBank>(*currentState->irBank);
+
+        while (!irsChanged.empty()) {
+            int irIndex = irsChanged.front();
+            DBG("Setting IR " << irIndex);
+            irsChanged.pop_front();
+            if (validateIRIndex(irIndex)) nBank->setIR(irIndex, irManager.getIRSlot(irIndex).buffer);
+        }
+
+        while (!irsCleared.empty()) {
+            int irIndex = irsCleared.front();
+            DBG("Clearing IR " << irIndex);
+            irsCleared.pop_front();
+            if (validateIRIndex(irIndex)) nBank->clearIR(irIndex);
+        }
+
+        irBank = nBank;
+    }
+
+    nextState->irBank = irBank;
+    jassert(nextState->irBank);
+    nextState->prepare();
+
+    // Mix state
+    if (decayChanged || irChanged)
+        nextState->mixState.setDecay(decay, nextState->irBank->getMaxPartitionCount());
+    else
+        nextState->mixState.irEnvelopes = currentState->mixState.irEnvelopes;
+
+    if (weightsChanged)
+        nextState->mixState.setWeights(irWeights);
+    else
+        nextState->mixState.irWeights = currentState->mixState.irWeights;
+
+    if (weightsChanged || decayChanged || irChanged)
+        nextState->mixState.mixSpectrum(*nextState->irBank);
+    else {
+        nextState->mixState.mixedSpectra = currentState->mixState.mixedSpectra;
+    }
+
+    {
+        juce::SpinLock::ScopedLockType lock(flagLock);
+        stateFlags.resetFlags();
+    }
+
+    return nextState;
+}
+
+std::shared_ptr<ConvolutionState> ControlThread::runControlCycle(float dt) {
+    advancePhase(dt);
+    irManager.advanceSwapTimers(dt);
+
+    // Position + field
+    motionController.updateField();
+    motionController.updatePosition();
+
+    // Pass state to GUI
+    if (motionController.hasPositionUpdated()) {
+        guiState.position.store(polarMap.getPosition(), std::memory_order_relaxed);
+        guiState.positionChanged.store(true, std::memory_order_release);
+    }
+
+    if (motionController.hasFieldUpdated() || guiState.updateField.exchange(false, std::memory_order_relaxed)) {
+        if (guiState.fieldMutex.try_lock()) {
+            guiState.fieldCoordinates = polarMap.getCoordinates();
+            guiState.fieldMutex.unlock();
+            guiState.fieldChanged.store(true, std::memory_order_release);
+        }
+    }
+
+    // Decay
+    float nDecay = apvts.getRawParameterValue(ParamID::decay)->load();
+    if (nDecay != decay) {
+        decay = nDecay;
+        juce::SpinLock::ScopedLockType lock(flagLock);
+        stateFlags.decayChanged = true;
+    }
+
+    // Weights
+    if (motionController.hasPositionUpdated() || motionController.hasFieldUpdated()) {
+        polarMap.computeRelatives();
+        updateWeights();
+        juce::SpinLock::ScopedLockType lock(flagLock);
+        stateFlags.weightsChanged = true;
+    }
+
+    // Build state
+    return buildConvolutionState();
+}
+
+/* PUBLIC */
+
+ControlThread::ControlThread(const juce::AudioProcessorValueTreeState& a, IRManager& m, GUIState& g, std::shared_ptr<ConvolutionStateHolder> c) :
+    juce::Thread("Control Thread"), 
+    motionController(&polarMap, &positionTime, &fieldTime),
+    irManager(m), 
+    apvts(a),
+    guiState(g),
+    convolutionState(c) {}
+
+void ControlThread::setMotionParameters(const Settings& settings, int selectedIR) {
+    motionController.setPositionParameters({
+        settings.positionPattern,
+        settings.positionRate,
+        settings.positionModA,
+        settings.positionModB
+        });
+    motionController.setFieldParameters({
+        MAX_IR_COUNT,
+        selectedIR,
+        settings.fieldPattern,
+        settings.fieldRate,
+        settings.fieldModA,
+        settings.fieldModB
+        });
+}
+
+void ControlThread::run() {
+    lastTick = std::chrono::steady_clock::now();
+    while (!threadShouldExit()) {
+        auto startTime = std::chrono::steady_clock::now();
+        float dt = std::chrono::duration<float>(startTime - lastTick).count();
+        lastTick = startTime;
+        // DBG("dt: " << dt);
+
+        // Update state
+        auto nextState = runControlCycle(dt);
+        std::atomic_store(&convolutionState->state, nextState);
+        // DBG("Stored state");
+
+        // eepy
+        auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+        DBG("Elapsed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count() << " ms");
+        auto remainingTime = std::chrono::duration<double>(1.0f / CONTROL_RATE) - elapsedTime;
+        DBG("Sleeping for " << std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count() << " ms");
+        if (remainingTime > std::chrono::duration<double>::zero()) 
+            wait(static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count()));
+    }
+}

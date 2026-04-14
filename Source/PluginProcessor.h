@@ -1,11 +1,11 @@
 #pragma once
 
+#include "ControlThread.h"
 #include "ConvolutionReverbAudioProcessor.h"
 #include "CutFilterAudioProcessor.h"
 #include "Defines.h"
+#include "GUIState.h"
 #include "IRManager.h"
-#include "MotionController.h"
-#include "PolarMap.h"
 #include "Utilities.h"
 
 #include <JuceHeader.h>
@@ -26,42 +26,8 @@ private:
     // IR management
     IRManager irManager;
 
-    // Time
-    float positionTime = 0.0f, fieldTime = 0.0f;
-
-    void advancePhase(float dt);
-
-    // Binaural processing
-    void processBinaural(const std::array<float, MAX_IR_COUNT>& rawWeights, const std::vector<PolarCoordinate>& relatives);
-
-    // Polar map, motion
-    PolarMap polarMap;
-    MotionController motionController;
-
-    // Convolution state
-    std::shared_ptr<ConvolutionStateHolder> convolutionState;
-
-    struct ConvolutionStateFlags {
-        bool decayChanged = false;
-        bool weightsChanged = false;
-
-        void resetFlags() {
-            decayChanged = false;
-            weightsChanged = false;
-        }
-    };
-
-    ConvolutionStateFlags stateFlags;
-
-    float decay = -1.0f;
-    std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {}; // Local copy
-    void updateWeights();
-
-    std::shared_ptr<ConvolutionState> buildConvolutionState();
-
-    // Concurrency
-    juce::SpinLock flagLock;
-    std::shared_ptr<ConvolutionState> runControlCycle();
+    // Threads
+    std::unique_ptr<ControlThread> controlThread;
 
     // Processor graph
     std::unique_ptr<juce::AudioProcessorGraph> mainProcessor;
@@ -109,14 +75,9 @@ public:
 
     static Settings getSettings(juce::AudioProcessorValueTreeState& parameters);
 
-    // GUI concurrency
-    std::atomic<PolarCoordinate> position{ {0.0f, 0.0f} };
-    std::atomic<bool> positionChanged{ false };
-
-    std::vector<PolarCoordinate> fieldCoordinates;
-    std::mutex fieldMutex;
-    std::atomic<bool> fieldChanged{ false }; // Notify editor
-    std::atomic<bool> updateField{ false }; // Editor forced update (e.g., parameter changes)
+    // State
+    std::shared_ptr<ConvolutionStateHolder> convolutionState;
+    GUIState guiState;
 
     IRManager* getIRManager();
 };

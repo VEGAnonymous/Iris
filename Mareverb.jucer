@@ -7,6 +7,10 @@
   <MAINGROUP id="uSBxoM" name="Mareverb">
     <GROUP id="{52C29717-2BB5-4F62-25D3-FC09807A17AA}" name="Source">
       <GROUP id="{EEAD8167-2CFA-8E66-97CC-395255AA520C}" name="Control">
+        <FILE id="g9UPJQ" name="ControlThread.cpp" compile="1" resource="0"
+              file="Source/ControlThread.cpp"/>
+        <FILE id="h4NZuy" name="ControlThread.h" compile="0" resource="0" file="Source/ControlThread.h"/>
+        <FILE id="ntdRY2" name="GUIState.h" compile="0" resource="0" file="Source/GUIState.h"/>
         <FILE id="y1pRDt" name="IRManager.cpp" compile="1" resource="0" file="Source/IRManager.cpp"/>
         <FILE id="VRVSeu" name="IRManager.h" compile="0" resource="0" file="Source/IRManager.h"/>
       </GROUP>

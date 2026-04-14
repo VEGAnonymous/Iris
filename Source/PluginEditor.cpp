@@ -9,21 +9,21 @@ void MareverbAudioProcessorEditor::parameterChanged(const juce::String& paramete
     if (parameterID == ParamID::positionPattern || parameterID == ParamID::positionModA || parameterID == ParamID::positionModB)
         positionPathChanged.store(true);
     else if (parameterID == ParamID::fieldPattern || parameterID == ParamID::fieldModA || parameterID == ParamID::fieldModB)
-        audioProcessor.updateField.store(true);
+        audioProcessor.guiState.updateField.store(true);
 }
 
 void MareverbAudioProcessorEditor::timerCallback() {
     if (positionPathChanged.exchange(false, std::memory_order_acquire))
         polarMapComponent.notifyPathChanged();
 
-    if (audioProcessor.positionChanged.exchange(false, std::memory_order_acquire))
-        polarMapComponent.notifyPositionChanged(audioProcessor.position.load(std::memory_order_relaxed));
+    if (audioProcessor.guiState.positionChanged.exchange(false, std::memory_order_acquire))
+        polarMapComponent.notifyPositionChanged(audioProcessor.guiState.position.load(std::memory_order_relaxed));
 
-    if (audioProcessor.fieldChanged.exchange(false, std::memory_order_acquire)) {
+    if (audioProcessor.guiState.fieldChanged.exchange(false, std::memory_order_acquire)) {
         std::vector<PolarCoordinate> coordinates;
         {
-            std::lock_guard<std::mutex> lock(audioProcessor.fieldMutex);
-            coordinates = audioProcessor.fieldCoordinates;
+            std::lock_guard<std::mutex> lock(audioProcessor.guiState.fieldMutex);
+            coordinates = audioProcessor.guiState.fieldCoordinates;
         }
         polarMapComponent.notifyFieldChanged(std::move(coordinates));
     }
