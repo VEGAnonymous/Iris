@@ -14,4 +14,6 @@ struct GUIState {
     std::mutex fieldMutex;
     std::atomic<bool> fieldChanged { false }; // Notify editor
     std::atomic<bool> updateField { false }; // Editor forced update (e.g., parameter changes)
+
+    std::atomic<bool> irChanged { false };
 };

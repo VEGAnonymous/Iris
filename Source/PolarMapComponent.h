@@ -9,17 +9,6 @@
 class MareverbAudioProcessor;
 
 class PolarMapComponent : public juce::Component {
-public:
-    PolarMapComponent(MareverbAudioProcessor& processor);
-    ~PolarMapComponent() override = default;
-
-    void paint(juce::Graphics& g) override;
-
-    // Callbacks
-    void notifyPathChanged();
-    void notifyPositionChanged(PolarCoordinate nPosition);
-    void notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates);
-
 private:
     MareverbAudioProcessor& audioProcessor;
 
@@ -42,4 +31,15 @@ private:
     static constexpr float coordinateRadius = 6.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PolarMapComponent)
+
+public:
+    PolarMapComponent(MareverbAudioProcessor& processor);
+    ~PolarMapComponent() override = default;
+
+    void paint(juce::Graphics& g) override;
+
+    // Callbacks
+    void notifyPathChanged();
+    void notifyPositionChanged(PolarCoordinate nPosition);
+    void notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates);
 };

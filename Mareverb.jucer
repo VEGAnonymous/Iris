@@ -27,7 +27,11 @@
               file="Source/PolarMapComponent.cpp"/>
         <FILE id="VvHUrK" name="PolarMapComponent.h" compile="0" resource="0"
               file="Source/PolarMapComponent.h"/>
-        <GROUP id="{3F80DDB6-76F4-8F87-F86F-4F5FE9E7A606}" name="Controls"/>
+        <GROUP id="{3F80DDB6-76F4-8F87-F86F-4F5FE9E7A606}" name="Controls">
+          <FILE id="JplaSJ" name="IRSlotButton.cpp" compile="1" resource="0"
+                file="Source/IRSlotButton.cpp"/>
+          <FILE id="dxx4ij" name="IRSlotButton.h" compile="0" resource="0" file="Source/IRSlotButton.h"/>
+        </GROUP>
       </GROUP>
       <GROUP id="{E15B03E3-A046-6FC1-8173-A3A3183E8AF2}" name="DSP">
         <GROUP id="{984C5D04-EE39-325B-4FEB-EEF2E4C8D5BF}" name="State">

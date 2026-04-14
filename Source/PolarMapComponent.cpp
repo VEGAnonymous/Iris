@@ -1,7 +1,7 @@
 #include "PolarMapComponent.h"
 #include "PluginProcessor.h"
 
-PolarMapComponent::PolarMapComponent(MareverbAudioProcessor& p) : audioProcessor(p) { setBufferedToImage(true); }
+/* PRIVATE */
 
 CartesianCoordinate PolarMapComponent::map(CartesianCoordinate p) const { // [-1, 1] -> pixel coordinates
     auto b = getLocalBounds().toFloat();
@@ -16,29 +16,6 @@ juce::Rectangle<float> PolarMapComponent::toBounds(PolarCoordinate p, float radi
     return { c.x - radius, c.y - radius, radius * 2.0f, radius * 2.0f };
 }
 
-void PolarMapComponent::notifyPathChanged() { pathChanged = true; repaint(); }
-
-void PolarMapComponent::notifyPositionChanged(PolarCoordinate nPosition) {
-    currentPosition = nPosition;
-    repaint(positionBounds.toNearestInt().expanded(1)); // Clear old bounds
-    repaint(toBounds(nPosition, positionRadius).toNearestInt().expanded(1)); // Repaint at new bounds
-}
-
-void PolarMapComponent::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates) {
-    // Clear old bounds
-    for (const auto& coord : fieldCoordinates) {
-        auto oBounds = toBounds(coord, coordinateRadius);
-        repaint(oBounds.toNearestInt().expanded(1));
-    } 
-    
-    // Repaint at new bounds
-    fieldCoordinates = std::move(nCoordinates);
-    for (const auto& coord : fieldCoordinates) {
-        auto nBounds = toBounds(coord, coordinateRadius);
-        repaint(nBounds.toNearestInt().expanded(1));
-    }
-}
-
 void PolarMapComponent::repaintPath() {
     parametricPath.clear();
 
@@ -49,18 +26,19 @@ void PolarMapComponent::repaintPath() {
     float positionModA = settings.positionModA;
     float positionModB = settings.positionModB;
 
-    PolarCoordinate initP = MotionController::computePositionParametric({ positionPattern, 0.0f, positionModA, positionModB }, 0.0f);
-    CartesianCoordinate initC = map(polarToCartesian(initP));
-    parametricPath.startNewSubPath(initC.x, initC.y);
-
-    for (float t = 0.01f; t < 10.0f; t += 0.01f) {
+    for (float t = 0.0f; t < 10.0f; t += 0.01f) {
         PolarCoordinate p = MotionController::computePositionParametric({ positionPattern, 0.0f, positionModA, positionModB }, t);
         CartesianCoordinate c = map(polarToCartesian(p));
-        parametricPath.lineTo(c.x, c.y);
+        if (t == 0.0f) parametricPath.startNewSubPath(c.x, c.y);
+        else parametricPath.lineTo(c.x, c.y);
     }
 
     pathChanged = false;
 }
+
+/* PUBLIC */
+
+PolarMapComponent::PolarMapComponent(MareverbAudioProcessor& p) : audioProcessor(p) { setBufferedToImage(true); }
 
 void PolarMapComponent::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
@@ -92,5 +70,28 @@ void PolarMapComponent::paint(juce::Graphics& g) {
         auto coordinateBounds = toBounds(coordinate, coordinateRadius);
         g.setColour(juce::Colours::aqua);
         g.fillEllipse(coordinateBounds);
+    }
+}
+
+void PolarMapComponent::notifyPathChanged() { pathChanged = true; repaint(); }
+
+void PolarMapComponent::notifyPositionChanged(PolarCoordinate nPosition) {
+    currentPosition = nPosition;
+    repaint(positionBounds.toNearestInt().expanded(1)); // Clear old bounds
+    repaint(toBounds(nPosition, positionRadius).toNearestInt().expanded(1)); // Repaint at new bounds
+}
+
+void PolarMapComponent::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates) {
+    // Clear old bounds
+    for (const auto& coord : fieldCoordinates) {
+        auto oBounds = toBounds(coord, coordinateRadius);
+        repaint(oBounds.toNearestInt().expanded(1));
+    }
+
+    // Repaint at new bounds
+    fieldCoordinates = std::move(nCoordinates);
+    for (const auto& coord : fieldCoordinates) {
+        auto nBounds = toBounds(coord, coordinateRadius);
+        repaint(nBounds.toNearestInt().expanded(1));
     }
 }

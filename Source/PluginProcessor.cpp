@@ -72,10 +72,6 @@ void MareverbAudioProcessor::connectAudioNodes() {
     }
 }
 
-ConvolutionReverbAudioProcessor* MareverbAudioProcessor::getConvolutionReverbProcessor() const {
-    return dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
-}
-
 CutFilterAudioProcessor* MareverbAudioProcessor::getCutFilterProcessor() const {
     return dynamic_cast<CutFilterAudioProcessor*>(cutFilterNode->getProcessor());
 }
@@ -132,7 +128,7 @@ double MareverbAudioProcessor::getTailLengthSeconds() const { return 0.0; } // T
 bool MareverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
     const auto& in = layouts.getMainInputChannelSet(), out = layouts.getMainOutputChannelSet();
     return (out == juce::AudioChannelSet::stereo() && // Output stereo
-           (in == juce::AudioChannelSet::mono() || in == juce::AudioChannelSet::stereo())); // Input mono or stereo
+           (in == juce::AudioChannelSet::mono() || in == juce::AudioChannelSet::stereo()));
 }
 #endif
 

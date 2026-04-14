@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IRSlotButton.h"
 #include "PluginProcessor.h"
 #include "PolarMapComponent.h"
 
@@ -70,6 +71,8 @@ private:
     juce::TextButton positionTabButton, fieldTabButton;
 
     juce::TextButton clearAllButton, randomAllButton;
+
+    std::array<std::unique_ptr<IRSlotButton>, MAX_IR_COUNT> irSlotButtons;
 
     // ComboBoxes
     juce::ComboBox positionPatternControl, fieldPatternControl;

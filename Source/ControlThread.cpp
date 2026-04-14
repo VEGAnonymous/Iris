@@ -72,7 +72,7 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
     jassert(currentState && currentState->irBank);
     auto nextState = std::make_shared<ConvolutionState>();
 
-    DBG("Building convolution state");
+    // DBG("Building convolution state");
 
     // Get flags
     std::deque<int> irsChanged, irsCleared;
@@ -111,7 +111,7 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
         }
 
         while (!irsCleared.empty()) {
-            // clear(IR)
+            // clearIR()
             int irIndex = irsCleared.front();
             DBG("Clearing IR " << irIndex);
             irsCleared.pop_front();
@@ -120,6 +120,8 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
 
         for (auto& job : irJobs) job.get();
         nBank->updateMaxPartitionCount();
+
+        guiState.irChanged.store(true, std::memory_order_relaxed);
 
         irBank = nBank;
     }
@@ -211,7 +213,7 @@ void ControlThread::setMotionParameters(const Settings& settings, int selectedIR
         settings.positionRate,
         settings.positionModA,
         settings.positionModB
-        });
+    });
     motionController.setFieldParameters({
         MAX_IR_COUNT,
         selectedIR,
@@ -219,7 +221,7 @@ void ControlThread::setMotionParameters(const Settings& settings, int selectedIR
         settings.fieldRate,
         settings.fieldModA,
         settings.fieldModB
-        });
+    });
 }
 
 void ControlThread::run() {
@@ -237,9 +239,9 @@ void ControlThread::run() {
 
         // eepy
         auto elapsedTime = std::chrono::steady_clock::now() - startTime;
-        DBG("Control cycle: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count() << " ms");
+        // DBG("Control cycle: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count() << " ms");
         auto remainingTime = std::chrono::duration<double>(1.0f / CONTROL_RATE) - elapsedTime;
-        DBG("Headroom: " << std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count() << " ms");
+        // DBG("Headroom: " << std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count() << " ms");
         if (remainingTime > std::chrono::duration<double>::zero()) 
             wait(static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count()));
     }
