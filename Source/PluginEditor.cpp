@@ -70,10 +70,10 @@ void MareverbAudioProcessorEditor::initComponents() {
 
     // Randomize / clear all buttons
     randomAllButton.setButtonText("Randomize IRs");
-    randomAllButton.onClick = [this]() { audioProcessor.loadRandomIRs(); };
+    randomAllButton.onClick = [this]() { audioProcessor.getIRManager()->loadRandomIRs(); };
 
     clearAllButton.setButtonText("Clear IRs");
-    clearAllButton.onClick = [this]() { audioProcessor.clearIRs(); };
+    clearAllButton.onClick = [this]() { audioProcessor.getIRManager()->clearIRs(); };
 }
 
 /* PUBLIC */

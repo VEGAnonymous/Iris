@@ -3,6 +3,7 @@
 #include "ConvolutionReverbAudioProcessor.h"
 #include "CutFilterAudioProcessor.h"
 #include "Defines.h"
+#include "IRManager.h"
 #include "MotionController.h"
 #include "PolarMap.h"
 #include "Utilities.h"
@@ -21,46 +22,14 @@ private:
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void updateParameters();
-    void updateSwapIntervals();
 
     // IR management
-    struct IRSlot {
-        juce::File file {};
-        juce::AudioBuffer<float> buffer {};
-        bool occupied = false;
-
-        // Self-swap
-        float swapMin = 0.0f, swapMax = 0.0f; // seconds
-        float swapCountdown = 0.0f;
-
-        bool swapEnabled() const { return validateSwapInterval(swapMin, swapMax); }
-        void resetCountdown(juce::Random& rng) { swapCountdown = juce::jmap(rng.nextFloat(), swapMin, swapMax); }
-    };
-
-    std::array<IRSlot, MAX_IR_COUNT> irSlots;
-
-    struct IRDirectory {
-        juce::File irDirectory;
-        bool active = true;
-    };
-
-    std::vector<IRDirectory> irDirectories;
-    juce::Array<juce::File> irFiles;
-
-    juce::AudioFormatManager formatManager;
-    juce::Random irRNG;
-    std::unique_ptr<juce::FileChooser> irFileChooser, irDirectoryChooser;
-
-    void saveDirectories();
-    void loadDirectories();
-
-    void collectIRs();
+    IRManager irManager;
 
     // Time
     float positionTime = 0.0f, fieldTime = 0.0f;
 
     void advancePhase(float dt);
-    void advanceSwapTimers(float dt);
 
     // Binaural processing
     void processBinaural(const std::array<float, MAX_IR_COUNT>& rawWeights, const std::vector<PolarCoordinate>& relatives);
@@ -72,16 +41,11 @@ private:
     // Convolution state
     std::shared_ptr<ConvolutionStateHolder> convolutionState;
 
-    // HACK: Need thread safety here
     struct ConvolutionStateFlags {
-        std::deque<int> irsChanged {};
-        std::deque<int> irsCleared {};
         bool decayChanged = false;
         bool weightsChanged = false;
 
-        void resetFlags() { 
-            irsChanged.clear();
-            irsCleared.clear();
+        void resetFlags() {
             decayChanged = false;
             weightsChanged = false;
         }
@@ -154,24 +118,5 @@ public:
     std::atomic<bool> fieldChanged{ false }; // Notify editor
     std::atomic<bool> updateField{ false }; // Editor forced update (e.g., parameter changes)
 
-    // IR management
-    void chooseIR(int irIndex);
-    void chooseIRDirectory();
-
-    void addIRDirectory(juce::File dir);
-    void removeIRDirectory(int index);
-    void activateIRDirectory(int index, bool nState);
-
-    bool loadIR(int irIndex, juce::File file);
-    bool loadRandomIR(int irIndex);
-    bool loadRandomIRs();
-    void clearIR(int irIndex);
-    void clearIRs();
-
-    void setIRSwapInterval(int irIndex, float minTime, float maxTime);
-
-    inline const IRSlot& getIRSlot(int index) const {
-        jassert(validateIRIndex(index));
-        return irSlots[index];
-    }
+    IRManager* getIRManager();
 };

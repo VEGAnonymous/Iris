@@ -6,6 +6,10 @@
               companyName="Eponymous DSP" pluginManufacturerCode="Mare">
   <MAINGROUP id="uSBxoM" name="Mareverb">
     <GROUP id="{52C29717-2BB5-4F62-25D3-FC09807A17AA}" name="Source">
+      <GROUP id="{EEAD8167-2CFA-8E66-97CC-395255AA520C}" name="Control">
+        <FILE id="y1pRDt" name="IRManager.cpp" compile="1" resource="0" file="Source/IRManager.cpp"/>
+        <FILE id="VRVSeu" name="IRManager.h" compile="0" resource="0" file="Source/IRManager.h"/>
+      </GROUP>
       <GROUP id="{E6B133CC-8CFC-0E6C-E1E6-F1FBF1C1496F}" name="Spatial">
         <FILE id="efG5sR" name="MotionController.cpp" compile="1" resource="0"
               file="Source/MotionController.cpp"/>
