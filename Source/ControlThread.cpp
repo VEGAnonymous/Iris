@@ -1,4 +1,5 @@
 #include "ControlThread.h"
+#include "Settings.h"
 #include "Utilities.h"
 
 /* PRIVATE */
@@ -174,21 +175,20 @@ std::shared_ptr<ConvolutionState> ControlThread::runControlCycle(float dt) {
     irManager.advanceSwapTimers(dt);
 
     // Position + field
+    updateMotionParameters();
     motionController.updateField();
     motionController.updatePosition();
 
     // Pass state to GUI
     if (motionController.hasPositionUpdated()) {
-        guiState.position.store(polarMap.getPosition(), std::memory_order_relaxed);
+        guiState.position.store(polarMap.getPosition(), std::memory_order_release);
         guiState.positionChanged.store(true, std::memory_order_release);
     }
 
-    if (motionController.hasFieldUpdated() || guiState.updateField.exchange(false, std::memory_order_relaxed)) {
-        if (guiState.fieldMutex.try_lock()) {
-            guiState.fieldCoordinates = polarMap.getCoordinates();
-            guiState.fieldMutex.unlock();
-            guiState.fieldChanged.store(true, std::memory_order_release);
-        }
+    if (motionController.hasFieldUpdated() || guiState.updateField.exchange(false, std::memory_order_acquire)) {
+        juce::SpinLock::ScopedLockType lock(guiState.fieldLock);
+        guiState.fieldCoordinates = polarMap.getCoordinates();
+        guiState.fieldChanged.store(true, std::memory_order_release);
     }
 
     // Decay
@@ -221,21 +221,26 @@ ControlThread::ControlThread(const juce::AudioProcessorValueTreeState& a, IRMana
     guiState(g),
     convolutionState(c) {}
 
-void ControlThread::setMotionParameters(const Settings& settings, int selectedIR) {
+void ControlThread::updateMotionParameters() {
+    auto settings = getSettings(apvts);
+
     motionController.setPositionParameters({
         settings.positionPattern,
         settings.positionRate,
         settings.positionModA,
         settings.positionModB
     });
-    motionController.setFieldParameters({
-        MAX_IR_COUNT,
-        selectedIR,
-        settings.fieldPattern,
-        settings.fieldRate,
-        settings.fieldModA,
-        settings.fieldModB
-    });
+
+    if (!guiState.syncingField.load(std::memory_order_acquire)) {
+        motionController.setFieldParameters({
+            MAX_IR_COUNT,
+            apvts.state.getProperty(PropertyID::selectedIR),
+            settings.fieldPattern,
+            settings.fieldRate,
+            settings.fieldModA,
+            settings.fieldModB
+            });
+    }
 }
 
 void ControlThread::run() {

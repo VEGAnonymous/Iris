@@ -11,9 +11,10 @@ struct GUIState {
     std::atomic<bool> positionChanged { false };
 
     std::vector<PolarCoordinate> fieldCoordinates;
-    std::mutex fieldMutex;
+    juce::SpinLock fieldLock;
     std::atomic<bool> fieldChanged { false }; // Notify editor
     std::atomic<bool> updateField { false }; // Editor forced update (e.g., parameter changes)
+    std::atomic<bool> syncingField { false }; // Guard
 
     std::atomic<bool> irChanged { false };
 };

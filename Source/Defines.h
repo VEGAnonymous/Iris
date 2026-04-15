@@ -80,25 +80,6 @@ enum class FieldPattern { MANUAL, RING, ORBITS, RANDOM_DISCRETE, RANDOM_WALK };
 enum class ControlGroup { GLOBAL, INTERACTION, POSITION, FIELD };
 
 // Structs
-struct Settings {
-    float globalMix, decay, lowCut, highCut;
-    WeightingMode weightingMode; float strength, spread;
-    PositionPattern positionPattern;
-    float positionRate, positionModA, positionModB;
-    FieldPattern fieldPattern;
-    float fieldRate, fieldModA, fieldModB;
-
-    Settings() : globalMix(0.5f), decay(0.5f), lowCut(20.0f), highCut(20000.0f),
-
-        weightingMode(WeightingMode::ABSOLUTE), strength(0.5f), spread(1.0f),
-
-        positionPattern(PositionPattern::LISSAJOUS),
-        positionRate(0.0f), positionModA(0.5f), positionModB(0.5f),
-
-        fieldPattern(FieldPattern::RING),
-        fieldRate(0.0f), fieldModA(0.5f), fieldModB(0.5f)
-    {}
-};
 
 struct ControlDef {
     juce::Component* component;

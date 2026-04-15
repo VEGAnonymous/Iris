@@ -5,14 +5,35 @@
 
 /* PRIVATE */
 
-void MareverbAudioProcessorEditor::parameterChanged(const juce::String& parameterID, float /*newValue*/) {
-    if (parameterID == ParamID::positionPattern || parameterID == ParamID::positionModA || parameterID == ParamID::positionModB)
-        positionPathChanged.store(true);
-    else if (parameterID == ParamID::fieldPattern || parameterID == ParamID::fieldModA || parameterID == ParamID::fieldModB)
-        audioProcessor.guiState.updateField.store(true);
+void MareverbAudioProcessorEditor::parameterChanged(const juce::String& parameterID, float newValue) {
+    if (parameterID == ParamID::positionPattern || parameterID == ParamID::positionModA || parameterID == ParamID::positionModB) {
+        positionPathChanged.store(true, std::memory_order_release);
+    }
+    if (parameterID == ParamID::fieldPattern || parameterID == ParamID::fieldModA || parameterID == ParamID::fieldModB) {
+        audioProcessor.guiState.updateField.store(true, std::memory_order_release);
+    }
 }
 
 void MareverbAudioProcessorEditor::timerCallback() {
+    auto syncField = [this]() {
+        if (static_cast<FieldPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load()) == FieldPattern::MANUAL) {
+            int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+
+            PolarCoordinate coordinate;
+            {
+                juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
+                coordinate = audioProcessor.guiState.fieldCoordinates[selectedIR];
+            }
+
+            auto* fieldModA = audioProcessor.apvts.getParameter(ParamID::fieldModA);
+            auto* fieldModB = audioProcessor.apvts.getParameter(ParamID::fieldModB);
+
+            if (fieldModA) fieldModA->setValueNotifyingHost(fieldModA->convertTo0to1(coordinate.r));
+            if (fieldModB) fieldModB->setValueNotifyingHost(fieldModB->convertTo0to1(coordinate.theta / juce::MathConstants<float>::twoPi));     
+        }
+        audioProcessor.guiState.syncingField.store(false, std::memory_order_release);
+    };
+
     if (positionPathChanged.exchange(false, std::memory_order_acquire))
         polarMapComponent.notifyPathChanged();
 
@@ -22,10 +43,11 @@ void MareverbAudioProcessorEditor::timerCallback() {
     if (audioProcessor.guiState.fieldChanged.exchange(false, std::memory_order_acquire)) {
         std::vector<PolarCoordinate> coordinates;
         {
-            std::lock_guard<std::mutex> lock(audioProcessor.guiState.fieldMutex);
+            juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
             coordinates = audioProcessor.guiState.fieldCoordinates;
         }
         polarMapComponent.notifyFieldChanged(std::move(coordinates));
+        syncField();
     }
 
     auto updateIRHeader = [this]() {
@@ -43,8 +65,10 @@ void MareverbAudioProcessorEditor::timerCallback() {
         updateIRHeader();
     }
 
-    if (selectedIRChanged.exchange(false, std::memory_order_acquire))
+    if (selectedIRChanged.exchange(false, std::memory_order_acquire)) {
         updateIRHeader();
+        syncField();
+    }
 }
 
 void MareverbAudioProcessorEditor::initComponents() {
@@ -106,6 +130,7 @@ void MareverbAudioProcessorEditor::initComponents() {
         irSlotButtons[i]->onClick = [this, i]() {
             audioProcessor.apvts.state.setProperty(PropertyID::selectedIR, i, nullptr);
             selectedIRChanged.store(true, std::memory_order_relaxed);
+            audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
         };
 
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);

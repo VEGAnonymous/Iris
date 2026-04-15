@@ -46,7 +46,7 @@ private:
     // Weights
     void processBinaural(const std::array<float, MAX_IR_COUNT>& rawWeights, const std::vector<PolarCoordinate>& relatives);
     void updateWeights();
-    std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights{}; // Local copy
+    std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {}; // Local copy
 
     // Concurrency
     juce::SpinLock flagLock;
@@ -56,7 +56,7 @@ public:
     ControlThread(const juce::AudioProcessorValueTreeState& a, IRManager& m, GUIState& g, std::shared_ptr<ConvolutionStateHolder> c);
     ~ControlThread() = default;
 
-    void setMotionParameters(const Settings& settings, int selectedIR);
+    void updateMotionParameters();
 
     void run() override;
 };

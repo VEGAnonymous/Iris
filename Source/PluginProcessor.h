@@ -6,6 +6,7 @@
 #include "Defines.h"
 #include "GUIState.h"
 #include "IRManager.h"
+#include "Settings.h"
 #include "Utilities.h"
 
 #include <JuceHeader.h>

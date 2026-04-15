@@ -204,7 +204,7 @@ void MotionController::computeField(FieldParameters fieldParameters, FieldState&
         case FieldPattern::RANDOM_DISCRETE: { applyStochastic(randomDiscrete); break; }
         case FieldPattern::RANDOM_WALK: { applyStochastic(randomWalk); break; }
         default: computeFieldParametric(fieldParameters, fieldState.nextCoordinates, t);
-    }
+    }    
 }
 
 void MotionController::updatePosition() {

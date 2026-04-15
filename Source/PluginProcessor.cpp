@@ -50,9 +50,6 @@ void MareverbAudioProcessor::updateParameters() {
         if (settings.highCut != cutProcessor->getHighCutCutoff()) cutProcessor->setHighCutCutoff(settings.highCut);
     }
 
-    if (controlThread)
-        controlThread->setMotionParameters(settings, apvts.state.getProperty(PropertyID::selectedIR));
-
     for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
         float nMin = apvts.getRawParameterValue(ParamID::irSwapMin(ir))->load();
         float nMax = apvts.getRawParameterValue(ParamID::irSwapMax(ir))->load();
@@ -191,8 +188,6 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
     }
 }
 
-// Parameters
-
 Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState& parameters) {
     Settings settings;
 
@@ -200,7 +195,7 @@ Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState&
     settings.decay = parameters.getRawParameterValue(ParamID::decay)->load();
     settings.lowCut = parameters.getRawParameterValue(ParamID::lowCut)->load();
     settings.highCut = parameters.getRawParameterValue(ParamID::highCut)->load();
-    
+
     settings.weightingMode = static_cast<WeightingMode>(parameters.getRawParameterValue(ParamID::weightingMode)->load());
     settings.strength = parameters.getRawParameterValue(ParamID::strength)->load();
     settings.spread = parameters.getRawParameterValue(ParamID::spread)->load();
