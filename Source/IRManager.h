@@ -5,9 +5,10 @@
 #include <JuceHeader.h>
 
 struct IRSlot {
-    juce::File file{};
-    juce::AudioBuffer<float> buffer{};
+    juce::File file {};
+    juce::AudioBuffer<float> buffer {};
     bool occupied = false;
+    bool active = true;
 
     // Self-swap
     float swapMin = 0.0f, swapMax = 0.0f; // seconds
@@ -23,8 +24,9 @@ struct IRDirectory {
 };
 
 struct IRChanges {
-    std::deque<int> irsChanged{};
-    std::deque<int> irsCleared{};
+    std::deque<int> irsSet {};
+    std::deque<int> irsCleared {};
+    std::deque<int> irsActiveStateSet {};
 };
 
 class IRManager {
@@ -58,13 +60,15 @@ public:
 
     void addIRDirectory(juce::File dir);
     void removeIRDirectory(int index);
-    void activateIRDirectory(int index, bool nState);
+    void setIRDirectoryActive(int index, bool nState);
 
     bool loadIR(int irIndex, juce::File file);
     bool loadRandomIR(int irIndex);
     bool loadRandomIRs();
     void clearIR(int irIndex);
     void clearIRs();
+
+    void setIRActive(int irIndex, bool nState);
 
     void setSwapInterval(int irIndex, float minTime, float maxTime);
     void advanceSwapTimers(float dt);

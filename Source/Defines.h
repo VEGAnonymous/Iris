@@ -19,7 +19,7 @@ static constexpr auto N_CHANNELS = 2,
                       MAX_IR_SAMPLES = MAX_IR_PARTITIONS * PARTITION_SIZE;
 
 static constexpr auto REFRESH_RATE = 30;
-static constexpr auto CONTROL_RATE = 60.0f;
+static constexpr auto CONTROL_RATE = 40.0f;
 
 static constexpr auto SWAP_INTERVAL_MIN = 5.0f,
                       SWAP_INTERVAL_MAX = 60.0f;

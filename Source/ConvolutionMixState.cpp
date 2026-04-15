@@ -45,7 +45,9 @@ void ConvolutionMixState::mixSpectrum(const ConvolutionIRBank& irBank) {
 
 			// Each IR
 			for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
-				// Use only existing IRs, channels, and partitions
+				// Use only existing + active IRs, channels, and partitions
+				if (!irBank.isActive(ir)) continue;
+
 				const int partitionCount = irBank.getPartitionCount(ir);
 				if (partitionCount == 0 || partition >= partitionCount) continue;
 

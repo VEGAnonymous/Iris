@@ -1,11 +1,11 @@
 #include "IRSlotButton.h"
-#include "Utilities.h"
+#include "GUIUtilities.h"
 
 /* PRIVATE */
 
 void IRSlotButton::paintButton(juce::Graphics& g, bool isMouseOver, bool /*isButtonDown*/) {
     auto bounds = getLocalBounds().toFloat().reduced(2.0f);
-    const auto colour = juce::Colours::gold;
+    const auto& colour = IR_SLOT_COLORS[irIndex];
     const bool selected = getToggleState();
 
     // Background
@@ -18,11 +18,10 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool isMouseOver, bool /*isBut
     g.drawRoundedRectangle(bounds, 3.0f, selected ? 1.5f : 0.5f);
 
     // Indicator dot
-    const float indicatorRadius = 5.0f;
     const float indicatorX = bounds.getX() + 6.0f;
     const float indicatorY = bounds.getY() + 6.0f;
-    g.setColour(occupied ? colour : colour.withAlpha(0.3f));
-    g.fillEllipse(indicatorX, indicatorY, indicatorRadius * 2.0f, indicatorRadius * 2.0f);
+    const float indicatorAlpha = occupied ? (active ? 1.0f : 0.35f) : (active ? 0.2f : 0.1f);
+    Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius, irIndex, occupied, active, indicatorAlpha);
 
     // Waveform preview
     for (int channel = 0; channel < N_CHANNELS; ++channel) {
@@ -49,11 +48,29 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool isMouseOver, bool /*isBut
             }
             waveform.closeSubPath();
 
-            const float channelOpacity = (channel == 0) ? 0.1f : 0.2f;
-            g.setColour(colour.withAlpha((occupied ? 0.8f : 0.3f) - channelOpacity));
+            const float channelOpacity = (channel == 0) ? 0.0f : 0.2f;
+            g.setColour(colour.withAlpha(getIRAlpha(occupied, active) - channelOpacity));
             g.fillPath(waveform);
         }
     }
+}
+
+void IRSlotButton::mouseDown(const juce::MouseEvent& e) {
+    // Check if clicked on indicator
+    auto indicatorBounds = getIndicatorBounds(getLocalBounds(), indicatorRadius + 1.0f);
+    if (indicatorBounds.contains(e.position) || e.getNumberOfClicks() >= 2) {
+        active = !active;
+        DBG("Slot " << irIndex << " indicator clicked; setting state " << static_cast<int>(active));
+        if (onActiveToggle) onActiveToggle(active);
+        repaint();
+    }
+    else juce::Button::mouseDown(e);
+}
+
+BoundsF IRSlotButton::getIndicatorBounds(Bounds bounds, const float radius) const {
+    auto b = bounds.toFloat().reduced(2.0f);
+    // HACK SHIT ALERT
+    return { b.getX() + 5.5f - radius, b.getY() + 5.5f - radius, radius * 2.0f, radius * 2.0f };
 }
 
 /* PUBLIC */
@@ -93,10 +110,14 @@ void IRSlotButton::setWaveform(const juce::AudioBuffer<float>* buffer) {
     repaint();
 }
 
-void IRSlotButton::setOccupied(bool isOccupied) {
-    occupied = isOccupied;
+void IRSlotButton::setOccupied(bool nOccupied) {
+    occupied = nOccupied;
+    repaint();
+}
+
+void IRSlotButton::setActive(bool nActive) {
+    active = nActive;
     repaint();
 }
 
 int IRSlotButton::getIndex() const { return irIndex; }
-bool IRSlotButton::isOccupied() const { return occupied; }

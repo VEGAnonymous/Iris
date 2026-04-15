@@ -12,6 +12,7 @@ ConvolutionIRBank::ConvolutionIRBank() : fft(FFT_ORDER) {
 
 ConvolutionIRBank::ConvolutionIRBank(const ConvolutionIRBank& other) : fft(FFT_ORDER) {
 	this->irSpectra = other.irSpectra;
+	this->irActiveStates = other.irActiveStates;
 	this->irPartitionCounts = other.irPartitionCounts;
 	this->irChannelCounts = other.irChannelCounts;
 	this->maxPartitionCount = other.maxPartitionCount;
@@ -67,13 +68,19 @@ void ConvolutionIRBank::setIR(int irIndex, const juce::AudioBuffer<float>& irBuf
 }
 
 void ConvolutionIRBank::clearIR(int irIndex) {
+	if (!validateIRIndex(irIndex)) return;
 	irPartitionCounts[irIndex] = 0;
 	irChannelCounts[irIndex] = 0;
 }
 
+void ConvolutionIRBank::setIRActive(int irIndex, bool nState) {
+	if (!validateIRIndex(irIndex)) return;
+	irActiveStates[irIndex] = nState;
+}
+
 const SpectraData& ConvolutionIRBank::getSpectra(int irIndex) const { 
 	jassert(validateIRIndex(irIndex)); 
-	return *irSpectra[irIndex]; 
+	return *irSpectra[irIndex];
 }
 
 int ConvolutionIRBank::getMaxPartitionCount() const { return maxPartitionCount; }
@@ -86,4 +93,9 @@ int ConvolutionIRBank::getPartitionCount(int irIndex) const {
 int ConvolutionIRBank::getChannelCount(int irIndex) const {
 	jassert(validateIRIndex(irIndex));
 	return irChannelCounts[irIndex];
+}
+
+bool ConvolutionIRBank::isActive(int irIndex) const {
+	if (!validateIRIndex(irIndex)) return false;
+	return irActiveStates[irIndex];
 }

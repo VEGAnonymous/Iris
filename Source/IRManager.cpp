@@ -96,7 +96,7 @@ void IRManager::removeIRDirectory(int index) {
         saveDirectories();
     }
 }
-void IRManager::activateIRDirectory(int index, bool nState) {
+void IRManager::setIRDirectoryActive(int index, bool nState) {
     if (index >= 0 && index < static_cast<int>(irDirectories.size())) {
         irDirectories[index].active = nState;
         collectIRs();
@@ -105,8 +105,9 @@ void IRManager::activateIRDirectory(int index, bool nState) {
 }
 
 bool IRManager::loadIR(int irIndex, juce::File irFile) {
-    DBG("Loading IR file into slot " << irIndex);
     if (!validateIRIndex(irIndex)) return false;
+
+    DBG("Loading IR file into slot " << irIndex);
 
     // Create reader for file
     std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(irFile));
@@ -121,8 +122,10 @@ bool IRManager::loadIR(int irIndex, juce::File irFile) {
     if (reader->read(&slot.buffer, 0, numSamples, 0, true, true)) {
         slot.file = irFile; // File validated
         slot.occupied = true;
+        // slot.active = true;
 
-        irChanges.irsChanged.push_back(irIndex); // Request update
+        irChanges.irsSet.push_back(irIndex); // Request update
+        irChanges.irsActiveStateSet.push_back(irIndex);
         return true;
     }
     return false;
@@ -145,30 +148,34 @@ bool IRManager::loadRandomIRs() {
 }
 
 void IRManager::clearIR(int irIndex) {
-    if (validateIRIndex(irIndex)) {
-        DBG("Clearing IR slot " << irIndex);
-        auto& slot = irSlots[irIndex];
-        slot.file = juce::File{};
-        slot.buffer.setSize(0, 0);
-        slot.occupied = false;
+    if (!validateIRIndex(irIndex)) return;
+    DBG("Clearing IR slot " << irIndex);
+    auto& slot = irSlots[irIndex];
+    slot.file = juce::File{};
+    slot.buffer.setSize(0, 0);
+    slot.occupied = false;
 
-        irChanges.irsCleared.push_back(irIndex); // Request update
-    }
+    irChanges.irsCleared.push_back(irIndex); // Request update
 }
 
 void IRManager::clearIRs() {
     for (int irIndex = 0; irIndex < MAX_IR_COUNT; ++irIndex) clearIR(irIndex);
 }
 
+void IRManager::setIRActive(int irIndex, bool nState) {
+    if (!validateIRIndex(irIndex)) return;
+    irSlots[irIndex].active = nState;
+    irChanges.irsActiveStateSet.push_back(irIndex);
+}
+
 void IRManager::setSwapInterval(int irIndex, float nMin, float nMax) {
-    if (validateSwapInterval(nMin, nMax)) {
-        auto& slot = irSlots[irIndex];
-        if (nMin != slot.swapMin || nMax != slot.swapMax) {
-            slot.swapMin = nMin;
-            slot.swapMax = nMax;
-            if (slot.swapEnabled()) slot.resetCountdown(irRNG);
-            else slot.swapCountdown = 0.0f;
-        }
+    if (!validateSwapInterval(nMin, nMax)) return;
+    auto& slot = irSlots[irIndex];
+    if (nMin != slot.swapMin || nMax != slot.swapMax) {
+        slot.swapMin = nMin;
+        slot.swapMax = nMax;
+        if (slot.swapEnabled()) slot.resetCountdown(irRNG);
+        else slot.swapCountdown = 0.0f;
     }
 }
 

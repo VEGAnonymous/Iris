@@ -1,3 +1,4 @@
+#include "GUIUtilities.h"
 #include "PolarMapComponent.h"
 #include "PluginProcessor.h"
 
@@ -66,10 +67,11 @@ void PolarMapComponent::paint(juce::Graphics& g) {
     g.fillEllipse(positionBounds);
 
     // Field indicators
-    for (const auto& coordinate : fieldCoordinates) {
-        auto coordinateBounds = toBounds(coordinate, coordinateRadius);
-        g.setColour(juce::Colours::aqua);
-        g.fillEllipse(coordinateBounds);
+    auto* irManager = audioProcessor.getIRManager();
+    for (int i = 0; i < fieldCoordinates.size(); ++i) {
+        const auto& coordinate = fieldCoordinates[i];
+        Paint::irIndicator(g, map(polarToCartesian(coordinate)), coordinateRadius, i, 
+            irManager->getIRSlot(i).occupied, irManager->getIRSlot(i).active);
     }
 }
 

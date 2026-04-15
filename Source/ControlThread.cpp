@@ -47,7 +47,7 @@ void ControlThread::updateWeights() {
     WeightingMode weightingMode = static_cast<WeightingMode>(apvts.getRawParameterValue(ParamID::weightingMode)->load());
     const float& strength = apvts.getRawParameterValue(ParamID::strength)->load();
 
-    float minDistance = juce::jmap(strength, 0.05f, 0.25f), maxWeight = 1.0f / (minDistance * minDistance), trim = 0.5f; // Absolute
+    float minDistance = juce::jmap(strength, 0.05f, 0.5f), maxWeight = 1.0f / (minDistance * minDistance), trim = 0.5f; // Absolute
     float distanceFactor = juce::jmap(strength * strength, 0.5f, 3.5f); // Relative
 
     // Compute inverse-distance weights
@@ -75,14 +75,15 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
     // DBG("Building convolution state");
 
     // Get flags
-    std::deque<int> irsChanged, irsCleared;
+    std::deque<int> irsSet, irsCleared, irsActiveStateSet;
     bool decayChanged, weightsChanged;
     {
         juce::SpinLock::ScopedLockType lock(flagLock);
 
         IRChanges irChanges = irManager.consumeIRChanges();
-        irsChanged = std::move(irChanges.irsChanged);
+        irsSet = std::move(irChanges.irsSet);
         irsCleared = std::move(irChanges.irsCleared);
+        irsActiveStateSet = std::move(irChanges.irsActiveStateSet);
         decayChanged = stateFlags.decayChanged;
         weightsChanged = stateFlags.weightsChanged;
 
@@ -91,18 +92,18 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
 
     // IR state
     std::shared_ptr<const ConvolutionIRBank> irBank = currentState->irBank;
-    bool irChanged = !(irsChanged.empty() && irsCleared.empty());
+    bool irChanged = !(irsSet.empty() && irsCleared.empty() && irsActiveStateSet.empty());
     if (irChanged) {
         auto nBank = std::make_shared<ConvolutionIRBank>(*currentState->irBank);
 
         std::vector<std::future<void>> irJobs; // Parallelize
 
-        while (!irsChanged.empty()) {
+        while (!irsSet.empty()) {
             // loadIR()
-            int irIndex = irsChanged.front();
-            DBG("Setting IR " << irIndex);
-            irsChanged.pop_front();
+            int irIndex = irsSet.front();
+            irsSet.pop_front();
             if (validateIRIndex(irIndex)) {
+                DBG("Setting IR " << irIndex);
                 const auto& buffer = irManager.getIRSlot(irIndex).buffer;
                 irJobs.push_back(std::async(std::launch::async,
                     [&nBank, &buffer, irIndex]() { nBank->setIR(irIndex, buffer); }
@@ -113,9 +114,22 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
         while (!irsCleared.empty()) {
             // clearIR()
             int irIndex = irsCleared.front();
-            DBG("Clearing IR " << irIndex);
             irsCleared.pop_front();
-            if (validateIRIndex(irIndex)) nBank->clearIR(irIndex);
+            if (validateIRIndex(irIndex)) {
+                DBG("Clearing IR " << irIndex);
+                nBank->clearIR(irIndex);
+            }
+        }
+
+        while (!irsActiveStateSet.empty()) {
+            // activateIR()
+            int irIndex = irsActiveStateSet.front();
+            irsActiveStateSet.pop_front();
+            if (validateIRIndex(irIndex)) {
+                DBG("Setting IR active state " << irIndex);
+                const auto& active = irManager.getIRSlot(irIndex).active;
+                nBank->setIRActive(irIndex, active);
+            }
         }
 
         for (auto& job : irJobs) job.get();

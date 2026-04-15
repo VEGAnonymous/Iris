@@ -13,7 +13,7 @@ private:
     MareverbAudioProcessor& audioProcessor;
 
     CartesianCoordinate map(CartesianCoordinate p) const;
-    juce::Rectangle<float> toBounds(PolarCoordinate p, float radius) const;
+    BoundsF toBounds(PolarCoordinate p, float radius) const;
 
     // Parametric path
     juce::Path parametricPath;
@@ -24,7 +24,7 @@ private:
     // Position indicator
     PolarCoordinate currentPosition {0.0f, 0.0f};
     static constexpr float positionRadius = 4.0f;
-    juce::Rectangle<float> positionBounds {};
+    BoundsF positionBounds {};
 
     // Field indicators
     std::vector<PolarCoordinate> fieldCoordinates {};

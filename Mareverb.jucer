@@ -23,6 +23,11 @@
         <FILE id="etOKfT" name="PolarMap.h" compile="0" resource="0" file="Source/PolarMap.h"/>
       </GROUP>
       <GROUP id="{0020543F-18A4-A177-2507-1186AC105CC3}" name="UI">
+        <FILE id="NLRTuz" name="GUIUtilities.h" compile="0" resource="0" file="Source/GUIUtilities.h"/>
+        <FILE id="boNkS3" name="IRHeaderComponent.cpp" compile="1" resource="0"
+              file="Source/IRHeaderComponent.cpp"/>
+        <FILE id="eTHMNT" name="IRHeaderComponent.h" compile="0" resource="0"
+              file="Source/IRHeaderComponent.h"/>
         <FILE id="eJDfPp" name="PolarMapComponent.cpp" compile="1" resource="0"
               file="Source/PolarMapComponent.cpp"/>
         <FILE id="VvHUrK" name="PolarMapComponent.h" compile="0" resource="0"

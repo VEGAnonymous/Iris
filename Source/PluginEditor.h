@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IRHeaderComponent.h"
 #include "IRSlotButton.h"
 #include "PluginProcessor.h"
 #include "PolarMapComponent.h"
@@ -13,6 +14,7 @@ private:
 
     // Listeners and callbacks
     std::atomic<bool> positionPathChanged { false };
+    std::atomic<bool> selectedIRChanged { false };
 
     void parameterChanged (const juce::String& parameterID, float newValue) override;
     void timerCallback() override;
@@ -80,6 +82,7 @@ private:
 
     // Components
     PolarMapComponent polarMapComponent;
+    IRHeaderComponent irHeaderComponent;
 
     void initComponents();
 
