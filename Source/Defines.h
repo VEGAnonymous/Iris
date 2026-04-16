@@ -50,7 +50,27 @@ namespace ParamID {
 }
 
 namespace PropertyID {
-    static constexpr auto selectedIR = "Selected IR";
+    static constexpr auto
+        selectedIR = "Selected IR";
+
+    namespace Position {
+        static constexpr auto
+            positionR = "Position R",
+            positionTheta = "Position Theta";
+    }
+
+    namespace Point {
+        static constexpr auto
+            pointR = "Point R",
+            pointTheta = "Point Theta";
+    }
+}
+
+namespace TreeID {
+    static constexpr auto
+        guiState = "GUI State",
+        fieldCoordinates = "Field Coordinates",
+        point = "Point";
 }
 
 const juce::StringArray weightingModes { "Absolute", "Relative" };

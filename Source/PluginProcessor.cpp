@@ -176,16 +176,69 @@ void MareverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
 juce::AudioProcessorEditor* MareverbAudioProcessor::createEditor() { return new MareverbAudioProcessorEditor (*this); }
 
 void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) { 
+    auto state = apvts.copyState();
+
+    // Store GUI state
+    juce::ValueTree guiTree(TreeID::guiState);
+
+    auto position = guiState.position.load();
+    guiTree.setProperty(PropertyID::Position::positionR, position.r, nullptr);
+    guiTree.setProperty(PropertyID::Position::positionTheta, position.theta, nullptr);
+
+    juce::ValueTree fieldTree(TreeID::fieldCoordinates);
+    {
+        juce::SpinLock::ScopedLockType lock(guiState.fieldLock);
+        for (const auto& coordinate : guiState.fieldCoordinates) {
+            juce::ValueTree point(TreeID::point);
+            point.setProperty(PropertyID::Point::pointR, coordinate.r, nullptr);
+            point.setProperty(PropertyID::Point::pointTheta, coordinate.r, nullptr);
+            fieldTree.addChild(point, -1, nullptr);
+        }
+    }
+
+    guiTree.addChild(fieldTree, -1, nullptr);
+    
+    state.addChild(guiTree, -1, nullptr);
+    
     juce::MemoryOutputStream mos(destData, true);
-    apvts.state.writeToStream(mos);
+    state.writeToStream(mos);
 }
 
 void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
     auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
-    if (tree.isValid()) {
-        apvts.replaceState(tree);
-        updateParameters();
+    if (!tree.isValid()) return;
+
+    apvts.replaceState(tree);
+    updateParameters();
+
+    // Restore GUI state
+    auto guiTree = tree.getChildWithName(TreeID::guiState);
+    if (!guiTree.isValid()) return;
+
+    PolarCoordinate position {};
+    position.r = guiTree.getProperty(PropertyID::Position::positionR, 0.0f);
+    position.theta = guiTree.getProperty(PropertyID::Position::positionTheta, 0.0f);
+    guiState.position.store(position);
+
+    auto fieldTree = guiTree.getChildWithName(TreeID::fieldCoordinates);
+    if (fieldTree.isValid()) {
+        juce::SpinLock::ScopedLockType lock(guiState.fieldLock);
+
+        guiState.fieldCoordinates.clear();
+
+        for (int i = 0; i < fieldTree.getNumChildren(); ++i) {
+            auto point = fieldTree.getChild(i);
+            PolarCoordinate coordinate {};
+            coordinate.r = point.getProperty(PropertyID::Point::pointR, 0.0f);
+            coordinate.theta = point.getProperty(PropertyID::Point::pointTheta, 0.0f);
+            guiState.fieldCoordinates.push_back(coordinate);
+        }
     }
+
+    // Notify GUI
+    guiState.fieldChanged.store(true);
+    guiState.positionChanged.store(true);
+    guiState.irChanged.store(true);
 }
 
 Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState& parameters) {
