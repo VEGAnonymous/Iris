@@ -131,11 +131,16 @@ PolarCoordinate MotionController::computePositionParametric(PositionParameters p
 }
 
 PolarCoordinate MotionController::computePosition(PositionParameters positionParameters, PositionState& positionState, float t) {
+    PolarCoordinate position;
     switch (positionParameters.positionPattern) {
-        case PositionPattern::RANDOM_DISCRETE: return randomDiscrete(positionParameters, positionState);
-        case PositionPattern::RANDOM_WALK: return randomWalk(positionParameters, positionState);
-        default: return computePositionParametric(positionParameters, t);
+        case PositionPattern::RANDOM_DISCRETE: position = randomDiscrete(positionParameters, positionState); break;
+        case PositionPattern::RANDOM_WALK: position = randomWalk(positionParameters, positionState); break;
+        default: position = computePositionParametric(positionParameters, t);
     }
+
+    position.theta = wrapAngle(position.theta);
+
+    return position;
 }
 
 void MotionController::computeFieldParametric(FieldParameters fieldParameters, std::vector<PolarCoordinate>& outputCoordinates, float t) {
@@ -204,7 +209,12 @@ void MotionController::computeField(FieldParameters fieldParameters, FieldState&
         case FieldPattern::RANDOM_DISCRETE: { applyStochastic(randomDiscrete); break; }
         case FieldPattern::RANDOM_WALK: { applyStochastic(randomWalk); break; }
         default: computeFieldParametric(fieldParameters, fieldState.nextCoordinates, t);
-    }    
+    }
+
+    // Wrap angle
+    auto& nextCoordinates = fieldState.nextCoordinates;
+    for (int coord = 0; coord < fieldParameters.fieldCount; ++coord)
+        nextCoordinates[coord].theta = wrapAngle(nextCoordinates[coord].theta);
 }
 
 void MotionController::updatePosition() {
