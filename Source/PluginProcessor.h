@@ -6,16 +6,19 @@
 #include "Defines.h"
 #include "GUIState.h"
 #include "IRManager.h"
+#include "PatternState.h"
 #include "Settings.h"
 #include "Utilities.h"
 
 #include <JuceHeader.h>
 #include <array>
+#include <map>
 #include <vector>
+#include <utility>
 
 class MareverbAudioProcessor : public juce::AudioProcessor {
 private:
-    // Settings
+    // Properties
     juce::ApplicationProperties applicationProperties;
 
     // Parameters
@@ -78,6 +81,7 @@ public:
     // State
     std::shared_ptr<ConvolutionStateHolder> convolutionState;
     GUIState guiState;
+    PatternState patternState;
 
     IRManager* getIRManager();
 };

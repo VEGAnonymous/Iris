@@ -136,7 +136,9 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
         for (auto& job : irJobs) job.get();
         nBank->updateMaxPartitionCount();
 
-        guiState.irChanged.store(true, std::memory_order_relaxed);
+        guiState.irChanged.store(true, std::memory_order_release);
+        guiState.updatePosition.store(true, std::memory_order_release);
+        guiState.updateField.store(true, std::memory_order_release);
 
         irBank = nBank;
     }
@@ -180,7 +182,7 @@ std::shared_ptr<ConvolutionState> ControlThread::runControlCycle(float dt) {
     motionController.updatePosition();
 
     // Pass state to GUI
-    if (motionController.hasPositionUpdated()) {
+    if (motionController.hasPositionUpdated() || guiState.updatePosition.exchange(false, std::memory_order_acquire)) {
         guiState.position.store(polarMap.getPosition(), std::memory_order_release);
         guiState.positionChanged.store(true, std::memory_order_release);
     }
@@ -224,12 +226,14 @@ ControlThread::ControlThread(const juce::AudioProcessorValueTreeState& a, IRMana
 void ControlThread::updateMotionParameters() {
     auto settings = getSettings(apvts);
 
-    motionController.setPositionParameters({
-        settings.positionPattern,
-        settings.positionRate,
-        settings.positionModA,
-        settings.positionModB
-    });
+    if (!guiState.syncingPosition.load(std::memory_order_acquire)) {
+        motionController.setPositionParameters({
+            settings.positionPattern,
+            settings.positionRate,
+            settings.positionModA,
+            settings.positionModB
+        });
+    }
 
     if (!guiState.syncingField.load(std::memory_order_acquire)) {
         motionController.setFieldParameters({
@@ -239,7 +243,7 @@ void ControlThread::updateMotionParameters() {
             settings.fieldRate,
             settings.fieldModA,
             settings.fieldModB
-            });
+        });
     }
 }
 

@@ -13,6 +13,7 @@
         <FILE id="ntdRY2" name="GUIState.h" compile="0" resource="0" file="Source/GUIState.h"/>
         <FILE id="y1pRDt" name="IRManager.cpp" compile="1" resource="0" file="Source/IRManager.cpp"/>
         <FILE id="VRVSeu" name="IRManager.h" compile="0" resource="0" file="Source/IRManager.h"/>
+        <FILE id="GPjorM" name="PatternState.h" compile="0" resource="0" file="Source/PatternState.h"/>
         <FILE id="mAfNlb" name="Settings.h" compile="0" resource="0" file="Source/Settings.h"/>
       </GROUP>
       <GROUP id="{E6B133CC-8CFC-0E6C-E1E6-F1FBF1C1496F}" name="Spatial">

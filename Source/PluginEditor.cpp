@@ -5,12 +5,17 @@
 
 /* PRIVATE */
 
-void MareverbAudioProcessorEditor::parameterChanged(const juce::String& parameterID, float newValue) {
+void MareverbAudioProcessorEditor::parameterChanged(const juce::String& parameterID, float /*newValue*/) {
     if (parameterID == ParamID::positionPattern || parameterID == ParamID::positionModA || parameterID == ParamID::positionModB) {
         positionPathChanged.store(true, std::memory_order_release);
-    } else if (parameterID == ParamID::fieldPattern || parameterID == ParamID::fieldModA || parameterID == ParamID::fieldModB) {
-        audioProcessor.guiState.updateField.store(true);
-        if (parameterID == ParamID::fieldPattern && static_cast<FieldPattern>(newValue) == FieldPattern::MANUAL)
+        audioProcessor.guiState.updatePosition.store(true, std::memory_order_release);
+        if (parameterID == ParamID::positionPattern)
+            audioProcessor.guiState.syncingPosition.store(true, std::memory_order_release);
+    } 
+    
+    if (parameterID == ParamID::fieldPattern || parameterID == ParamID::fieldModA || parameterID == ParamID::fieldModB) {
+        audioProcessor.guiState.updateField.store(true, std::memory_order_release);
+        if (parameterID == ParamID::fieldPattern)
             audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
     }
 }
@@ -51,22 +56,68 @@ void MareverbAudioProcessorEditor::timerCallback() {
     if (selectedIRChanged.exchange(false, std::memory_order_acquire))
         updateIRHeader();
 
-    if (audioProcessor.guiState.syncingField.load(std::memory_order_acquire)) {
-        if (static_cast<FieldPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load()) == FieldPattern::MANUAL) {
-            int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+    if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire)) {
+        auto positionPattern = static_cast<PositionPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
+        auto* positionRate = audioProcessor.apvts.getParameter(ParamID::positionRate);
+        auto* positionModA = audioProcessor.apvts.getParameter(ParamID::positionModA);
+        auto* positionModB = audioProcessor.apvts.getParameter(ParamID::positionModB);
 
+        audioProcessor.patternState.positionParamStates[audioProcessor.patternState.lastPositionPattern] =
+            { positionRate->getValue(), 
+              positionModA->getValue(), 
+              positionModB->getValue() };
+
+        const auto& nMods = audioProcessor.patternState.positionParamStates[positionPattern];
+        float nRate = nMods.rate,
+              nModA = nMods.modA,
+              nModB = nMods.modB;
+
+        if (positionPattern == PositionPattern::MANUAL) {
+            PolarCoordinate position = audioProcessor.guiState.position.load();
+            nModA = positionModA->convertTo0to1(position.r);
+            nModB = positionModB->convertTo0to1(position.theta / juce::MathConstants<float>::twoPi);
+        }
+
+        if (positionRate) positionRate->setValueNotifyingHost(nRate);
+        if (positionModA) positionModA->setValueNotifyingHost(nModA);
+        if (positionModB) positionModB->setValueNotifyingHost(nModB);
+        audioProcessor.patternState.lastPositionPattern = positionPattern;
+
+        audioProcessor.guiState.syncingPosition.store(false, std::memory_order_release);
+    }
+
+    if (audioProcessor.guiState.syncingField.load(std::memory_order_acquire)) {
+        auto fieldPattern = static_cast<FieldPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load());
+        auto* fieldRate = audioProcessor.apvts.getParameter(ParamID::fieldRate);
+        auto* fieldModA = audioProcessor.apvts.getParameter(ParamID::fieldModA);
+        auto* fieldModB = audioProcessor.apvts.getParameter(ParamID::fieldModB);
+
+        audioProcessor.patternState.fieldParamStates[audioProcessor.patternState.lastFieldPattern] =
+            { fieldRate->getValue(),
+              fieldModA->getValue(), 
+              fieldModB->getValue() };
+
+        const auto& nMods = audioProcessor.patternState.fieldParamStates[fieldPattern];
+        float nRate = nMods.rate, 
+              nModA = nMods.modA, 
+              nModB = nMods.modB;
+
+        if (fieldPattern == FieldPattern::MANUAL) {
             PolarCoordinate coordinate;
             {
                 juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
+                const int& selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
                 coordinate = audioProcessor.guiState.fieldCoordinates[selectedIR];
             }
-
-            auto* fieldModA = audioProcessor.apvts.getParameter(ParamID::fieldModA);
-            auto* fieldModB = audioProcessor.apvts.getParameter(ParamID::fieldModB);
-
-            if (fieldModA) fieldModA->setValueNotifyingHost(fieldModA->convertTo0to1(coordinate.r));
-            if (fieldModB) fieldModB->setValueNotifyingHost(fieldModB->convertTo0to1(coordinate.theta / juce::MathConstants<float>::twoPi));
+            nModA = fieldModA->convertTo0to1(coordinate.r);
+            nModB = fieldModB->convertTo0to1(coordinate.theta / juce::MathConstants<float>::twoPi);
         }
+
+        if (fieldRate) fieldRate->setValueNotifyingHost(nRate);
+        if (fieldModA) fieldModA->setValueNotifyingHost(nModA);
+        if (fieldModB) fieldModB->setValueNotifyingHost(nModB);
+        audioProcessor.patternState.lastFieldPattern = fieldPattern;
+
         audioProcessor.guiState.syncingField.store(false, std::memory_order_release);
     }
 }

@@ -55,22 +55,43 @@ namespace PropertyID {
 
     namespace Position {
         static constexpr auto
-            positionR = "Position R",
-            positionTheta = "Position Theta";
+            r = "Position R",
+            theta = "Position Theta";
     }
 
     namespace Point {
         static constexpr auto
-            pointR = "Point R",
-            pointTheta = "Point Theta";
+            r = "Point R",
+            theta = "Point Theta";
+    }
+
+    namespace IRSlot {
+        static constexpr auto
+            filePath = "IR Slot Filepath",
+            occupied = "IR Slot Occupied",
+            active = "IR Slot Active",
+            swapMin = "IR Slot Swap Min",
+            swapMax = "IR Slot Swap Max";
     }
 }
 
 namespace TreeID {
     static constexpr auto
         guiState = "GUI State",
-        fieldCoordinates = "Field Coordinates",
-        point = "Point";
+        irManagerState = "IR Manager State";
+
+    namespace GUIState {
+        static constexpr auto
+            fieldCoordinates = "Field Coordinates";
+        namespace FieldCoordinates {
+            static constexpr auto point = "Point";
+        }
+    }
+
+    namespace IRManager {
+        static constexpr auto
+            irSlot = "IR Slot";
+    }
 }
 
 const juce::StringArray weightingModes { "Absolute", "Relative" };

@@ -97,6 +97,24 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     // Init IRs
     irManager.prepare();
 
+    // Init pattern states
+    patternState.lastPositionPattern = static_cast<PositionPattern>(apvts.getParameter(ParamID::positionPattern)->getDefaultValue());
+    patternState.lastFieldPattern = static_cast<FieldPattern>(apvts.getParameter(ParamID::fieldPattern)->getDefaultValue());
+
+    for (int i = 0; i <= static_cast<int>(PositionPattern::RANDOM_WALK); ++i)
+        patternState.positionParamStates[static_cast<PositionPattern>(i)] = { 
+            apvts.getParameter(ParamID::positionRate)->getDefaultValue(),
+            apvts.getParameter(ParamID::positionModA)->getDefaultValue(), 
+            apvts.getParameter(ParamID::positionModB)->getDefaultValue()
+        };
+
+    for (int i = 0; i <= static_cast<int>(PositionPattern::RANDOM_WALK); ++i)
+        patternState.fieldParamStates[static_cast<FieldPattern>(i)] = {
+            apvts.getParameter(ParamID::fieldRate)->getDefaultValue(),
+            apvts.getParameter(ParamID::fieldModA)->getDefaultValue(),
+            apvts.getParameter(ParamID::fieldModB)->getDefaultValue()
+        };
+
     // Init DSP state
     convolutionState = std::make_shared<ConvolutionStateHolder>();
 
@@ -182,23 +200,42 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
     juce::ValueTree guiTree(TreeID::guiState);
 
     auto position = guiState.position.load();
-    guiTree.setProperty(PropertyID::Position::positionR, position.r, nullptr);
-    guiTree.setProperty(PropertyID::Position::positionTheta, position.theta, nullptr);
+    guiTree.setProperty(PropertyID::Position::r, position.r, nullptr);
+    guiTree.setProperty(PropertyID::Position::theta, position.theta, nullptr);
 
-    juce::ValueTree fieldTree(TreeID::fieldCoordinates);
+    juce::ValueTree fieldTree(TreeID::GUIState::fieldCoordinates);
     {
         juce::SpinLock::ScopedLockType lock(guiState.fieldLock);
         for (const auto& coordinate : guiState.fieldCoordinates) {
-            juce::ValueTree point(TreeID::point);
-            point.setProperty(PropertyID::Point::pointR, coordinate.r, nullptr);
-            point.setProperty(PropertyID::Point::pointTheta, coordinate.r, nullptr);
+            juce::ValueTree point(TreeID::GUIState::FieldCoordinates::point);
+            point.setProperty(PropertyID::Point::r, coordinate.r, nullptr);
+            point.setProperty(PropertyID::Point::theta, coordinate.r, nullptr);
             fieldTree.addChild(point, -1, nullptr);
         }
     }
 
     guiTree.addChild(fieldTree, -1, nullptr);
-    
     state.addChild(guiTree, -1, nullptr);
+
+    // Store IR slots
+    juce::ValueTree irManagerTree(TreeID::irManagerState);
+
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        const auto& slot = irManager.getIRSlot(i);
+        juce::ValueTree slotTree(TreeID::IRManager::irSlot);
+
+        if (slot.file.existsAsFile())
+            slotTree.setProperty(PropertyID::IRSlot::filePath, slot.file.getFullPathName(), nullptr);
+
+        slotTree.setProperty(PropertyID::IRSlot::occupied, slot.occupied, nullptr);
+        slotTree.setProperty(PropertyID::IRSlot::active, slot.active, nullptr);
+        slotTree.setProperty(PropertyID::IRSlot::swapMin, slot.swapMin, nullptr);
+        slotTree.setProperty(PropertyID::IRSlot::swapMax, slot.swapMax, nullptr);
+
+        irManagerTree.addChild(slotTree, -1, nullptr);
+    }
+
+    state.addChild(irManagerTree, -1, nullptr);
     
     juce::MemoryOutputStream mos(destData, true);
     state.writeToStream(mos);
@@ -213,32 +250,57 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
 
     // Restore GUI state
     auto guiTree = tree.getChildWithName(TreeID::guiState);
-    if (!guiTree.isValid()) return;
+    if (guiTree.isValid()) {
+        PolarCoordinate position{};
+        position.r = guiTree.getProperty(PropertyID::Position::r, 0.0f);
+        position.theta = guiTree.getProperty(PropertyID::Position::theta, 0.0f);
+        guiState.position.store(position);
 
-    PolarCoordinate position {};
-    position.r = guiTree.getProperty(PropertyID::Position::positionR, 0.0f);
-    position.theta = guiTree.getProperty(PropertyID::Position::positionTheta, 0.0f);
-    guiState.position.store(position);
+        auto fieldTree = guiTree.getChildWithName(TreeID::GUIState::fieldCoordinates);
+        if (fieldTree.isValid()) {
+            juce::SpinLock::ScopedLockType lock(guiState.fieldLock);
 
-    auto fieldTree = guiTree.getChildWithName(TreeID::fieldCoordinates);
-    if (fieldTree.isValid()) {
-        juce::SpinLock::ScopedLockType lock(guiState.fieldLock);
+            guiState.fieldCoordinates.clear();
 
-        guiState.fieldCoordinates.clear();
-
-        for (int i = 0; i < fieldTree.getNumChildren(); ++i) {
-            auto point = fieldTree.getChild(i);
-            PolarCoordinate coordinate {};
-            coordinate.r = point.getProperty(PropertyID::Point::pointR, 0.0f);
-            coordinate.theta = point.getProperty(PropertyID::Point::pointTheta, 0.0f);
-            guiState.fieldCoordinates.push_back(coordinate);
+            for (int i = 0; i < fieldTree.getNumChildren(); ++i) {
+                auto point = fieldTree.getChild(i);
+                PolarCoordinate coordinate{};
+                coordinate.r = point.getProperty(PropertyID::Point::r, 0.0f);
+                coordinate.theta = point.getProperty(PropertyID::Point::theta, 0.0f);
+                guiState.fieldCoordinates.push_back(coordinate);
+            }
         }
     }
 
-    // Notify GUI
-    guiState.fieldChanged.store(true);
-    guiState.positionChanged.store(true);
-    guiState.irChanged.store(true);
+    // Restore pattern state
+    patternState.lastPositionPattern = static_cast<PositionPattern>(apvts.getRawParameterValue(ParamID::positionPattern)->load());
+    patternState.lastFieldPattern = static_cast<FieldPattern>(apvts.getRawParameterValue(ParamID::fieldPattern)->load());
+
+    // Restore IR manager state
+    auto irManagerTree = tree.getChildWithName(TreeID::irManagerState);
+    if (irManagerTree.isValid()) {
+        for (int i = 0; i < irManagerTree.getNumChildren(); ++i) {
+            auto slotTree = irManagerTree.getChild(i);
+            auto filePath = slotTree.getProperty(PropertyID::IRSlot::filePath).toString();
+            bool occupied = slotTree.getProperty(PropertyID::IRSlot::occupied, false);
+            bool active = slotTree.getProperty(PropertyID::IRSlot::active, true);
+            float swapMin = slotTree.getProperty(PropertyID::IRSlot::swapMin, 0.0f);
+            float swapMax = slotTree.getProperty(PropertyID::IRSlot::swapMax, 0.0f);
+
+            if (occupied && filePath.isNotEmpty()) {
+                bool restoredIR = irManager.loadIR(i, juce::File(filePath));
+                jassert(restoredIR);
+            }
+
+            irManager.setIRActive(i, active);
+            irManager.setSwapInterval(i, swapMin, swapMax);
+        }
+    }
+
+    // Refresh GUI
+    guiState.positionChanged.store(true, std::memory_order_release);
+    guiState.fieldChanged.store(true, std::memory_order_release);
+    guiState.irChanged.store(true, std::memory_order_release);
 }
 
 Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState& parameters) {

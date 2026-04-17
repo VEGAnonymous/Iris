@@ -56,8 +56,8 @@ void IRManager::prepare() {
 
     loadDirectories();
 
-    bool loadedIRs = loadRandomIRs();
-    jassert(loadedIRs);
+    // bool loadedIRs = loadRandomIRs();
+    // jassert(loadedIRs);
     // clearIRs();
 }
 
