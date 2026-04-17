@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.h"
+#include "WaveformComponent.h"
 
 #include <JuceHeader.h>
 
@@ -9,11 +10,13 @@ private:
     int irIndex;
     bool occupied = false;
     bool active = false;
-    std::array<std::vector<float>, N_CHANNELS> waveformPoints;
 
     const float indicatorRadius = 3.0f;
 
+    WaveformComponent waveformPreview;
+
     void paintButton(juce::Graphics& g, bool isMouseOver, bool isButtonDown) override;
+    void resized() override;
     void mouseDown(const juce::MouseEvent& e) override;
 
     BoundsF getIndicatorBounds(Bounds bounds, const float radius) const;

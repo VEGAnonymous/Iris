@@ -4,6 +4,7 @@
 #include "IRSlotButton.h"
 #include "PluginProcessor.h"
 #include "PolarMapComponent.h"
+#include "WaveformComponent.h"
 
 #include <JuceHeader.h>
 
@@ -83,6 +84,7 @@ private:
     // Components
     PolarMapComponent polarMapComponent;
     IRHeaderComponent irHeaderComponent;
+    WaveformComponent irWaveformComponent;
 
     void initComponents();
 

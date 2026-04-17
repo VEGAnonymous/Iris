@@ -25,6 +25,10 @@
         <FILE id="etOKfT" name="PolarMap.h" compile="0" resource="0" file="Source/PolarMap.h"/>
       </GROUP>
       <GROUP id="{0020543F-18A4-A177-2507-1186AC105CC3}" name="UI">
+        <FILE id="tB1sTJ" name="WaveformComponent.cpp" compile="1" resource="0"
+              file="Source/WaveformComponent.cpp"/>
+        <FILE id="jrcQET" name="WaveformComponent.h" compile="0" resource="0"
+              file="Source/WaveformComponent.h"/>
         <FILE id="NLRTuz" name="GUIUtilities.h" compile="0" resource="0" file="Source/GUIUtilities.h"/>
         <FILE id="boNkS3" name="IRHeaderComponent.cpp" compile="1" resource="0"
               file="Source/IRHeaderComponent.cpp"/>

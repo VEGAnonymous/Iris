@@ -4,6 +4,10 @@
 
 #include <JuceHeader.h>
 
+static constexpr auto
+    WAVEFORM_PREVIEW_POINTS = 126,
+    WAVEFORM_POINTS = 621;
+
 static const std::array<juce::Colour, MAX_IR_COUNT> IR_SLOT_COLORS{
     juce::Colours::red,
     juce::Colours::orange,
@@ -14,6 +18,13 @@ static const std::array<juce::Colour, MAX_IR_COUNT> IR_SLOT_COLORS{
     juce::Colours::purple,
     juce::Colours::hotpink
 };
+
+namespace Theme {
+    namespace Colors {
+        const auto
+            main = juce::Colour::fromRGBA(147, 255, 219, 255);
+    }
+}
 
 inline float getIRAlpha(bool occupied, bool active) { return occupied ? (active ? 1.0f : 0.25f) : 0.0f; }
 

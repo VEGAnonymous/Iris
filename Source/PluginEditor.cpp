@@ -1,3 +1,4 @@
+#include "GUIUtilities.h"
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "MotionController.h"
@@ -37,10 +38,15 @@ void MareverbAudioProcessorEditor::timerCallback() {
         // DBG("Passed coordinates to map");
     }
 
-    auto updateIRHeader = [this]() {
+    auto updateIRSlot = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         // DBG("Selected IR " << selectedIR);
-        if (validateIRIndex(selectedIR)) irHeaderComponent.setSlot(selectedIR, audioProcessor.getIRManager()->getIRSlot(selectedIR));
+        if (validateIRIndex(selectedIR)) {
+            const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
+            irHeaderComponent.setSlot(selectedIR, slot);
+            irWaveformComponent.setWaveform(&slot.buffer, WAVEFORM_POINTS);
+            irWaveformComponent.setActive(slot.active);
+        }
     };
 
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
@@ -50,11 +56,12 @@ void MareverbAudioProcessorEditor::timerCallback() {
             irSlotButtons[i]->setActive(slot.active);
             irSlotButtons[i]->setWaveform(slot.occupied ? &slot.buffer : nullptr);
         }
-        updateIRHeader();
+
+        updateIRSlot();
     }
 
     if (selectedIRChanged.exchange(false, std::memory_order_acquire))
-        updateIRHeader();
+        updateIRSlot();
 
     if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire)) {
         auto positionPattern = static_cast<PositionPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
@@ -208,7 +215,6 @@ void MareverbAudioProcessorEditor::initComponents() {
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
         irSlotButtons[i]->setOccupied(slot.occupied);
         if (slot.occupied) irSlotButtons[i]->setWaveform(&slot.buffer);
-
         addAndMakeVisible(*irSlotButtons[i]);
     }
 
@@ -229,6 +235,10 @@ void MareverbAudioProcessorEditor::initComponents() {
         audioProcessor.getIRManager()->setIRActive(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), active);
         audioProcessor.guiState.updateField.store(true, std::memory_order_release);
     };
+
+    // IR waveform
+    irWaveformComponent.setDimensions(16.0f, 0.0f, -16.0f, 1.0f);
+    irWaveformComponent.setColor(Theme::Colors::main);
 }
 
 /* PUBLIC */
@@ -275,6 +285,8 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     }
 
     addAndMakeVisible(irHeaderComponent);
+    
+    addAndMakeVisible(irWaveformComponent);
 
     for (auto& control : getControls()) addAndMakeVisible(control.component);
 
@@ -310,7 +322,7 @@ void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
     // Right panel
     Bounds& rightPanel = totalBounds;
 
-    Bounds topBarBounds = rightPanel.removeFromTop(81); // Randomize / Clear All, settings modal, Mareverb title
+    Bounds topBarBounds = rightPanel.removeFromTop(81);
     g.setColour(juce::Colours::darkgrey.withAlpha(0.9f));
     g.fillRect(topBarBounds);
 
@@ -390,6 +402,7 @@ void MareverbAudioProcessorEditor::resized() {
     irHeaderComponent.setBounds(irHeaderBounds);
 
     Bounds irWaveformBounds = rightPanel.removeFromTop(140);
+    irWaveformComponent.setBounds(irWaveformBounds);
 
     Bounds irControlsBounds = rightPanel.removeFromTop(100); // Load (Manual) button, Load (Random) button, Auto Min textbox, Auto Max textbox
 
