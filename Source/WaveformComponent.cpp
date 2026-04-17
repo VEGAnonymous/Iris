@@ -42,6 +42,10 @@ WaveformComponent::WaveformComponent() {}
 
 void WaveformComponent::setWaveform(const juce::AudioBuffer<float>* buffer, const int numPoints) {
     for (int channel = 0; channel < N_CHANNELS; ++channel) waveformPoints[channel].clear();
+    if (!buffer) {
+        repaint();
+        return;
+    }
 
     // Downsample
     const int numSamples = buffer->getNumSamples();

@@ -61,11 +61,24 @@ private:
         positionRateControl, positionModAControl, positionModBControl,
         fieldRateControl, fieldModAControl, fieldModBControl;
 
-    juce::AudioProcessorValueTreeState::SliderAttachment 
+    SliderAttachment 
         globalMixControlAttachment, decayControlAttachment, lowCutControlAttachment, highCutControlAttachment,
         strengthControlAttachment, spreadControlAttachment,
         positionRateControlAttachment, positionModAControlAttachment, positionModBControlAttachment,
         fieldRateControlAttachment, fieldModAControlAttachment, fieldModBControlAttachment;
+
+    struct SwapControl {
+        Rotary swapMinControl, swapMaxControl;
+        SliderAttachment swapMinControlAttachment, swapMaxControlAttachment;
+
+        SwapControl(juce::AudioProcessorValueTreeState& apvts, int i)
+            : swapMinControl(), swapMaxControl(),
+            swapMinControlAttachment(apvts, ParamID::irSwapMin(i), swapMinControl),
+            swapMaxControlAttachment(apvts, ParamID::irSwapMax(i), swapMaxControl)
+        {}
+    };
+
+    std::array<std::unique_ptr<SwapControl>, MAX_IR_COUNT> swapControls;
 
     // Buttons
     juce::TextButton weightingModeControl;
@@ -76,6 +89,8 @@ private:
     juce::TextButton clearAllButton, randomAllButton;
 
     std::array<std::unique_ptr<IRSlotButton>, MAX_IR_COUNT> irSlotButtons;
+
+    juce::TextButton loadIRButton, randomIRButton;
 
     // ComboBoxes
     juce::ComboBox positionPatternControl, fieldPatternControl;

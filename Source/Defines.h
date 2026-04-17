@@ -101,9 +101,8 @@ namespace TreeID {
         static constexpr auto
             positionParamStates = "Position Parameter States",
             fieldParamStates = "Field Parameter States";
-        namespace ParameterState {
-            static constexpr auto paramState = "Parameter State";
-        }
+
+        inline juce::String paramState(int i) { return "Parameter State " + juce::String(i); }
     }
 
     namespace IRManager {
@@ -118,6 +117,7 @@ const juce::StringArray fieldPatterns { "Vanilla", "Ring", "Orbits", "Random", "
 
 // Aliases
 using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
+using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
 
 using Bounds = juce::Rectangle<int>;
 using BoundsF = juce::Rectangle<float>;

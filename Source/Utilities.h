@@ -3,8 +3,9 @@
 #include "Defines.h"
 
 inline bool validateIRIndex(int irIndex) { return irIndex >= 0 && irIndex < MAX_IR_COUNT; }
-inline bool validateSwapInterval(float minTime, float maxTime) { return minTime > SWAP_INTERVAL_MIN && 
+inline bool validateSwapInterval(float minTime, float maxTime) { return minTime >= SWAP_INTERVAL_MIN && 
 																	    maxTime <= SWAP_INTERVAL_MAX && 
+                                                                        maxTime > SWAP_INTERVAL_MIN &&
 																		maxTime > minTime; }
 
 inline float randFloat() { return juce::Random::getSystemRandom().nextFloat(); } // [0, 1)

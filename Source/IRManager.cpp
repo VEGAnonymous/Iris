@@ -114,7 +114,7 @@ bool IRManager::loadIR(int irIndex, juce::File irFile) {
     if (!reader) return false;
 
     const int numChannels = static_cast<int>(reader->numChannels);
-    const int numSamples = static_cast<int>(reader->lengthInSamples);
+    const int numSamples = std::min(static_cast<int>(reader->lengthInSamples), MAX_IR_SAMPLES);
 
     // Read IR buffer, update state
     auto& slot = irSlots[irIndex];
@@ -169,7 +169,6 @@ void IRManager::setIRActive(int irIndex, bool nState) {
 }
 
 void IRManager::setSwapInterval(int irIndex, float nMin, float nMax) {
-    if (!validateSwapInterval(nMin, nMax)) return;
     auto& slot = irSlots[irIndex];
     if (nMin != slot.swapMin || nMax != slot.swapMax) {
         slot.swapMin = nMin;

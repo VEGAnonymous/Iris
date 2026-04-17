@@ -61,13 +61,10 @@ IRSlotButton::IRSlotButton(int index) : juce::Button("IR " + juce::String(index)
 }
 
 void IRSlotButton::setWaveform(const juce::AudioBuffer<float>* buffer) {
-    if (!buffer || buffer->getNumSamples() == 0) {
-        occupied = false;
-        repaint();
-        return;
-    }
+    if (!buffer || buffer->getNumSamples() == 0) occupied = false;
 
     waveformPreview.setWaveform(buffer, WAVEFORM_PREVIEW_POINTS);
+    repaint();
 }
 
 void IRSlotButton::setOccupied(bool nOccupied) {

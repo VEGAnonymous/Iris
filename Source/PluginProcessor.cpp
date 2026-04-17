@@ -227,7 +227,7 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
     {
         juce::SpinLock::ScopedLockType lock(patternState.patternStateLock);
         for (int i = 0; i < positionPatterns.size(); ++i) {
-            juce::String id = TreeID::PatternState::ParameterState::paramState + i;
+            juce::String id = TreeID::PatternState::paramState(i);
             juce::ValueTree patternTree(id);
             auto& patternParams = patternState.positionParamStates[static_cast<PositionPattern>(i)];
             patternTree.setProperty(PropertyID::ParameterState::pattern, positionPatterns[i], nullptr);
@@ -238,7 +238,7 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
         }
 
         for (int i = 0; i < fieldPatterns.size(); ++i) {
-            juce::String id = TreeID::PatternState::ParameterState::paramState + i;
+            juce::String id = TreeID::PatternState::paramState(i);
             juce::ValueTree patternTree(id);
             auto& patternParams = patternState.fieldParamStates[static_cast<FieldPattern>(i)];
             patternTree.setProperty(PropertyID::ParameterState::pattern, fieldPatterns[i], nullptr);

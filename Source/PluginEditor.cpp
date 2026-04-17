@@ -44,8 +44,16 @@ void MareverbAudioProcessorEditor::timerCallback() {
         if (validateIRIndex(selectedIR)) {
             const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
             irHeaderComponent.setSlot(selectedIR, slot);
+
             irWaveformComponent.setWaveform(&slot.buffer, WAVEFORM_POINTS);
             irWaveformComponent.setActive(slot.active);
+            
+            for (int i = 0; i < MAX_IR_COUNT; ++i) {
+                if (swapControls[i]) {
+                    swapControls[i]->swapMinControl.setVisible(i == selectedIR);
+                    swapControls[i]->swapMaxControl.setVisible(i == selectedIR);
+                }
+            }
         }
     };
 
@@ -222,12 +230,14 @@ void MareverbAudioProcessorEditor::initComponents() {
     if (validateIRIndex(selectedIR))
         irSlotButtons[selectedIR]->setToggleState(true, juce::dontSendNotification);
 
-    // IR header
+    // Selected IR header
     irHeaderComponent.onClear = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR)) {
             audioProcessor.getIRManager()->clearIR(selectedIR);
-            irHeaderComponent.setSlot(selectedIR, audioProcessor.getIRManager()->getIRSlot(selectedIR));
+
+            const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
+            irHeaderComponent.setSlot(selectedIR, slot);
         }
     };
 
@@ -236,9 +246,24 @@ void MareverbAudioProcessorEditor::initComponents() {
         audioProcessor.guiState.updateField.store(true, std::memory_order_release);
     };
 
-    // IR waveform
+    // Selected IR waveform
     irWaveformComponent.setDimensions(16.0f, 0.0f, -16.0f, 1.0f);
     irWaveformComponent.setColor(Theme::Colors::main);
+
+    // Selected IR controls
+    loadIRButton.setButtonText("Load");
+    loadIRButton.onClick = [this]() { 
+        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        if (validateIRIndex(selectedIR))
+            audioProcessor.getIRManager()->chooseIR(selectedIR);
+    };
+
+    randomIRButton.setButtonText("Random");
+    randomIRButton.onClick = [this]() {
+        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        if (validateIRIndex(selectedIR))
+            audioProcessor.getIRManager()->loadRandomIR(selectedIR);
+    };
 }
 
 /* PUBLIC */
@@ -287,6 +312,15 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     addAndMakeVisible(irHeaderComponent);
     
     addAndMakeVisible(irWaveformComponent);
+
+    addAndMakeVisible(loadIRButton);
+    addAndMakeVisible(randomIRButton);
+
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, i);
+        addChildComponent(swapControls[i]->swapMinControl);
+        addChildComponent(swapControls[i]->swapMaxControl);
+    }
 
     for (auto& control : getControls()) addAndMakeVisible(control.component);
 
@@ -405,15 +439,25 @@ void MareverbAudioProcessorEditor::resized() {
     irWaveformComponent.setBounds(irWaveformBounds);
 
     Bounds irControlsBounds = rightPanel.removeFromTop(100); // Load (Manual) button, Load (Random) button, Auto Min textbox, Auto Max textbox
+    juce::FlexBox irControlRow;
+    irControlRow.alignItems = juce::FlexBox::AlignItems::center;
+    irControlRow.items.add(juce::FlexItem(loadIRButton).withFlex(1.0f).withHeight(irControlsBounds.getHeight() * 0.6f));
+    irControlRow.items.add(juce::FlexItem(randomIRButton).withFlex(1.0f).withHeight(irControlsBounds.getHeight() * 0.6f));
+    irControlRow.performLayout(irControlsBounds.removeFromLeft(static_cast<int>(irControlsBounds.getWidth() * 0.4f)));
+
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        juce::FlexBox swapControlsRow;
+        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMinControl).withFlex(1.0f));
+        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMaxControl).withFlex(1.0f));
+        swapControlsRow.performLayout(irControlsBounds);
+    }
 
     Bounds interactionControlsBounds = rightPanel.removeFromTop(100); // Weighting Mode, Strength, Spread
-
     juce::FlexBox interactionControlRow;
     fillFlex(interactionControlRow, ControlGroup::INTERACTION);
     interactionControlRow.performLayout(interactionControlsBounds);
 
     Bounds globalControlsBounds = rightPanel.removeFromTop(100); // Low Cut, High Cut, Decay, Mix
-
     juce::FlexBox globalControlRow;
     fillFlex(globalControlRow, ControlGroup::GLOBAL);
     globalControlRow.performLayout(globalControlsBounds.removeFromLeft(static_cast<int>(globalControlsBounds.getWidth() * 0.8f)));
