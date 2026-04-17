@@ -62,12 +62,18 @@ void MareverbAudioProcessorEditor::timerCallback() {
         auto* positionModA = audioProcessor.apvts.getParameter(ParamID::positionModA);
         auto* positionModB = audioProcessor.apvts.getParameter(ParamID::positionModB);
 
-        audioProcessor.patternState.positionParamStates[audioProcessor.patternState.lastPositionPattern] =
-            { positionRate->getValue(), 
-              positionModA->getValue(), 
+        PatternParameterState nMods;
+
+        {
+            juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
+            audioProcessor.patternState.positionParamStates[audioProcessor.patternState.lastPositionPattern] =
+            { positionRate->getValue(),
+              positionModA->getValue(),
               positionModB->getValue() };
 
-        const auto& nMods = audioProcessor.patternState.positionParamStates[positionPattern];
+            nMods = audioProcessor.patternState.positionParamStates[positionPattern];
+        }
+        
         float nRate = nMods.rate,
               nModA = nMods.modA,
               nModB = nMods.modB;
@@ -81,7 +87,11 @@ void MareverbAudioProcessorEditor::timerCallback() {
         if (positionRate) positionRate->setValueNotifyingHost(nRate);
         if (positionModA) positionModA->setValueNotifyingHost(nModA);
         if (positionModB) positionModB->setValueNotifyingHost(nModB);
-        audioProcessor.patternState.lastPositionPattern = positionPattern;
+
+        {
+            juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
+            audioProcessor.patternState.lastPositionPattern = positionPattern;
+        }
 
         audioProcessor.guiState.syncingPosition.store(false, std::memory_order_release);
     }
@@ -92,12 +102,18 @@ void MareverbAudioProcessorEditor::timerCallback() {
         auto* fieldModA = audioProcessor.apvts.getParameter(ParamID::fieldModA);
         auto* fieldModB = audioProcessor.apvts.getParameter(ParamID::fieldModB);
 
-        audioProcessor.patternState.fieldParamStates[audioProcessor.patternState.lastFieldPattern] =
-            { fieldRate->getValue(),
-              fieldModA->getValue(), 
-              fieldModB->getValue() };
+        PatternParameterState nMods {};
 
-        const auto& nMods = audioProcessor.patternState.fieldParamStates[fieldPattern];
+        {
+            juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
+            audioProcessor.patternState.fieldParamStates[audioProcessor.patternState.lastFieldPattern] =
+                { fieldRate->getValue(),
+                  fieldModA->getValue(),
+                  fieldModB->getValue() };
+
+            nMods = audioProcessor.patternState.fieldParamStates[fieldPattern];
+        }
+
         float nRate = nMods.rate, 
               nModA = nMods.modA, 
               nModB = nMods.modB;
@@ -116,7 +132,11 @@ void MareverbAudioProcessorEditor::timerCallback() {
         if (fieldRate) fieldRate->setValueNotifyingHost(nRate);
         if (fieldModA) fieldModA->setValueNotifyingHost(nModA);
         if (fieldModB) fieldModB->setValueNotifyingHost(nModB);
-        audioProcessor.patternState.lastFieldPattern = fieldPattern;
+
+        {
+            juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
+            audioProcessor.patternState.lastFieldPattern = fieldPattern;
+        }
 
         audioProcessor.guiState.syncingField.store(false, std::memory_order_release);
     }

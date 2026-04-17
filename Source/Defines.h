@@ -65,6 +65,14 @@ namespace PropertyID {
             theta = "Point Theta";
     }
 
+    namespace ParameterState {
+        static constexpr auto
+            pattern = "Pattern Name",
+            rate = "Pattern Rate",
+            modA = "Pattern Mod A",
+            modB = "Pattern Mod B";
+    }
+
     namespace IRSlot {
         static constexpr auto
             filePath = "IR Slot Filepath",
@@ -78,6 +86,7 @@ namespace PropertyID {
 namespace TreeID {
     static constexpr auto
         guiState = "GUI State",
+        patternState = "Pattern State",
         irManagerState = "IR Manager State";
 
     namespace GUIState {
@@ -85,6 +94,15 @@ namespace TreeID {
             fieldCoordinates = "Field Coordinates";
         namespace FieldCoordinates {
             static constexpr auto point = "Point";
+        }
+    }
+
+    namespace PatternState {
+        static constexpr auto
+            positionParamStates = "Position Parameter States",
+            fieldParamStates = "Field Parameter States";
+        namespace ParameterState {
+            static constexpr auto paramState = "Parameter State";
         }
     }
 

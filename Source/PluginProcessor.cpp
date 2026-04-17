@@ -101,14 +101,14 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     patternState.lastPositionPattern = static_cast<PositionPattern>(apvts.getParameter(ParamID::positionPattern)->getDefaultValue());
     patternState.lastFieldPattern = static_cast<FieldPattern>(apvts.getParameter(ParamID::fieldPattern)->getDefaultValue());
 
-    for (int i = 0; i <= static_cast<int>(PositionPattern::RANDOM_WALK); ++i)
+    for (int i = 0; i <= positionPatterns.size(); ++i)
         patternState.positionParamStates[static_cast<PositionPattern>(i)] = { 
             apvts.getParameter(ParamID::positionRate)->getDefaultValue(),
             apvts.getParameter(ParamID::positionModA)->getDefaultValue(), 
             apvts.getParameter(ParamID::positionModB)->getDefaultValue()
         };
 
-    for (int i = 0; i <= static_cast<int>(PositionPattern::RANDOM_WALK); ++i)
+    for (int i = 0; i <= fieldPatterns.size(); ++i)
         patternState.fieldParamStates[static_cast<FieldPattern>(i)] = {
             apvts.getParameter(ParamID::fieldRate)->getDefaultValue(),
             apvts.getParameter(ParamID::fieldModA)->getDefaultValue(),
@@ -206,7 +206,8 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
     juce::ValueTree fieldTree(TreeID::GUIState::fieldCoordinates);
     {
         juce::SpinLock::ScopedLockType lock(guiState.fieldLock);
-        for (const auto& coordinate : guiState.fieldCoordinates) {
+        for (int i = 0; i < guiState.fieldCoordinates.size(); ++i) {
+            const auto& coordinate = guiState.fieldCoordinates[i];
             juce::ValueTree point(TreeID::GUIState::FieldCoordinates::point);
             point.setProperty(PropertyID::Point::r, coordinate.r, nullptr);
             point.setProperty(PropertyID::Point::theta, coordinate.r, nullptr);
@@ -216,6 +217,41 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
 
     guiTree.addChild(fieldTree, -1, nullptr);
     state.addChild(guiTree, -1, nullptr);
+
+    // Store pattern state
+    juce::ValueTree patternStateTree(TreeID::patternState);
+
+    juce::ValueTree positionParamsTree(TreeID::PatternState::positionParamStates);
+    juce::ValueTree fieldParamsTree(TreeID::PatternState::fieldParamStates);
+
+    {
+        juce::SpinLock::ScopedLockType lock(patternState.patternStateLock);
+        for (int i = 0; i < positionPatterns.size(); ++i) {
+            juce::String id = TreeID::PatternState::ParameterState::paramState + i;
+            juce::ValueTree patternTree(id);
+            auto& patternParams = patternState.positionParamStates[static_cast<PositionPattern>(i)];
+            patternTree.setProperty(PropertyID::ParameterState::pattern, positionPatterns[i], nullptr);
+            patternTree.setProperty(PropertyID::ParameterState::rate, patternParams.rate, nullptr);
+            patternTree.setProperty(PropertyID::ParameterState::modA, patternParams.modA, nullptr);
+            patternTree.setProperty(PropertyID::ParameterState::modB, patternParams.modB, nullptr);
+            positionParamsTree.addChild(patternTree, -1, nullptr);
+        }
+
+        for (int i = 0; i < fieldPatterns.size(); ++i) {
+            juce::String id = TreeID::PatternState::ParameterState::paramState + i;
+            juce::ValueTree patternTree(id);
+            auto& patternParams = patternState.fieldParamStates[static_cast<FieldPattern>(i)];
+            patternTree.setProperty(PropertyID::ParameterState::pattern, fieldPatterns[i], nullptr);
+            patternTree.setProperty(PropertyID::ParameterState::rate, patternParams.rate, nullptr);
+            patternTree.setProperty(PropertyID::ParameterState::modA, patternParams.modA, nullptr);
+            patternTree.setProperty(PropertyID::ParameterState::modB, patternParams.modB, nullptr);
+            fieldParamsTree.addChild(patternTree, -1, nullptr);
+        }
+    }
+
+    patternStateTree.addChild(positionParamsTree, -1, nullptr);
+    patternStateTree.addChild(fieldParamsTree, -1, nullptr);
+    state.addChild(patternStateTree, -1, nullptr);
 
     // Store IR slots
     juce::ValueTree irManagerTree(TreeID::irManagerState);
@@ -236,7 +272,7 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
     }
 
     state.addChild(irManagerTree, -1, nullptr);
-    
+
     juce::MemoryOutputStream mos(destData, true);
     state.writeToStream(mos);
 }
@@ -275,6 +311,31 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
     // Restore pattern state
     patternState.lastPositionPattern = static_cast<PositionPattern>(apvts.getRawParameterValue(ParamID::positionPattern)->load());
     patternState.lastFieldPattern = static_cast<FieldPattern>(apvts.getRawParameterValue(ParamID::fieldPattern)->load());
+    auto patternStateTree = tree.getChildWithName(TreeID::patternState);
+    if (patternStateTree.isValid()) {
+        juce::SpinLock::ScopedLockType lock(patternState.patternStateLock);
+        auto positionParamTree = patternStateTree.getChildWithName(TreeID::PatternState::positionParamStates);
+        for (int i = 0; i < positionPatterns.size(); ++i) {
+            auto patternTree = positionParamTree.getChildWithProperty(PropertyID::ParameterState::pattern, positionPatterns[i]);
+            if (patternTree.isValid()) {
+                auto& patternParams = patternState.positionParamStates[static_cast<PositionPattern>(i)];
+                patternParams.rate = patternTree.getProperty(PropertyID::ParameterState::rate, patternParams.rate);
+                patternParams.modA = patternTree.getProperty(PropertyID::ParameterState::modA, patternParams.modA);
+                patternParams.modB = patternTree.getProperty(PropertyID::ParameterState::modB, patternParams.modB);
+            }
+        }
+        
+        auto fieldParamTree = patternStateTree.getChildWithName(TreeID::PatternState::fieldParamStates);
+        for (int i = 0; i < fieldPatterns.size(); ++i) {
+            auto patternTree = fieldParamTree.getChildWithProperty(PropertyID::ParameterState::pattern, fieldPatterns[i]);
+            if (patternTree.isValid()) {
+                auto& patternParams = patternState.fieldParamStates[static_cast<FieldPattern>(i)];
+                patternParams.rate = patternTree.getProperty(PropertyID::ParameterState::rate, patternParams.rate);
+                patternParams.modA = patternTree.getProperty(PropertyID::ParameterState::modA, patternParams.modA);
+                patternParams.modB = patternTree.getProperty(PropertyID::ParameterState::modB, patternParams.modB);
+            }
+        }
+    }
 
     // Restore IR manager state
     auto irManagerTree = tree.getChildWithName(TreeID::irManagerState);
