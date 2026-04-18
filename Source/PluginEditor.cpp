@@ -40,7 +40,7 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
     auto updateIRSlot = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        // DBG("Selected IR " << selectedIR);
+        DBG("Selected IR " << selectedIR);
         if (validateIRIndex(selectedIR)) {
             const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
             irHeaderComponent.setSlot(selectedIR, slot);
@@ -49,6 +49,9 @@ void MareverbAudioProcessorEditor::timerCallback() {
             irWaveformComponent.setActive(slot.active);
             
             for (int i = 0; i < MAX_IR_COUNT; ++i) {
+                if (irSlotButtons[i]) 
+                    irSlotButtons[i]->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
+
                 if (swapControls[i]) {
                     swapControls[i]->swapMinControl.setVisible(i == selectedIR);
                     swapControls[i]->swapMaxControl.setVisible(i == selectedIR);
@@ -60,9 +63,11 @@ void MareverbAudioProcessorEditor::timerCallback() {
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
             const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
-            irSlotButtons[i]->setOccupied(slot.occupied);
-            irSlotButtons[i]->setActive(slot.active);
-            irSlotButtons[i]->setWaveform(slot.occupied ? &slot.buffer : nullptr);
+            if (irSlotButtons[i]) {
+                irSlotButtons[i]->setOccupied(slot.occupied);
+                irSlotButtons[i]->setActive(slot.active);
+                irSlotButtons[i]->setWaveform(slot.occupied ? &slot.buffer : nullptr);
+            }
         }
 
         updateIRSlot();
@@ -70,6 +75,11 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
     if (selectedIRChanged.exchange(false, std::memory_order_acquire))
         updateIRSlot();
+
+    if (polarMapComponent.getIRSwitched().exchange(false, std::memory_order_acquire)) {
+        audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
+        updateIRSlot();
+    }
 
     if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire)) {
         auto positionPattern = static_cast<PositionPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());

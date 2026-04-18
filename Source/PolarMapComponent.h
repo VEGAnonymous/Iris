@@ -13,6 +13,7 @@ private:
     MareverbAudioProcessor& audioProcessor;
 
     CartesianCoordinate map(CartesianCoordinate p) const;
+    CartesianCoordinate inverseMap(CartesianCoordinate p) const;
     BoundsF toBounds(PolarCoordinate p, float radius) const;
 
     // Parametric path
@@ -30,6 +31,19 @@ private:
     std::vector<PolarCoordinate> fieldCoordinates {};
     static constexpr float coordinateRadius = 6.0f;
 
+    // Dragging
+    enum class DragTarget { NONE, POSITION, FIELD };
+
+    DragTarget dragTarget { DragTarget::NONE };
+
+    int draggedFieldIndex { -1 };
+    static constexpr float hitSlop = 6.0f;
+
+    bool draggingPosition(juce::Point<float> p) const;
+    int draggingField(juce::Point<float> p) const;
+
+    std::atomic<bool> switchedIR { false };
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PolarMapComponent)
 
 public:
@@ -37,6 +51,12 @@ public:
     ~PolarMapComponent() override = default;
 
     void paint(juce::Graphics& g) override;
+
+    void mouseDown(const juce::MouseEvent&) override;
+    void mouseDrag(const juce::MouseEvent&) override;
+    void mouseUp(const juce::MouseEvent&) override;
+
+    std::atomic<bool>& getIRSwitched();
 
     // Callbacks
     void notifyPathChanged();
