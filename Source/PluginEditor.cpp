@@ -203,6 +203,18 @@ void MareverbAudioProcessorEditor::initComponents() {
     clearAllButton.setButtonText("Clear IRs");
     clearAllButton.onClick = [this]() { audioProcessor.getIRManager()->clearIRs(); };
 
+    // Settings modal
+    settingsButton.onClick = [this]() {
+        if (settingsModal) {
+            settingsModal.reset();
+        } else {
+            settingsModal = std::make_unique<SettingsComponent>(audioProcessor.getIRManager());
+            settingsModal->onCloseRequested = [this]() { settingsModal.reset(); };
+            addAndMakeVisible(*settingsModal);
+            settingsModal->setBounds(getLocalBounds().withSizeKeepingCentre(400, 300));
+        }
+    };
+
     // IR slot buttons
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         irSlotButtons[i] = std::make_unique<IRSlotButton>(i);
@@ -303,6 +315,8 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     addAndMakeVisible(randomAllButton);
     addAndMakeVisible(clearAllButton);
+
+    addAndMakeVisible(settingsButton);
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         irSlotButtons[i] = std::make_unique<IRSlotButton>(i);
@@ -418,11 +432,18 @@ void MareverbAudioProcessorEditor::resized() {
     Bounds& rightPanel = totalBounds;
 
     Bounds topBarBounds = rightPanel.removeFromTop(81); // Randomize / Clear All, settings modal, Mareverb title
+    juce::FlexBox topBarRow;
+
     juce::FlexBox globalIROperations;
     globalIROperations.flexDirection = juce::FlexBox::Direction::column;
     globalIROperations.items.add(juce::FlexItem(randomAllButton).withFlex(1.0f));
     globalIROperations.items.add(juce::FlexItem(clearAllButton).withFlex(1.0f));
-    globalIROperations.performLayout(topBarBounds.removeFromLeft(static_cast<int>(topBarBounds.getWidth() * 0.25f)));
+    // globalIROperations.performLayout(topBarBounds.removeFromLeft(static_cast<int>(topBarBounds.getWidth() * 0.25f)));
+
+    topBarRow.items.add(juce::FlexItem(globalIROperations).withFlex(1.0f));
+    topBarRow.items.add(juce::FlexItem(settingsButton).withFlex(1.0f));
+
+    topBarRow.performLayout(topBarBounds.removeFromLeft(static_cast<int>(topBarBounds.getWidth() * 0.6f)));
 
     Bounds irGridBounds = rightPanel.removeFromTop(160);
     juce::Grid irGrid;

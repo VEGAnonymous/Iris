@@ -87,6 +87,7 @@ void IRManager::addIRDirectory(juce::File dir) {
         irDirectories.push_back({ dir, true });
         collectIRs();
         saveDirectories();
+        directoryChanged.store(true, std::memory_order_release);
     }
 }
 void IRManager::removeIRDirectory(int index) {
@@ -94,6 +95,7 @@ void IRManager::removeIRDirectory(int index) {
         irDirectories.erase(irDirectories.begin() + index);
         collectIRs();
         saveDirectories();
+        directoryChanged.store(true, std::memory_order_release);
     }
 }
 void IRManager::setIRDirectoryActive(int index, bool nState) {
@@ -101,6 +103,7 @@ void IRManager::setIRDirectoryActive(int index, bool nState) {
         irDirectories[index].active = nState;
         collectIRs();
         saveDirectories();
+        directoryChanged.store(true, std::memory_order_release);
     }
 }
 
@@ -197,7 +200,11 @@ IRChanges IRManager::consumeIRChanges() {
     return changes;
 }
 
+std::atomic<bool>& IRManager::getDirectoryChanged() { return directoryChanged; }
+
 const IRSlot& IRManager::getIRSlot(int index) const {
     jassert(validateIRIndex(index));
     return irSlots[index];
 }
+
+const std::vector<IRDirectory> IRManager::getIRDirectories() const { return irDirectories; };

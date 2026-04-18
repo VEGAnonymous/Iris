@@ -16,7 +16,7 @@ private:
 
 public:
 	WaveformComponent();
-	~WaveformComponent() = default;
+	~WaveformComponent() override = default;
 
 	void setWaveform(const juce::AudioBuffer<float>* buffer, const int numPoints = 126);
 	void setDimensions(float nOffsetX = 0.0f, float nOffsetY = 0.0f, float nOffsetWidth = 0.0f, float nHeightScale = 1.0f);

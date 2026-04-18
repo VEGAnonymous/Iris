@@ -21,7 +21,7 @@ private:
 
 public:
 	IRHeaderComponent();
-	~IRHeaderComponent() = default;
+	~IRHeaderComponent() override = default;
 
 	std::function<void()> onClear;
 	std::function<void(bool)> onActiveToggle;

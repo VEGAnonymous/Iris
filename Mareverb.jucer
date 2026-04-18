@@ -14,7 +14,8 @@
         <FILE id="y1pRDt" name="IRManager.cpp" compile="1" resource="0" file="Source/IRManager.cpp"/>
         <FILE id="VRVSeu" name="IRManager.h" compile="0" resource="0" file="Source/IRManager.h"/>
         <FILE id="GPjorM" name="PatternState.h" compile="0" resource="0" file="Source/PatternState.h"/>
-        <FILE id="mAfNlb" name="Settings.h" compile="0" resource="0" file="Source/Settings.h"/>
+        <FILE id="mAfNlb" name="ParameterSettings.h" compile="0" resource="0"
+              file="Source/ParameterSettings.h"/>
       </GROUP>
       <GROUP id="{E6B133CC-8CFC-0E6C-E1E6-F1FBF1C1496F}" name="Spatial">
         <FILE id="efG5sR" name="MotionController.cpp" compile="1" resource="0"
@@ -25,6 +26,10 @@
         <FILE id="etOKfT" name="PolarMap.h" compile="0" resource="0" file="Source/PolarMap.h"/>
       </GROUP>
       <GROUP id="{0020543F-18A4-A177-2507-1186AC105CC3}" name="UI">
+        <FILE id="zrFvt5" name="SettingsComponent.cpp" compile="1" resource="0"
+              file="Source/SettingsComponent.cpp"/>
+        <FILE id="xeOq7a" name="SettingsComponent.h" compile="0" resource="0"
+              file="Source/SettingsComponent.h"/>
         <FILE id="tB1sTJ" name="WaveformComponent.cpp" compile="1" resource="0"
               file="Source/WaveformComponent.cpp"/>
         <FILE id="jrcQET" name="WaveformComponent.h" compile="0" resource="0"
@@ -39,6 +44,10 @@
         <FILE id="VvHUrK" name="PolarMapComponent.h" compile="0" resource="0"
               file="Source/PolarMapComponent.h"/>
         <GROUP id="{3F80DDB6-76F4-8F87-F86F-4F5FE9E7A606}" name="Controls">
+          <FILE id="kLrfAP" name="DirectoryManagerComponent.cpp" compile="1"
+                resource="0" file="Source/DirectoryManagerComponent.cpp"/>
+          <FILE id="tFKTOZ" name="DirectoryManagerComponent.h" compile="0" resource="0"
+                file="Source/DirectoryManagerComponent.h"/>
           <FILE id="JplaSJ" name="IRSlotButton.cpp" compile="1" resource="0"
                 file="Source/IRSlotButton.cpp"/>
           <FILE id="dxx4ij" name="IRSlotButton.h" compile="0" resource="0" file="Source/IRSlotButton.h"/>

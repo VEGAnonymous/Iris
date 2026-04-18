@@ -40,7 +40,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
 }
 
 void MareverbAudioProcessor::updateParameters() {
-    Settings settings = getSettings(apvts);
+    ParameterSettings settings = getParameterSettings(apvts);
 
     mixer.setWetMixProportion(settings.globalMix);
 
@@ -362,31 +362,6 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
     guiState.positionChanged.store(true, std::memory_order_release);
     guiState.fieldChanged.store(true, std::memory_order_release);
     guiState.irChanged.store(true, std::memory_order_release);
-}
-
-Settings MareverbAudioProcessor::getSettings(juce::AudioProcessorValueTreeState& parameters) {
-    Settings settings;
-
-    settings.globalMix = parameters.getRawParameterValue(ParamID::globalMix)->load();
-    settings.decay = parameters.getRawParameterValue(ParamID::decay)->load();
-    settings.lowCut = parameters.getRawParameterValue(ParamID::lowCut)->load();
-    settings.highCut = parameters.getRawParameterValue(ParamID::highCut)->load();
-
-    settings.weightingMode = static_cast<WeightingMode>(parameters.getRawParameterValue(ParamID::weightingMode)->load());
-    settings.strength = parameters.getRawParameterValue(ParamID::strength)->load();
-    settings.spread = parameters.getRawParameterValue(ParamID::spread)->load();
-
-    settings.positionPattern = static_cast<PositionPattern>(parameters.getRawParameterValue(ParamID::positionPattern)->load());
-    settings.positionRate = parameters.getRawParameterValue(ParamID::positionRate)->load();
-    settings.positionModA = parameters.getRawParameterValue(ParamID::positionModA)->load();
-    settings.positionModB = parameters.getRawParameterValue(ParamID::positionModB)->load();
-
-    settings.fieldPattern = static_cast<FieldPattern>(parameters.getRawParameterValue(ParamID::fieldPattern)->load());
-    settings.fieldRate = parameters.getRawParameterValue(ParamID::fieldRate)->load();
-    settings.fieldModA = parameters.getRawParameterValue(ParamID::fieldModA)->load();
-    settings.fieldModB = parameters.getRawParameterValue(ParamID::fieldModB)->load();
-
-    return settings;
 }
 
 IRManager* MareverbAudioProcessor::getIRManager() { return &irManager; }

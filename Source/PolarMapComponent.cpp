@@ -20,7 +20,7 @@ juce::Rectangle<float> PolarMapComponent::toBounds(PolarCoordinate p, float radi
 void PolarMapComponent::repaintPath() {
     parametricPath.clear();
 
-    Settings settings = MareverbAudioProcessor::getSettings(audioProcessor.apvts);
+    ParameterSettings settings = getParameterSettings(audioProcessor.apvts);
     PositionPattern& positionPattern = settings.positionPattern;
     if (positionPattern == PositionPattern::RANDOM_DISCRETE || positionPattern == PositionPattern::RANDOM_WALK) return;
 

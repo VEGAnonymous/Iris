@@ -1,5 +1,5 @@
 #include "ControlThread.h"
-#include "Settings.h"
+#include "ParameterSettings.h"
 #include "Utilities.h"
 
 /* PRIVATE */
@@ -224,7 +224,7 @@ ControlThread::ControlThread(const juce::AudioProcessorValueTreeState& a, IRMana
     convolutionState(c) {}
 
 void ControlThread::updateMotionParameters() {
-    auto settings = getSettings(apvts);
+    ParameterSettings settings = getParameterSettings(apvts);
 
     if (!guiState.syncingPosition.load(std::memory_order_acquire)) {
         motionController.setPositionParameters({

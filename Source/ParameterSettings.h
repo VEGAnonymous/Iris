@@ -4,7 +4,7 @@
 
 #include <JuceHeader.h>
 
-struct Settings {
+struct ParameterSettings {
     float globalMix, decay, lowCut, highCut;
     WeightingMode weightingMode; float strength, spread;
     PositionPattern positionPattern;
@@ -12,7 +12,7 @@ struct Settings {
     FieldPattern fieldPattern;
     float fieldRate, fieldModA, fieldModB;
 
-    Settings() : globalMix(0.5f), decay(0.5f), lowCut(20.0f), highCut(20000.0f),
+    ParameterSettings() : globalMix(0.5f), decay(0.5f), lowCut(20.0f), highCut(20000.0f),
 
         weightingMode(WeightingMode::ABSOLUTE), strength(0.5f), spread(1.0f),
 
@@ -24,8 +24,8 @@ struct Settings {
     {}
 };
 
-inline Settings getSettings(const juce::AudioProcessorValueTreeState& parameters) {
-    Settings settings;
+inline ParameterSettings getParameterSettings(const juce::AudioProcessorValueTreeState& parameters) {
+    ParameterSettings settings;
 
     settings.globalMix = parameters.getRawParameterValue(ParamID::globalMix)->load();
     settings.decay = parameters.getRawParameterValue(ParamID::decay)->load();

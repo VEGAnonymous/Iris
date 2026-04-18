@@ -7,14 +7,13 @@
 #include "GUIState.h"
 #include "IRManager.h"
 #include "PatternState.h"
-#include "Settings.h"
+#include "ParameterSettings.h"
 #include "Utilities.h"
 
 #include <JuceHeader.h>
 #include <array>
 #include <map>
 #include <vector>
-#include <utility>
 
 class MareverbAudioProcessor : public juce::AudioProcessor {
 private:
@@ -75,8 +74,6 @@ public:
 
     // Parameters
     juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
-
-    static Settings getSettings(juce::AudioProcessorValueTreeState& parameters);
 
     // State
     std::shared_ptr<ConvolutionStateHolder> convolutionState;

@@ -4,6 +4,7 @@
 #include "IRSlotButton.h"
 #include "PluginProcessor.h"
 #include "PolarMapComponent.h"
+#include "SettingsComponent.h"
 #include "WaveformComponent.h"
 
 #include <JuceHeader.h>
@@ -92,6 +93,8 @@ private:
 
     juce::TextButton loadIRButton, randomIRButton;
 
+    juce::TextButton settingsButton {"Settings"};
+
     // ComboBoxes
     juce::ComboBox positionPatternControl, fieldPatternControl;
     juce::AudioProcessorValueTreeState::ComboBoxAttachment positionPatternControlAttachment, fieldPatternControlAttachment;
@@ -100,6 +103,7 @@ private:
     PolarMapComponent polarMapComponent;
     IRHeaderComponent irHeaderComponent;
     WaveformComponent irWaveformComponent;
+    std::unique_ptr<SettingsComponent> settingsModal;
 
     void initComponents();
 

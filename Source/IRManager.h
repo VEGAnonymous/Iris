@@ -39,6 +39,7 @@ private:
     juce::Array<juce::File> irFiles;
 
     IRChanges irChanges;
+    std::atomic<bool> directoryChanged { false };
 
     juce::AudioFormatManager formatManager;
     juce::Random irRNG;
@@ -74,6 +75,8 @@ public:
     void advanceSwapTimers(float dt);
 
     IRChanges consumeIRChanges();
+    std::atomic<bool>& getDirectoryChanged();
 
     const IRSlot& getIRSlot(int index) const;
+    const std::vector<IRDirectory> getIRDirectories() const;
 };
