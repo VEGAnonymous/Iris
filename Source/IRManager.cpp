@@ -47,14 +47,15 @@ IRManager::IRManager(juce::ApplicationProperties* p) : applicationProperties(p) 
 
 void IRManager::prepare() {
     irDirectories.clear();
-
-    // HACK: Should store factory IRs in common directory
-    juce::File srcDirectory = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
-    while (srcDirectory.getFileName() != "Debug" && srcDirectory.getParentDirectory() != srcDirectory)
-        srcDirectory = srcDirectory.getParentDirectory();
-    irDirectories.push_back({ srcDirectory.getChildFile("IR Samples"), true });
-
     loadDirectories();
+
+    if (irDirectories.empty()) {
+        // HACK: Should store factory IRs in common directory
+        juce::File srcDirectory = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
+        while (srcDirectory.getFileName() != "Debug" && srcDirectory.getParentDirectory() != srcDirectory)
+            srcDirectory = srcDirectory.getParentDirectory();
+        irDirectories.push_back({ srcDirectory.getChildFile("IR Samples"), true });
+    }
 
     // bool loadedIRs = loadRandomIRs();
     // jassert(loadedIRs);
@@ -77,8 +78,11 @@ void IRManager::chooseIRDirectory() {
     irDirectoryChooser->launchAsync(
         juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
         [this](const juce::FileChooser& fileChooser) {
-            if (fileChooser.getResults().isEmpty()) return;
-            addIRDirectory(fileChooser.getResult());
+            if (fileChooser.getResults().isEmpty() || fileChooser.getResult().isRoot() || !fileChooser.getResult().hasReadAccess()) {
+                juce::AlertWindow whoops("Oops...My bad!", "I just don't know what went wrong!", juce::MessageBoxIconType::WarningIcon);
+                whoops.showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Oops...My bad!", "I just don't know what went wrong!", "Muffin?");
+                return;
+            } else addIRDirectory(fileChooser.getResult());
         });
 }
 

@@ -155,6 +155,9 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
         audioProcessor.guiState.syncingField.store(false, std::memory_order_release);
     }
+
+    if (audioProcessor.getIRManager()->getDirectoryChanged().exchange(false, std::memory_order_acquire))
+        if (settingsModal) settingsModal->refreshDirectories();
 }
 
 void MareverbAudioProcessorEditor::initComponents() {
@@ -259,7 +262,7 @@ void MareverbAudioProcessorEditor::initComponents() {
     };
 
     // Selected IR waveform
-    irWaveformComponent.setDimensions(16.0f, 0.0f, -16.0f, 1.0f);
+    irWaveformComponent.setDimensions(16.0f, 0.0f, -16.0f, 0.9f);
     irWaveformComponent.setColor(Theme::Colors::main);
 
     // Selected IR controls

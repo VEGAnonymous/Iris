@@ -26,6 +26,12 @@ namespace Theme {
     }
 }
 
+inline juce::String formatPath(juce::File path) { 
+    auto parent = path.getParentDirectory();
+    if (parent.isRoot()) return path.getFileName();
+    else return parent.getFileName() + "/" + path.getFileName();
+}
+
 inline float getIRAlpha(bool occupied, bool active) { return occupied ? (active ? 1.0f : 0.25f) : 0.0f; }
 
 namespace Paint {

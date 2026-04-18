@@ -53,7 +53,7 @@ BoundsF IRSlotButton::getIndicatorBounds(Bounds bounds, const float radius) cons
 /* PUBLIC */
 
 IRSlotButton::IRSlotButton(int index) : juce::Button("IR " + juce::String(index)), irIndex(index) {
-    waveformPreview.setDimensions(8.0f, 8.0f, -8.0f, 0.5f);
+    waveformPreview.setDimensions(8.0f, 8.0f, -8.0f, 0.4f);
     waveformPreview.setColor(Theme::Colors::main);
     waveformPreview.setActive(active);
     waveformPreview.setInterceptsMouseClicks(false, false);

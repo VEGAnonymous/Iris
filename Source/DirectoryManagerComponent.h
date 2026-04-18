@@ -16,6 +16,39 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DirectoryManagerComponent)
 
 public:
+    class DirectoryRowComponent : public juce::Component {
+    private:
+        juce::ToggleButton activeToggle;
+        juce::Label pathLabel;
+
+    public:
+        std::function<void(bool)> onToggle;
+
+        DirectoryRowComponent() {
+            addAndMakeVisible(activeToggle);
+            addAndMakeVisible(pathLabel);
+            pathLabel.setMinimumHorizontalScale(1.0f);
+
+            this->setInterceptsMouseClicks(false, true);
+            pathLabel.setInterceptsMouseClicks(false, false);
+
+            activeToggle.onClick = [this] {
+                if (onToggle) onToggle(activeToggle.getToggleState());
+            };
+        }
+
+        void update(const juce::String& path, bool active) {
+            pathLabel.setText(path, juce::dontSendNotification);
+            activeToggle.setToggleState(active, juce::dontSendNotification);
+        }
+
+        void resized() override {
+            auto bounds = getLocalBounds();
+            activeToggle.setBounds(bounds.removeFromLeft(24));
+            pathLabel.setBounds(bounds);
+        }
+    };
+
     DirectoryManagerComponent(IRManager* irManager);
     ~DirectoryManagerComponent() override = default;
 
@@ -25,6 +58,7 @@ public:
     int getNumRows() override;
     void paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected) override;
     void listBoxItemClicked(int row, const juce::MouseEvent&) override;
+    juce::Component* refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component* existingComponentToUpdate) override;
 
     void refresh();
 };

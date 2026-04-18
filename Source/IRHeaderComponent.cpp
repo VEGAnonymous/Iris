@@ -27,7 +27,7 @@ IRHeaderComponent::IRHeaderComponent() {
 void IRHeaderComponent::setSlot(int irIndex, const IRSlot& slot) {
     currentIndex = irIndex;
     currentIR = slot;
-    currentPath = slot.occupied ? slot.file.getParentDirectory().getFileName() + "/" + slot.file.getFileName() : "-";
+    currentPath = slot.occupied ? formatPath(slot.file) : "-";
     repaint();
 }
 
