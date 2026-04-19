@@ -46,8 +46,8 @@ void MareverbAudioProcessor::updateParameters() {
 
     auto* cutProcessor = getCutFilterProcessor();
     if (cutProcessor) {
-        if (settings.lowCut != cutProcessor->getLowCutCutoff()) cutProcessor->setLowCutCutoff(settings.lowCut);
-        if (settings.highCut != cutProcessor->getHighCutCutoff()) cutProcessor->setHighCutCutoff(settings.highCut);
+        if (settings.lowCut != cutProcessor->getLowCutCutoff()) cutProcessor->setLowCutCutoff(settings.lowCut, getSampleRate());
+        if (settings.highCut != cutProcessor->getHighCutCutoff()) cutProcessor->setHighCutCutoff(settings.highCut, getSampleRate());
     }
 
     for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {

@@ -23,8 +23,8 @@ void CutFilterAudioProcessor::prepareToPlay(double sampleRate, int maxBlockSize)
         static_cast<juce::uint32>(getTotalNumOutputChannels()) 
     };
     
-    setLowCutCutoff(lowCutCutoff);
-    setHighCutCutoff(highCutCutoff);
+    setLowCutCutoff(lowCutCutoff, sampleRate);
+    setHighCutCutoff(highCutCutoff, sampleRate);
 
     chain.prepare(spec);
 }
@@ -38,15 +38,15 @@ void CutFilterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juc
 }
 
 // State
-void CutFilterAudioProcessor::setLowCutCutoff(float nCutoff) {
+void CutFilterAudioProcessor::setLowCutCutoff(float nCutoff, double sampleRate) {
     lowCutCutoff = nCutoff;
-    auto lowCutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(lowCutCutoff, getSampleRate(), 1);
+    auto lowCutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(lowCutCutoff, sampleRate, 1);
     *chain.get<static_cast<int>(CutFilterIndex::LOW_CUT)>().state = *lowCutCoefficients[0];
 }
 
-void CutFilterAudioProcessor::setHighCutCutoff(float nCutoff) {
+void CutFilterAudioProcessor::setHighCutCutoff(float nCutoff, double sampleRate) {
     highCutCutoff = nCutoff;
-    auto highCutCoefficients = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(highCutCutoff, getSampleRate(), 1);
+    auto highCutCoefficients = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(highCutCutoff, sampleRate, 1);
     *chain.get<static_cast<int>(CutFilterIndex::HIGH_CUT)>().state = *highCutCoefficients[0];
 }
 

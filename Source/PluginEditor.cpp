@@ -40,7 +40,7 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
     auto updateIRSlot = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        DBG("Selected IR " << selectedIR);
+        // DBG("Selected IR " << selectedIR);
         if (validateIRIndex(selectedIR)) {
             const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
             irHeaderComponent.setSlot(selectedIR, slot);
@@ -187,7 +187,6 @@ void MareverbAudioProcessorEditor::initComponents() {
         static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load()) + 1, juce::dontSendNotification);
 
     // Position / field tab selector
-    // HACK: Don't repeat yourself
     auto positionControls = getControlsGroup(ControlGroup::POSITION);
     auto fieldControls = getControlsGroup(ControlGroup::FIELD);
 

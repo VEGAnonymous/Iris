@@ -44,8 +44,8 @@ public:
 	void setStateInformation(const void* /*data*/, int /*sizeInBytes*/) override {}
 
 	// State
-	void setLowCutCutoff(float nCutoff);
-	void setHighCutCutoff(float nCutoff);
+	void setLowCutCutoff(float nCutoff, double sampleRate);
+	void setHighCutCutoff(float nCutoff, double sampleRate);
 	
 	float getLowCutCutoff() const;
 	float getHighCutCutoff() const;
