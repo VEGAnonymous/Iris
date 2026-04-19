@@ -7,8 +7,8 @@
 struct PatternParameterState { float rate, modA, modB; };
 
 struct PatternState {
-    PositionPattern lastPositionPattern;
-    FieldPattern lastFieldPattern;
+    PositionPattern lastPositionPattern = PositionPattern::FLORAL;
+    FieldPattern lastFieldPattern = FieldPattern::RING;
 
     juce::SpinLock patternStateLock;
 

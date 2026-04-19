@@ -6,7 +6,7 @@
 
 static constexpr auto
     WAVEFORM_PREVIEW_POINTS = 126,
-    WAVEFORM_POINTS = 621;
+    WAVEFORM_POINTS = 216;
 
 static const std::array<juce::Colour, MAX_IR_COUNT> IR_SLOT_COLORS{
     juce::Colours::red,

@@ -29,7 +29,7 @@ public:
     IRSlotButton(int index);
     ~IRSlotButton() override = default;
 
-    void setWaveform(const juce::AudioBuffer<float>* buffer);
+    void setWaveform(const juce::AudioBuffer<float>* buffer, double sampleRate);
     void setOccupied(bool nOccupied);
     void setActive(bool nActive);
 

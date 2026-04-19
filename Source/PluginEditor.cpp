@@ -45,7 +45,8 @@ void MareverbAudioProcessorEditor::timerCallback() {
             const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
             irHeaderComponent.setSlot(selectedIR, slot);
 
-            irWaveformComponent.setWaveform(&slot.buffer, WAVEFORM_POINTS);
+            irWaveformComponent.setNumPoints(WAVEFORM_POINTS);
+            irWaveformComponent.setWaveform(&slot.buffer, audioProcessor.getSampleRate());
             irWaveformComponent.setActive(slot.active);
             
             for (int i = 0; i < MAX_IR_COUNT; ++i) {
@@ -66,7 +67,7 @@ void MareverbAudioProcessorEditor::timerCallback() {
             if (irSlotButtons[i]) {
                 irSlotButtons[i]->setOccupied(slot.occupied);
                 irSlotButtons[i]->setActive(slot.active);
-                irSlotButtons[i]->setWaveform(slot.occupied ? &slot.buffer : nullptr);
+                irSlotButtons[i]->setWaveform(slot.occupied ? &slot.buffer : nullptr, audioProcessor.getSampleRate());
             }
         }
 
@@ -247,7 +248,7 @@ void MareverbAudioProcessorEditor::initComponents() {
 
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
         irSlotButtons[i]->setOccupied(slot.occupied);
-        if (slot.occupied) irSlotButtons[i]->setWaveform(&slot.buffer);
+        if (slot.occupied) irSlotButtons[i]->setWaveform(&slot.buffer, audioProcessor.getSampleRate());
         addAndMakeVisible(*irSlotButtons[i]);
     }
 
