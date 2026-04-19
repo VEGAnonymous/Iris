@@ -209,13 +209,14 @@ void MareverbAudioProcessorEditor::initComponents() {
     selectPositionTab();
 
     // Randomize / clear all buttons
-    randomAllButton.setButtonText("Randomize IRs");
+    randomAllButton.setButtonText("Random All");
     randomAllButton.onClick = [this]() { audioProcessor.getIRManager()->loadRandomIRs(); };
 
-    clearAllButton.setButtonText("Clear IRs");
+    clearAllButton.setButtonText("Clear All");
     clearAllButton.onClick = [this]() { audioProcessor.getIRManager()->clearIRs(); };
 
     // Settings modal
+    settingsButton.setButtonText("S");
     settingsButton.onClick = [this]() {
         if (settingsModal) {
             settingsModal.reset();
@@ -272,7 +273,7 @@ void MareverbAudioProcessorEditor::initComponents() {
 
     // Selected IR waveform
     irWaveformComponent.setDimensions(16.0f, 0.0f, -16.0f, 0.9f);
-    irWaveformComponent.setColor(Theme::Colors::main);
+    irWaveformComponent.setColor(Theme::Colors::highlight);
 
     // Selected IR controls
     loadIRButton.setButtonText("Load");
@@ -369,46 +370,47 @@ void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
 
     Bounds totalBounds = getLocalBounds();
 
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.8f));
-
     // Left panel
     Bounds leftPanel = totalBounds.removeFromLeft(621);
+    g.setColour(Theme::Colors::background);
+    g.fillRect(leftPanel);
 
     Bounds mapBounds = leftPanel.removeFromTop(621);
+    g.setColour(juce::Colours::black);
+    g.fillRect(mapBounds);
+    g.setColour(juce::Colours::floralwhite.withAlpha(0.4f));
+    g.drawRoundedRectangle(mapBounds.toFloat(), 4.0f, 1.0f);
+
     Bounds& positionFieldControlsBounds = leftPanel;
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.2f));
-    g.fillRect(positionFieldControlsBounds);
+    g.setColour(Theme::Colors::section);
+    g.fillRect(positionFieldControlsBounds.reduced(2));
 
     // Right panel
     Bounds& rightPanel = totalBounds;
+    g.setColour(Theme::Colors::background);
+    g.fillRect(rightPanel);
 
     Bounds topBarBounds = rightPanel.removeFromTop(81);
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.9f));
-    g.fillRect(topBarBounds);
+    g.fillRect(topBarBounds.reduced(2));
 
     Bounds irGridBounds = rightPanel.removeFromTop(160);
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.8f));
-    g.fillRect(irGridBounds);
+    g.setColour(Theme::Colors::section);
+    g.fillRect(irGridBounds.reduced(2));
 
     Bounds irHeaderBounds = rightPanel.removeFromTop(40);
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.7f));
-    g.fillRect(irHeaderBounds);
+    g.fillRect(irHeaderBounds.reduced(2));
     
     Bounds irWaveformBounds = rightPanel.removeFromTop(140);
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.6f));
-    g.fillRect(irWaveformBounds);
+    g.fillRect(irWaveformBounds.reduced(2));
 
     Bounds irControlsBounds = rightPanel.removeFromTop(100);
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.5f));
-    g.fillRect(irControlsBounds);
+    g.fillRect(irControlsBounds.reduced(2));
 
     Bounds interactionControlsBounds = rightPanel.removeFromTop(100);
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.4f));
-    g.fillRect(interactionControlsBounds);
+    g.fillRect(interactionControlsBounds.reduced(2));
 
     Bounds globalControlsBounds = rightPanel.removeFromTop(100);
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.3f));
-    g.fillRect(globalControlsBounds);
+    g.fillRect(globalControlsBounds.reduced(2));
 }
 
 void MareverbAudioProcessorEditor::resized() {
@@ -420,12 +422,14 @@ void MareverbAudioProcessorEditor::resized() {
 
     Bounds totalBounds = getLocalBounds();
 
-    // Left panel
+    /* LEFT PANEL */
     Bounds leftPanel = totalBounds.removeFromLeft(621);
 
+    // Mare map
     Bounds mapBounds = leftPanel.removeFromTop(621);
-    polarMapComponent.setBounds(mapBounds);
+    polarMapComponent.setBounds(mapBounds.reduced(static_cast<int>(leftPanel.getWidth() * 0.05f)));
 
+    // Position + field controls
     Bounds& positionFieldControlsBounds = leftPanel; 
 
     juce::FlexBox positionFieldTabs;
@@ -440,23 +444,26 @@ void MareverbAudioProcessorEditor::resized() {
     positionControlRow.performLayout(positionFieldControlsBounds);
     fieldControlRow.performLayout(positionFieldControlsBounds);
 
-    // Right panel
+    /* RIGHT PANEL */
     Bounds& rightPanel = totalBounds;
 
-    Bounds topBarBounds = rightPanel.removeFromTop(81); // Randomize / Clear All, settings modal, Mareverb title
+    // Top bar
+    Bounds topBarBounds = rightPanel.removeFromTop(81); 
     juce::FlexBox topBarRow;
-
+    topBarRow.alignItems = juce::FlexBox::AlignItems::center;
+    const auto topBarWidth = topBarBounds.getWidth(), topBarHeight = topBarBounds.getHeight();
+    
     juce::FlexBox globalIROperations;
     globalIROperations.flexDirection = juce::FlexBox::Direction::column;
     globalIROperations.items.add(juce::FlexItem(randomAllButton).withFlex(1.0f));
     globalIROperations.items.add(juce::FlexItem(clearAllButton).withFlex(1.0f));
-    // globalIROperations.performLayout(topBarBounds.removeFromLeft(static_cast<int>(topBarBounds.getWidth() * 0.25f)));
 
-    topBarRow.items.add(juce::FlexItem(globalIROperations).withFlex(1.0f));
-    topBarRow.items.add(juce::FlexItem(settingsButton).withFlex(1.0f));
+    topBarRow.items.add(juce::FlexItem(globalIROperations).withFlex(1.0f).withWidth(topBarWidth * 0.25f).withHeight(topBarHeight * 0.8f).withMargin(10));
+    topBarRow.items.add(juce::FlexItem(settingsButton).withFlex(1.0f).withWidth(topBarWidth * 0.075f).withHeight(topBarHeight * 0.6f));
 
-    topBarRow.performLayout(topBarBounds.removeFromLeft(static_cast<int>(topBarBounds.getWidth() * 0.6f)));
+    topBarRow.performLayout(topBarBounds.removeFromLeft(static_cast<int>(topBarWidth * 0.4f)));
 
+    // IR selector grid
     Bounds irGridBounds = rightPanel.removeFromTop(160);
     juce::Grid irGrid;
     irGrid.templateRows =    { juce::Grid::Fr(1), juce::Grid::Fr(1) };
@@ -465,32 +472,42 @@ void MareverbAudioProcessorEditor::resized() {
     for (auto& slot : irSlotButtons) irGrid.items.add(juce::GridItem(*slot));
     irGrid.performLayout(irGridBounds);
 
-    Bounds irHeaderBounds = rightPanel.removeFromTop(40); // IR (indicator color) - filename, Clear button
+    // IR header
+    Bounds irHeaderBounds = rightPanel.removeFromTop(40);
     irHeaderComponent.setBounds(irHeaderBounds);
 
+    // Selected IR waveform
     Bounds irWaveformBounds = rightPanel.removeFromTop(140);
     irWaveformComponent.setBounds(irWaveformBounds);
 
-    Bounds irControlsBounds = rightPanel.removeFromTop(100); // Load (Manual) button, Load (Random) button, Auto Min textbox, Auto Max textbox
+    // Selected IR controls
+    Bounds irControlsBounds = rightPanel.removeFromTop(100);
+    const auto irControlsWidth = irControlsBounds.getWidth(), irControlsHeight = irControlsBounds.getHeight();
+
     juce::FlexBox irControlRow;
     irControlRow.alignItems = juce::FlexBox::AlignItems::center;
-    irControlRow.items.add(juce::FlexItem(loadIRButton).withFlex(1.0f).withHeight(irControlsBounds.getHeight() * 0.6f));
-    irControlRow.items.add(juce::FlexItem(randomIRButton).withFlex(1.0f).withHeight(irControlsBounds.getHeight() * 0.6f));
-    irControlRow.performLayout(irControlsBounds.removeFromLeft(static_cast<int>(irControlsBounds.getWidth() * 0.4f)));
+    irControlRow.alignContent = juce::FlexBox::AlignContent::flexStart;
+    irControlRow.items.add(juce::FlexItem(loadIRButton).withFlex(1.0f).withHeight(irControlsHeight * 0.7f).withMargin(10));
+    irControlRow.items.add(juce::FlexItem(randomIRButton).withFlex(1.0f).withHeight(irControlsHeight * 0.7f).withMargin(10));
+    irControlRow.performLayout(irControlsBounds.removeFromLeft(static_cast<int>(irControlsWidth * 0.6f)));
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         juce::FlexBox swapControlsRow;
-        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMinControl).withFlex(1.0f));
-        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMaxControl).withFlex(1.0f));
+        swapControlsRow.alignItems = juce::FlexBox::AlignItems::center;
+        swapControlsRow.alignContent = juce::FlexBox::AlignContent::flexEnd;
+        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMinControl).withFlex(1.0f).withHeight(irControlsHeight * 0.7f).withMargin(5));
+        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMaxControl).withFlex(1.0f).withHeight(irControlsHeight * 0.7f).withMargin(5));
         swapControlsRow.performLayout(irControlsBounds);
     }
 
-    Bounds interactionControlsBounds = rightPanel.removeFromTop(100); // Weighting Mode, Strength, Spread
+    // Interaction controls
+    Bounds interactionControlsBounds = rightPanel.removeFromTop(100); 
     juce::FlexBox interactionControlRow;
     fillFlex(interactionControlRow, ControlGroup::INTERACTION);
     interactionControlRow.performLayout(interactionControlsBounds);
 
-    Bounds globalControlsBounds = rightPanel.removeFromTop(100); // Low Cut, High Cut, Decay, Mix
+    // Global controls
+    Bounds globalControlsBounds = rightPanel.removeFromTop(100);
     juce::FlexBox globalControlRow;
     fillFlex(globalControlRow, ControlGroup::GLOBAL);
     globalControlRow.performLayout(globalControlsBounds.removeFromLeft(static_cast<int>(globalControlsBounds.getWidth() * 0.8f)));

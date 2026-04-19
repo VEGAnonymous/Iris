@@ -45,15 +45,15 @@ void PolarMapComponent::repaintPath() {
     pathChanged = false;
 }
 
-bool PolarMapComponent::draggingPosition(juce::Point<float> p) const {
+bool PolarMapComponent::hitPosition(juce::Point<float> p) const {
     auto center = toBounds(currentPosition, positionRadius).getCentre();
-    return p.getDistanceFrom(center) <= positionRadius + hitSlop;
+    return p.getDistanceFrom(center) <= positionRadius + hitRadius;
 }
 
-int PolarMapComponent::draggingField(juce::Point<float> p) const {
+int PolarMapComponent::hitField(juce::Point<float> p) const {
     for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
         auto center = toBounds(fieldCoordinates[ir], coordinateRadius).getCentre();
-        if (p.getDistanceFrom(center) <= coordinateRadius + hitSlop) return ir;
+        if (p.getDistanceFrom(center) <= coordinateRadius + hitRadius) return ir;
     }
     return -1;
 }
@@ -68,7 +68,7 @@ void PolarMapComponent::paint(juce::Graphics& g) {
     // Background + border
     g.fillAll(juce::Colours::black);
     g.setColour(juce::Colours::floralwhite);
-    g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+    // g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
     g.setOpacity(0.5f);
     g.drawEllipse(bounds, 2.0f);
 
@@ -99,24 +99,28 @@ void PolarMapComponent::paint(juce::Graphics& g) {
 void PolarMapComponent::mouseDown(const juce::MouseEvent& e) {
     auto p = e.position;
     auto positionPattern = static_cast<PositionPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
-    if (positionPattern == PositionPattern::MANUAL && draggingPosition(p)) {
+    if (positionPattern == PositionPattern::MANUAL && hitPosition(p)) {
         dragTarget = DragTarget::POSITION;
         return;
     }
 
-    auto fieldPattern = static_cast<FieldPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load());
-    if (fieldPattern == FieldPattern::MANUAL) {
-        draggedFieldIndex = draggingField(p);
-        if (draggedFieldIndex >= 0) {
-            dragTarget = DragTarget::FIELD;
+    fieldIndex = hitField(p);
+    if (fieldIndex >= 0) {
+        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        if (fieldIndex != selectedIR) {
+            audioProcessor.apvts.state.setProperty(PropertyID::selectedIR, fieldIndex, nullptr);
+            switchedIR.store(true, std::memory_order_release);
+            audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
+        }
 
-            int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-            if (draggedFieldIndex != selectedIR) {
-                audioProcessor.apvts.state.setProperty(PropertyID::selectedIR, draggedFieldIndex, nullptr);
-                switchedIR.store(true, std::memory_order_release);
-            }
+        auto fieldPattern = static_cast<FieldPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load());
+        if (fieldPattern == FieldPattern::MANUAL) {
+            dragTarget = DragTarget::FIELD;
+            return;
         }
     }
+
+    dragTarget = DragTarget::NONE;
 }
 
 void PolarMapComponent::mouseDrag(const juce::MouseEvent& e) {
@@ -142,7 +146,7 @@ void PolarMapComponent::mouseDrag(const juce::MouseEvent& e) {
 
 void PolarMapComponent::mouseUp(const juce::MouseEvent&) {
     dragTarget = DragTarget::NONE;
-    draggedFieldIndex = -1;
+    fieldIndex = -1;
 }
 
 std::atomic<bool>& PolarMapComponent::getIRSwitched() { return switchedIR; }

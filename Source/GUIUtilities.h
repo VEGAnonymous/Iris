@@ -22,7 +22,9 @@ static const std::array<juce::Colour, MAX_IR_COUNT> IR_SLOT_COLORS{
 namespace Theme {
     namespace Colors {
         const auto
-            main = juce::Colour::fromRGBA(147, 255, 219, 255);
+            background = juce::Colour::fromRGB(22, 31, 38),
+            section = juce::Colour::fromRGB(36, 45, 54),
+            highlight = juce::Colour::fromRGB(147, 255, 219);
     }
 }
 

@@ -93,7 +93,7 @@ private:
 
     juce::TextButton loadIRButton, randomIRButton;
 
-    juce::TextButton settingsButton {"Settings"};
+    juce::TextButton settingsButton;
 
     // ComboBoxes
     juce::ComboBox positionPatternControl, fieldPatternControl;

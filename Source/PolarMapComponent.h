@@ -36,11 +36,11 @@ private:
 
     DragTarget dragTarget { DragTarget::NONE };
 
-    int draggedFieldIndex { -1 };
-    static constexpr float hitSlop = 6.0f;
+    int fieldIndex { -1 };
+    static constexpr float hitRadius = 6.0f;
 
-    bool draggingPosition(juce::Point<float> p) const;
-    int draggingField(juce::Point<float> p) const;
+    bool hitPosition(juce::Point<float> p) const;
+    int hitField(juce::Point<float> p) const;
 
     std::atomic<bool> switchedIR { false };
 
