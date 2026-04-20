@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.h"
+#include "MareverbFonts.h"
 
 #include <JuceHeader.h>
 
@@ -12,11 +13,24 @@ namespace Theme {
             outline = juce::Colour::fromRGB(52, 64, 76),
             outlineHover = juce::Colour::fromRGB(62, 76, 90),
             highlight = juce::Colour::fromRGB(147, 255, 219),
-            highlightHover = juce::Colour::fromRGB(156, 255, 255);
+            highlightHover = juce::Colour::fromRGB(156, 255, 255),
+            textLight = juce::Colour::fromRGB(196, 196, 196),
+            textDark = juce::Colour::fromRGB(52, 64, 76);
+    }
+
+    namespace Fonts {
+        inline const juce::Font getEquestriaNeueFont(juce::FontOptions options = juce::FontOptions()) {
+            static auto typeface = juce::Typeface::createSystemTypefaceFor(
+                MareverbFonts::Equestria_Neue_ttf,
+                MareverbFonts::Equestria_Neue_ttfSize
+            ); jassert(typeface);
+            auto fontOptions = options.withStyle("").withTypeface(typeface);
+            return juce::Font(juce::Font(fontOptions));
+        }
     }
 }
 
-static const std::array<juce::Colour, MAX_IR_COUNT> IR_SLOT_COLORS{
+static const std::array<juce::Colour, MAX_IR_COUNT> IR_SLOT_COLORS {
     juce::Colours::red,
     juce::Colours::orange,
     juce::Colours::yellow,

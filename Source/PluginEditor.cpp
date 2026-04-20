@@ -196,19 +196,25 @@ void MareverbAudioProcessorEditor::initComponents() {
     auto fieldControls = getControlsGroup(ControlGroup::FIELD);
 
     auto selectPositionTab = [this, positionControls, fieldControls] {
+        positionTabButton.setToggleState(true, juce::dontSendNotification);
+        fieldTabButton.setToggleState(false, juce::dontSendNotification);
         for (auto& positionControl : positionControls) positionControl.component->setVisible(true);
         for (auto& fieldControl : fieldControls) fieldControl.component->setVisible(false); 
     };
 
     auto selectFieldTab = [this, positionControls, fieldControls] {
+        positionTabButton.setToggleState(false, juce::dontSendNotification);
+        fieldTabButton.setToggleState(true, juce::dontSendNotification);
         for (auto& positionControl : positionControls) positionControl.component->setVisible(false);
         for (auto& fieldControl : fieldControls) fieldControl.component->setVisible(true);
     };
 
     positionTabButton.setButtonText("POSITION");
+    positionTabButton.setToggleable(true);
     positionTabButton.onClick = selectPositionTab;
 
     fieldTabButton.setButtonText("FIELD");
+    fieldTabButton.setToggleable(true);
     fieldTabButton.onClick = selectFieldTab;
 
     selectPositionTab();
@@ -325,7 +331,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     fieldModAControlAttachment(audioProcessor.apvts, ParamID::fieldModA, fieldModAControl),
     fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl),
 
-    irHeaderComponent(animatorUpdater), irWaveformComponent(animatorUpdater) {
+    irHeaderComponent(animatorUpdater, buttonLookAndFeel), irWaveformComponent(animatorUpdater) {
 
     // Attach listeners
     for (const auto& id : paramIDs) audioProcessor.apvts.addParameterListener(id, this);
@@ -333,12 +339,17 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     // Add components
     addAndMakeVisible(polarMapComponent);
 
+    positionTabButton.setLookAndFeel(&buttonLookAndFeel);
+    fieldTabButton.setLookAndFeel(&buttonLookAndFeel);
     addAndMakeVisible(positionTabButton);
     addAndMakeVisible(fieldTabButton);
 
+    randomAllButton.setLookAndFeel(&buttonLookAndFeel);
+    clearAllButton.setLookAndFeel(&buttonLookAndFeel);
     addAndMakeVisible(randomAllButton);
     addAndMakeVisible(clearAllButton);
 
+    settingsButton.setLookAndFeel(&buttonLookAndFeel);
     addAndMakeVisible(settingsButton);
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
@@ -350,6 +361,8 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     
     addAndMakeVisible(irWaveformComponent);
 
+    loadIRButton.setLookAndFeel(&buttonLookAndFeel);
+    randomIRButton.setLookAndFeel(&buttonLookAndFeel);
     addAndMakeVisible(loadIRButton);
     addAndMakeVisible(randomIRButton);
 
@@ -421,9 +434,13 @@ void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
     g.fillRect(irHeaderBounds.reduced(2));
     
     Bounds irWaveformBounds = rightPanel.removeFromTop(140);
+    g.setColour(Theme::Colors::background);
     g.fillRect(irWaveformBounds.reduced(2));
+    g.setColour(juce::Colours::floralwhite.withAlpha(0.4f));
+    g.drawRoundedRectangle(irWaveformBounds.reduced(1).toFloat(), 4.0f, 0.8f);
 
     Bounds irControlsBounds = rightPanel.removeFromTop(100);
+    g.setColour(Theme::Colors::section);
     g.fillRect(irControlsBounds.reduced(2));
 
     Bounds interactionControlsBounds = rightPanel.removeFromTop(100);
@@ -454,8 +471,8 @@ void MareverbAudioProcessorEditor::resized() {
 
     juce::FlexBox positionFieldTabs;
     positionFieldTabs.flexDirection = juce::FlexBox::Direction::column;
-    positionFieldTabs.items.add(juce::FlexItem(positionTabButton).withFlex(1.0f));
-    positionFieldTabs.items.add(juce::FlexItem(fieldTabButton).withFlex(1.0f));
+    positionFieldTabs.items.add(juce::FlexItem(positionTabButton).withFlex(1.0f).withMargin(3));
+    positionFieldTabs.items.add(juce::FlexItem(fieldTabButton).withFlex(1.0f).withMargin(3));
     positionFieldTabs.performLayout(positionFieldControlsBounds.removeFromLeft(static_cast<int>(positionFieldControlsBounds.getWidth() * 0.15f)));
 
     juce::FlexBox positionControlRow, fieldControlRow;

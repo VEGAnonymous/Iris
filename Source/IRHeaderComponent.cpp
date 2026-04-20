@@ -17,12 +17,16 @@ void IRHeaderComponent::mouseDown(const juce::MouseEvent& e) {
 
 /* PUBLIC */
 
-IRHeaderComponent::IRHeaderComponent(juce::AnimatorUpdater& updater) 
-    : indicatorActiveAnim(*this, updater, true, ACTIVE_ANIMATION_TIME_MS) {
+IRHeaderComponent::IRHeaderComponent(juce::AnimatorUpdater& updater, ButtonLookAndFeel& buttonLookAndFeel) 
+    : indicatorActiveAnim(*this, updater, true, ACTIVE_ANIMATION_TIME_MS), clearButton(updater) {
+    clearButton.setLookAndFeel(&buttonLookAndFeel);
+    clearButton.setButtonText("Clear");
     addAndMakeVisible(clearButton);
     clearButton.onClick = [this]() { if (onClear) onClear(); };
     setBufferedToImage(true);
 }
+
+IRHeaderComponent::~IRHeaderComponent() { clearButton.setLookAndFeel(nullptr); }
 
 void IRHeaderComponent::setSlot(int irIndex, const IRSlot& slot) {
     currentIndex = irIndex;

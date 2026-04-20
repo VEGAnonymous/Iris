@@ -3,13 +3,6 @@
 #include <JuceHeader.h>
 
 class RotaryLookAndFeel : public juce::LookAndFeel_V4 {
-public:
-    RotaryLookAndFeel();
-    ~RotaryLookAndFeel() override = default;
-
-    void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
-        float sliderPosProportional, float rotaryStartAngle,float rotaryEndAngle, juce::Slider& slider) override;
-
 private:
     void drawOutline(juce::Graphics& g, juce::Point<float> center, float outlineRadius, float outlineThickness,
         float startAngle, float endAngle, float hoverAlpha);
@@ -24,4 +17,11 @@ private:
         float valueAngle, float hoverAlpha);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RotaryLookAndFeel)
+
+public:
+    RotaryLookAndFeel();
+    ~RotaryLookAndFeel() override = default;
+
+    void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
+        float sliderPosProportional, float rotaryStartAngle, float rotaryEndAngle, juce::Slider& slider) override;
 };

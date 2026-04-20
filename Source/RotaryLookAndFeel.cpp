@@ -3,9 +3,7 @@
 #include "Rotary.h"
 #include "Theme.h"
 
-/* PUBLIC */
-
-RotaryLookAndFeel::RotaryLookAndFeel() {}
+/* PRIVATE */
 
 void RotaryLookAndFeel::drawTicks(juce::Graphics& g, juce::Point<float> center, float tickRadius,
     float startAngle, float endAngle, int numTicks, float hoverAlpha) {
@@ -59,7 +57,11 @@ void RotaryLookAndFeel::drawIndicator(juce::Graphics& g, juce::Point<float> cent
     g.fillEllipse(indicatorX - indicatorDotRadius, indicatorY - indicatorDotRadius, indicatorDotRadius * 2.0f, indicatorDotRadius * 2.0f);
 }
 
-void RotaryLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, 
+/* PUBLIC */
+
+RotaryLookAndFeel::RotaryLookAndFeel() {}
+
+void RotaryLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
     float sliderPosProportional, float rotaryStartAngle, float rotaryEndAngle, juce::Slider& slider) {
 
     bool isBipolar = false;

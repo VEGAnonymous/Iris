@@ -27,6 +27,13 @@
       </GROUP>
       <GROUP id="{0020543F-18A4-A177-2507-1186AC105CC3}" name="UI">
         <GROUP id="{2713E190-9F5A-917D-FD16-DE7994196ECA}" name="Theme">
+          <FILE id="r2Ba1I" name="ButtonLookAndFeel.cpp" compile="1" resource="0"
+                file="Source/ButtonLookAndFeel.cpp"/>
+          <FILE id="PMqKwU" name="ButtonLookAndFeel.h" compile="0" resource="0"
+                file="Source/ButtonLookAndFeel.h"/>
+          <FILE id="sSBKWk" name="MareverbFonts.cpp" compile="1" resource="0"
+                file="Source/MareverbFonts.cpp"/>
+          <FILE id="XmA8t9" name="MareverbFonts.h" compile="0" resource="0" file="Source/MareverbFonts.h"/>
           <FILE id="luuNEE" name="RotaryLookAndFeel.cpp" compile="1" resource="0"
                 file="Source/RotaryLookAndFeel.cpp"/>
           <FILE id="NNq7Lm" name="RotaryLookAndFeel.h" compile="0" resource="0"
@@ -51,6 +58,8 @@
         <FILE id="VvHUrK" name="PolarMapComponent.h" compile="0" resource="0"
               file="Source/PolarMapComponent.h"/>
         <GROUP id="{3F80DDB6-76F4-8F87-F86F-4F5FE9E7A606}" name="Controls">
+          <FILE id="XsKYik" name="HoverableTextButton.h" compile="0" resource="0"
+                file="Source/HoverableTextButton.h"/>
           <FILE id="kLrfAP" name="DirectoryManagerComponent.cpp" compile="1"
                 resource="0" file="Source/DirectoryManagerComponent.cpp"/>
           <FILE id="tFKTOZ" name="DirectoryManagerComponent.h" compile="0" resource="0"

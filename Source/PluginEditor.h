@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ButtonLookAndFeel.h"
+#include "HoverableTextButton.h"
 #include "IRHeaderComponent.h"
 #include "IRSlotButton.h"
 #include "PluginProcessor.h"
@@ -19,6 +21,7 @@ private:
     // Look and feel
     juce::AnimatorUpdater animatorUpdater;
 
+    ButtonLookAndFeel buttonLookAndFeel;
     RotaryLookAndFeel rotaryLookAndFeel;
 
     // Listeners and callbacks
@@ -42,7 +45,7 @@ private:
         { &decayControl,           ControlGroup::GLOBAL, [&]() { decayControl.setLookAndFeel(&rotaryLookAndFeel); } },
         { &lowCutControl,          ControlGroup::GLOBAL, [&]() { lowCutControl.setLookAndFeel(&rotaryLookAndFeel); } },
         { &highCutControl,         ControlGroup::GLOBAL, [&]() { highCutControl.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &weightingModeControl,   ControlGroup::INTERACTION, []() {} },
+        { &weightingModeControl,   ControlGroup::INTERACTION, [&]() { weightingModeControl.setLookAndFeel(&buttonLookAndFeel); } },
         { &strengthControl,        ControlGroup::INTERACTION, [&]() { strengthControl.setLookAndFeel(&rotaryLookAndFeel); } },
         { &spreadControl,          ControlGroup::INTERACTION, [&]() { spreadControl.setLookAndFeel(&rotaryLookAndFeel); } },
         { &positionPatternControl, ControlGroup::POSITION, []() {} },
@@ -83,18 +86,18 @@ private:
     std::array<std::unique_ptr<SwapControl>, MAX_IR_COUNT> swapControls;
 
     // Buttons
-    juce::TextButton weightingModeControl;
+    HoverableTextButton weightingModeControl {animatorUpdater};
     juce::AudioProcessorValueTreeState::ButtonAttachment weightingModeControlAttachment;
 
-    juce::TextButton positionTabButton, fieldTabButton;
+    HoverableTextButton positionTabButton {animatorUpdater}, fieldTabButton {animatorUpdater};
 
-    juce::TextButton clearAllButton, randomAllButton;
+    HoverableTextButton clearAllButton {animatorUpdater}, randomAllButton {animatorUpdater};
 
     std::array<std::unique_ptr<IRSlotButton>, MAX_IR_COUNT> irSlotButtons;
 
-    juce::TextButton loadIRButton, randomIRButton;
+    HoverableTextButton loadIRButton {animatorUpdater}, randomIRButton {animatorUpdater};
 
-    juce::TextButton settingsButton;
+    HoverableTextButton settingsButton {animatorUpdater};
 
     // ComboBoxes
     juce::ComboBox positionPatternControl, fieldPatternControl;

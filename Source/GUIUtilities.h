@@ -16,6 +16,7 @@ inline juce::String formatPath(juce::String path, int maxLength, Ellipsis ellips
                 const int back = (maxLength - 3) - front;
                 return path.substring(0, front) + "..." + path.substring(path.length() - back);
             }
+            default: return path;
         }
     } else return path;
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "AnimatedAlpha.h"
+#include "ButtonLookAndFeel.h"
+#include "HoverableTextButton.h"
 #include "IRManager.h"
 
 #include <JuceHeader.h>
@@ -11,7 +13,7 @@ private:
 	IRSlot currentIR {};
 	juce::String currentPath = "";
 
-	juce::TextButton clearButton { "Clear" };
+	HoverableTextButton clearButton;
 
 	AnimatedAlpha indicatorActiveAnim;
 
@@ -23,8 +25,8 @@ private:
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(IRHeaderComponent)
 
 public:
-	IRHeaderComponent(juce::AnimatorUpdater& updater);
-	~IRHeaderComponent() override = default;
+	IRHeaderComponent(juce::AnimatorUpdater& updater, ButtonLookAndFeel& buttonLookAndFeel);
+	~IRHeaderComponent() override;
 
 	std::function<void()> onClear;
 	std::function<void(bool)> onActiveToggle;
