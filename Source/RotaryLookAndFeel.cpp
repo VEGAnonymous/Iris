@@ -1,4 +1,4 @@
-#include "Hoverable.h"
+#include "AnimatedAlpha.h"
 #include "RotaryLookAndFeel.h"
 #include "Rotary.h"
 #include "Theme.h"
@@ -66,7 +66,7 @@ void RotaryLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wi
     float hoverAlpha = 0.0f;
     if (auto* rotarySlider = dynamic_cast<Rotary*>(&slider)) {
         isBipolar = rotarySlider->isBipolar();
-        hoverAlpha = rotarySlider->hoverAlpha;
+        hoverAlpha = rotarySlider->getHoverAlpha();
     }
 
     const float outerRadius = (static_cast<float>(juce::jmin(width, height)) * 0.5f);

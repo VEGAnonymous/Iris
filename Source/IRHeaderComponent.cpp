@@ -10,18 +10,18 @@ BoundsF IRHeaderComponent::getIndicatorBounds(Bounds bounds, const float radius)
 }
 
 void IRHeaderComponent::mouseDown(const juce::MouseEvent& e) {
-    if (getIndicatorBounds(getLocalBounds(), indicatorRadius).contains(e.position)) {
-        currentIR.active = !currentIR.active;
-        if (onActiveToggle) onActiveToggle(currentIR.active);
-        repaint();
-    }
+    auto indicatorBounds = getIndicatorBounds(getLocalBounds(), indicatorRadius);
+    if (indicatorBounds.contains(e.position)) 
+        if (onActiveToggle) onActiveToggle(!currentIR.active);
 }
 
 /* PUBLIC */
 
-IRHeaderComponent::IRHeaderComponent() {
+IRHeaderComponent::IRHeaderComponent(juce::AnimatorUpdater& updater) 
+    : indicatorActiveAnim(*this, updater, true, ACTIVE_ANIMATION_TIME_MS) {
     addAndMakeVisible(clearButton);
     clearButton.onClick = [this]() { if (onClear) onClear(); };
+    setBufferedToImage(true);
 }
 
 void IRHeaderComponent::setSlot(int irIndex, const IRSlot& slot) {
@@ -31,13 +31,26 @@ void IRHeaderComponent::setSlot(int irIndex, const IRSlot& slot) {
     repaint();
 }
 
+void IRHeaderComponent::setActive(bool nActive, bool animate) {
+    if (currentIR.active != nActive && animate) {
+        if (nActive) indicatorActiveAnim.animateIn();
+        else indicatorActiveAnim.animateOut();
+    } else indicatorActiveAnim.setAnimateAlpha(nActive ? 1.0f : 0.0f);
+
+    currentIR.active = nActive;
+    repaint();
+}
+
 void IRHeaderComponent::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
 
     // Indicator
     const float indicatorX = bounds.getX() + 14.0f;
     const float indicatorY = bounds.getCentreY();
-    const float indicatorAlpha = currentIR.occupied ? (currentIR.active ? 1.0f : 0.35f) : (currentIR.active ? 0.2f : 0.1f);
+
+    float activeAlpha = indicatorActiveAnim.getAnimateAlpha();
+    float indicatorAlpha = juce::jmap(activeAlpha, currentIR.occupied ? 0.35f : 0.1f, currentIR.occupied ? 1.0f : 0.2f);
+
     Paint::irIndicator(g, {indicatorX, indicatorY}, indicatorRadius, currentIndex, currentIR.occupied, currentIR.active, indicatorAlpha);
 
     // IR #

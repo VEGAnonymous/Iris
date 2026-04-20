@@ -27,6 +27,8 @@ static constexpr auto SWAP_INTERVAL_MIN = 5.0f,
 static constexpr auto WAVEFORM_PREVIEW_POINTS = 126,
                       WAVEFORM_POINTS = 216;
 
+static constexpr auto ACTIVE_ANIMATION_TIME_MS = 60;
+
 namespace ParamID {
     static constexpr auto 
         globalMix = "Global Mix",

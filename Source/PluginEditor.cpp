@@ -23,6 +23,8 @@ void MareverbAudioProcessorEditor::parameterChanged(const juce::String& paramete
 }
 
 void MareverbAudioProcessorEditor::timerCallback() {
+    animatorUpdater.update();
+
     if (positionPathChanged.exchange(false, std::memory_order_acquire))
         polarMapComponent.notifyPathChanged();
 
@@ -39,16 +41,17 @@ void MareverbAudioProcessorEditor::timerCallback() {
         // DBG("Passed coordinates to map");
     }
 
-    auto updateIRSlot = [this]() {
+    auto updateIRSlot = [this](bool animate = false) {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         // DBG("Selected IR " << selectedIR);
         if (validateIRIndex(selectedIR)) {
             const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
+            irHeaderComponent.setActive(slot.active, animate);
             irHeaderComponent.setSlot(selectedIR, slot);
 
             irWaveformComponent.setNumPoints(WAVEFORM_POINTS);
             irWaveformComponent.setWaveform(&slot.buffer, audioProcessor.getSampleRate());
-            irWaveformComponent.setActive(slot.active);
+            irWaveformComponent.setActive(slot.active, animate);
             
             for (int i = 0; i < MAX_IR_COUNT; ++i) {
                 if (irSlotButtons[i]) 
@@ -72,15 +75,15 @@ void MareverbAudioProcessorEditor::timerCallback() {
             }
         }
 
-        updateIRSlot();
+        updateIRSlot(true);
     }
 
     if (selectedIRChanged.exchange(false, std::memory_order_acquire))
-        updateIRSlot();
+        updateIRSlot(false);
 
     if (polarMapComponent.getIRSwitched().exchange(false, std::memory_order_acquire)) {
         audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
-        updateIRSlot();
+        updateIRSlot(true);
     }
 
     if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire)) {
@@ -232,7 +235,7 @@ void MareverbAudioProcessorEditor::initComponents() {
 
     // IR slot buttons
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        irSlotButtons[i] = std::make_unique<IRSlotButton>(i);
+        irSlotButtons[i] = std::make_unique<IRSlotButton>(i, animatorUpdater);
         irSlotButtons[i]->setRadioGroupId(1);
         irSlotButtons[i]->setClickingTogglesState(true);
 
@@ -242,9 +245,12 @@ void MareverbAudioProcessorEditor::initComponents() {
         };
 
         irSlotButtons[i]->onClick = [this, i]() {
-            audioProcessor.apvts.state.setProperty(PropertyID::selectedIR, i, nullptr);
-            selectedIRChanged.store(true, std::memory_order_relaxed);
-            audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
+            int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+            if (i != selectedIR) {
+                audioProcessor.apvts.state.setProperty(PropertyID::selectedIR, i, nullptr);
+                selectedIRChanged.store(true, std::memory_order_relaxed);
+                audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
+            }
         };
 
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
@@ -317,7 +323,9 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     fieldPatternControlAttachment(audioProcessor.apvts, ParamID::fieldPattern, fieldPatternControl),
     fieldRateControlAttachment(audioProcessor.apvts, ParamID::fieldRate, fieldRateControl),
     fieldModAControlAttachment(audioProcessor.apvts, ParamID::fieldModA, fieldModAControl),
-    fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl) {
+    fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl),
+
+    irHeaderComponent(animatorUpdater), irWaveformComponent(animatorUpdater) {
 
     // Attach listeners
     for (const auto& id : paramIDs) audioProcessor.apvts.addParameterListener(id, this);
@@ -334,7 +342,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     addAndMakeVisible(settingsButton);
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        irSlotButtons[i] = std::make_unique<IRSlotButton>(i);
+        irSlotButtons[i] = std::make_unique<IRSlotButton>(i, animatorUpdater);
         addAndMakeVisible(*irSlotButtons[i]);
     }
 
@@ -346,7 +354,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     addAndMakeVisible(randomIRButton);
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, i);
+        swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, animatorUpdater, i);
         swapControls[i]->swapMinControl.setLookAndFeel(&rotaryLookAndFeel);
         swapControls[i]->swapMaxControl.setLookAndFeel(&rotaryLookAndFeel);
 

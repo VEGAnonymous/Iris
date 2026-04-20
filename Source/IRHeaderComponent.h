@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AnimatedAlpha.h"
 #include "IRManager.h"
 
 #include <JuceHeader.h>
@@ -12,6 +13,8 @@ private:
 
 	juce::TextButton clearButton { "Clear" };
 
+	AnimatedAlpha indicatorActiveAnim;
+
 	const float indicatorRadius = 5.0f;
 	BoundsF getIndicatorBounds(Bounds bounds, const float radius) const;
 
@@ -20,13 +23,14 @@ private:
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(IRHeaderComponent)
 
 public:
-	IRHeaderComponent();
+	IRHeaderComponent(juce::AnimatorUpdater& updater);
 	~IRHeaderComponent() override = default;
 
 	std::function<void()> onClear;
 	std::function<void(bool)> onActiveToggle;
 
 	void setSlot(int irIndex, const IRSlot& slot);
+	void setActive(bool nActive, bool animate = false);
 
 	void paint(juce::Graphics& g) override;
 	void resized() override;

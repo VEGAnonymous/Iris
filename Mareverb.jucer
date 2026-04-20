@@ -55,7 +55,7 @@
                 resource="0" file="Source/DirectoryManagerComponent.cpp"/>
           <FILE id="tFKTOZ" name="DirectoryManagerComponent.h" compile="0" resource="0"
                 file="Source/DirectoryManagerComponent.h"/>
-          <FILE id="iE9yKo" name="Hoverable.h" compile="0" resource="0" file="Source/Hoverable.h"/>
+          <FILE id="iE9yKo" name="AnimatedAlpha.h" compile="0" resource="0" file="Source/AnimatedAlpha.h"/>
           <FILE id="JplaSJ" name="IRSlotButton.cpp" compile="1" resource="0"
                 file="Source/IRSlotButton.cpp"/>
           <FILE id="dxx4ij" name="IRSlotButton.h" compile="0" resource="0" file="Source/IRSlotButton.h"/>

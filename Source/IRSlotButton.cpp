@@ -4,7 +4,7 @@
 
 /* PRIVATE */
 
-void IRSlotButton::paintButton(juce::Graphics& g, bool isMouseOver, bool /*isButtonDown*/) {
+void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*isButtonDown*/) {
     auto bounds = getLocalBounds().toFloat().reduced(2.0f);
 
     // const auto& color = IR_SLOT_COLORS[irIndex];
@@ -14,7 +14,7 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool isMouseOver, bool /*isBut
 
     // Background
     g.setColour(selected ? juce::Colours::white.withAlpha(0.1f)
-          : (isMouseOver ? juce::Colours::white.withAlpha(0.05f) : juce::Colours::transparentBlack));
+          : juce::Colours::white.withAlpha(0.05f).interpolatedWith(juce::Colours::transparentBlack, hoverAnim.getAnimateAlpha()));
     g.fillRoundedRectangle(bounds, 3.0f);
 
     // Selection ring
@@ -24,7 +24,10 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool isMouseOver, bool /*isBut
     // Indicator dot
     const float indicatorX = bounds.getX() + 6.0f;
     const float indicatorY = bounds.getY() + 6.0f;
-    const float indicatorAlpha = occupied ? (active ? 1.0f : 0.35f) : (active ? 0.2f : 0.1f);
+
+    float activeAlpha = indicatorActiveAnim.getAnimateAlpha();
+    float indicatorAlpha = juce::jmap(activeAlpha, occupied ? 0.35f : 0.1f, occupied ? 1.0f : 0.2f);
+
     Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius, irIndex, occupied, active, indicatorAlpha);
 }
 
@@ -33,15 +36,13 @@ void IRSlotButton::resized() {
     waveformPreview.setBounds(bounds);
 }
 
+void IRSlotButton::mouseEnter(const juce::MouseEvent& /*e*/) { hoverAnim.animateIn(); }
+void IRSlotButton::mouseExit(const juce::MouseEvent& /*e*/) { hoverAnim.animateOut(); }
 void IRSlotButton::mouseDown(const juce::MouseEvent& e) {
     // Check if clicked on indicator
     auto indicatorBounds = getIndicatorBounds(getLocalBounds(), indicatorRadius + 1.0f);
-    if (indicatorBounds.contains(e.position) || e.getNumberOfClicks() >= 2) {
-        active = !active;
-        DBG("Slot " << irIndex << " indicator clicked; setting state " << static_cast<int>(active));
-        if (onActiveToggle) onActiveToggle(active);
-        repaint();
-    }
+    if (indicatorBounds.contains(e.position) || e.getNumberOfClicks() >= 2)
+        if (onActiveToggle) onActiveToggle(!active);
     else juce::Button::mouseDown(e);
 }
 
@@ -53,12 +54,16 @@ BoundsF IRSlotButton::getIndicatorBounds(Bounds bounds, const float radius) cons
 
 /* PUBLIC */
 
-IRSlotButton::IRSlotButton(int index) : juce::Button("IR " + juce::String(index)), irIndex(index) {
+IRSlotButton::IRSlotButton(int index, juce::AnimatorUpdater& updater) : 
+    hoverAnim(*this, updater), indicatorActiveAnim(*this, updater, true, ACTIVE_ANIMATION_TIME_MS),
+    waveformPreview(updater),
+    juce::Button("IR " + juce::String(index)), irIndex(index) {
     waveformPreview.setDimensions(8.0f, 8.0f, -8.0f, 0.4f);
     waveformPreview.setColor(Theme::Colors::highlight);
     waveformPreview.setActive(active);
     waveformPreview.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(waveformPreview, 0);
+    setBufferedToImage(true);
 }
 
 void IRSlotButton::setWaveform(const juce::AudioBuffer<float>* buffer, double sampleRate) {
@@ -74,8 +79,13 @@ void IRSlotButton::setOccupied(bool nOccupied) {
 }
 
 void IRSlotButton::setActive(bool nActive) {
+    if (nActive != active) {
+        if (nActive) indicatorActiveAnim.animateIn();
+        else indicatorActiveAnim.animateOut();
+    } else indicatorActiveAnim.setAnimateAlpha(nActive ? 1.0f : 0.0f);
+
     active = nActive;
-    waveformPreview.setActive(nActive);
+    waveformPreview.setActive(nActive, true);
     repaint();
 }
 

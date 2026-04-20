@@ -17,6 +17,8 @@ private:
     MareverbAudioProcessor& audioProcessor;
 
     // Look and feel
+    juce::AnimatorUpdater animatorUpdater;
+
     RotaryLookAndFeel rotaryLookAndFeel;
 
     // Listeners and callbacks
@@ -56,10 +58,10 @@ private:
     // Sliders
 
     Rotary 
-        globalMixControl, decayControl, lowCutControl, highCutControl,
-        strengthControl, spreadControl,
-        positionRateControl {true}, positionModAControl, positionModBControl,
-        fieldRateControl {true}, fieldModAControl, fieldModBControl;
+        globalMixControl {animatorUpdater}, decayControl {animatorUpdater}, lowCutControl {animatorUpdater}, highCutControl {animatorUpdater},
+        strengthControl {animatorUpdater}, spreadControl {animatorUpdater},
+        positionRateControl {animatorUpdater, true}, positionModAControl {animatorUpdater}, positionModBControl {animatorUpdater},
+        fieldRateControl {animatorUpdater, true}, fieldModAControl {animatorUpdater}, fieldModBControl {animatorUpdater};
 
     SliderAttachment 
         globalMixControlAttachment, decayControlAttachment, lowCutControlAttachment, highCutControlAttachment,
@@ -71,8 +73,8 @@ private:
         Rotary swapMinControl, swapMaxControl;
         SliderAttachment swapMinControlAttachment, swapMaxControlAttachment;
 
-        SwapControl(juce::AudioProcessorValueTreeState& apvts, int i)
-            : swapMinControl(), swapMaxControl(),
+        SwapControl(juce::AudioProcessorValueTreeState& apvts, juce::AnimatorUpdater& updater, int i)
+            : swapMinControl(updater), swapMaxControl(updater),
             swapMinControlAttachment(apvts, ParamID::irSwapMin(i), swapMinControl),
             swapMaxControlAttachment(apvts, ParamID::irSwapMax(i), swapMaxControl)
         {}

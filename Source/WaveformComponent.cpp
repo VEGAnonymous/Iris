@@ -40,16 +40,18 @@ void WaveformComponent::paint(juce::Graphics& g) {
 
         waveform.closeSubPath();
 
-        const float channelOpacity = (channel == 0) ? 0.0f : 0.2f;
-        g.setColour(color.withAlpha((active ? 1.0f : 0.25f) - channelOpacity));
+        const float waveformAlpha = juce::jmap(activeAnim.getAnimateAlpha(), 0.25f, 1.0f);
+        const float channelAlphaOffset = (channel == 0) ? 0.0f : 0.2f;
+        g.setColour(color.withAlpha(waveformAlpha - channelAlphaOffset));
         g.fillPath(waveform);
     }
 }
 
 /* PUBLIC */
 
-WaveformComponent::WaveformComponent() {
+WaveformComponent::WaveformComponent(juce::AnimatorUpdater& updater) : activeAnim(*this, updater, true, ACTIVE_ANIMATION_TIME_MS) {
     formatManager.registerBasicFormats(); // .wav, .aiff, .flac, .opus, .mp3
+    setBufferedToImage(true);
 }
 
 void WaveformComponent::setNumPoints(int nPoints) { 
@@ -78,7 +80,12 @@ void WaveformComponent::setColor(juce::Colour nColor) {
     repaint();
 }
 
-void WaveformComponent::setActive(bool nActive) { 
+void WaveformComponent::setActive(bool nActive, bool animate) { 
+    if (nActive != active && animate) {
+        if (nActive) activeAnim.animateIn();
+        else if (!nActive) activeAnim.animateOut();
+    } else activeAnim.setAnimateAlpha(nActive ? 1.0f : 0.25f);
+
     active = nActive;
-    repaint(); 
+    repaint();
 }
