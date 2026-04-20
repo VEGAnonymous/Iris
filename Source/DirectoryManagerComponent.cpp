@@ -55,7 +55,8 @@ juce::Component* DirectoryManagerComponent::refreshComponentForRow(int rowNumber
     if (rowNumber < static_cast<int>(directories.size())) {
         const auto& directory = directories[rowNumber];
 
-        juce::String path = formatPath(directory.irDirectory);
+        const int maxPathLength = 46;
+        juce::String path = formatPath(directory.irDirectory.getFullPathName(), maxPathLength, Ellipsis::FRONT);
         if (rowNumber == 0) path = "Factory IRs";
         directoryRow->update(path, directory.active);
 

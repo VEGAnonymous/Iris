@@ -27,7 +27,7 @@ IRHeaderComponent::IRHeaderComponent(juce::AnimatorUpdater& updater)
 void IRHeaderComponent::setSlot(int irIndex, const IRSlot& slot) {
     currentIndex = irIndex;
     currentIR = slot;
-    currentPath = slot.occupied ? formatPath(slot.file) : "-";
+    currentPath = slot.occupied ? formatPath(slot.file.getFileName(), 42, Ellipsis::MIDDLE) : "-";
     repaint();
 }
 

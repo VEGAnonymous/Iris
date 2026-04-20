@@ -5,10 +5,19 @@
 
 #include <JuceHeader.h>
 
-inline juce::String formatPath(juce::File path) { 
-    auto parent = path.getParentDirectory();
-    if (parent.isRoot()) return path.getFileName();
-    else return parent.getFileName() + "/" + path.getFileName();
+enum class Ellipsis { FRONT, BACK, MIDDLE };
+inline juce::String formatPath(juce::String path, int maxLength, Ellipsis ellipsis = Ellipsis::FRONT) {
+    if (path.length() > maxLength) {
+        switch (ellipsis) {
+            case Ellipsis::FRONT: return "..." + path.substring(path.length() - (maxLength - 3));
+            case Ellipsis::BACK: return path.substring(0, maxLength - 3) + "...";
+            case Ellipsis::MIDDLE: {
+                const int front = (maxLength - 3) / 2;
+                const int back = (maxLength - 3) - front;
+                return path.substring(0, front) + "..." + path.substring(path.length() - back);
+            }
+        }
+    } else return path;
 }
 
 inline float getIRAlpha(bool occupied, bool active) { return occupied ? (active ? 1.0f : 0.25f) : 0.0f; }
