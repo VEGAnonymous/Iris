@@ -4,6 +4,8 @@
 #include "IRSlotButton.h"
 #include "PluginProcessor.h"
 #include "PolarMapComponent.h"
+#include "Rotary.h"
+#include "RotaryLookAndFeel.h"
 #include "SettingsComponent.h"
 #include "WaveformComponent.h"
 
@@ -13,6 +15,9 @@ class MareverbAudioProcessorEditor  : public juce::AudioProcessorEditor,
     juce::AudioProcessorValueTreeState::Listener, juce::Timer {
 private:
     MareverbAudioProcessor& audioProcessor;
+
+    // Look and feel
+    RotaryLookAndFeel rotaryLookAndFeel;
 
     // Listeners and callbacks
     std::atomic<bool> positionPathChanged { false };
@@ -31,36 +36,30 @@ private:
 
     // Controls
     std::vector<ControlDef> controls { {
-        { &globalMixControl,       ControlGroup::GLOBAL },
-        { &decayControl,           ControlGroup::GLOBAL },
-        { &lowCutControl,          ControlGroup::GLOBAL },
-        { &highCutControl,         ControlGroup::GLOBAL },
-        { &weightingModeControl,   ControlGroup::INTERACTION },
-        { &strengthControl,        ControlGroup::INTERACTION },
-        { &spreadControl,          ControlGroup::INTERACTION },
-        { &positionPatternControl, ControlGroup::POSITION },
-        { &positionRateControl,    ControlGroup::POSITION },
-        { &positionModAControl,    ControlGroup::POSITION },
-        { &positionModBControl,    ControlGroup::POSITION },
-        { &fieldPatternControl,    ControlGroup::FIELD },
-        { &fieldRateControl,       ControlGroup::FIELD },
-        { &fieldModAControl,       ControlGroup::FIELD },
-        { &fieldModBControl,       ControlGroup::FIELD },
+        { &globalMixControl,       ControlGroup::GLOBAL, [&]() { globalMixControl.setLookAndFeel(&rotaryLookAndFeel); } },
+        { &decayControl,           ControlGroup::GLOBAL, [&]() { decayControl.setLookAndFeel(&rotaryLookAndFeel); } },
+        { &lowCutControl,          ControlGroup::GLOBAL, [&]() { lowCutControl.setLookAndFeel(&rotaryLookAndFeel); } },
+        { &highCutControl,         ControlGroup::GLOBAL, [&]() { highCutControl.setLookAndFeel(&rotaryLookAndFeel); } },
+        { &weightingModeControl,   ControlGroup::INTERACTION, []() {} },
+        { &strengthControl,        ControlGroup::INTERACTION, [&]() { strengthControl.setLookAndFeel(&rotaryLookAndFeel); } },
+        { &spreadControl,          ControlGroup::INTERACTION, [&]() { spreadControl.setLookAndFeel(&rotaryLookAndFeel); } },
+        { &positionPatternControl, ControlGroup::POSITION, []() {} },
+        { &positionRateControl,    ControlGroup::POSITION, [&]() { positionRateControl.setLookAndFeel(&rotaryLookAndFeel); } },
+        { &positionModAControl,    ControlGroup::POSITION, [&]() { positionModAControl.setLookAndFeel(&rotaryLookAndFeel); } },
+        { &positionModBControl,    ControlGroup::POSITION, [&]() { positionModBControl.setLookAndFeel(&rotaryLookAndFeel); } },
+        { &fieldPatternControl,    ControlGroup::FIELD, []() {} },
+        { &fieldRateControl,       ControlGroup::FIELD, [&]() { fieldRateControl.setLookAndFeel(&rotaryLookAndFeel); } },
+        { &fieldModAControl,       ControlGroup::FIELD, [&]() { fieldModAControl.setLookAndFeel(&rotaryLookAndFeel); } },
+        { &fieldModBControl,       ControlGroup::FIELD, [&]() { fieldModBControl.setLookAndFeel(&rotaryLookAndFeel); } },
     } };
 
     // Sliders
-    struct Rotary : juce::Slider {
-        Rotary() : juce::Slider (
-            juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag,
-            juce::Slider::TextEntryBoxPosition::NoTextBox
-        ) {}
-    };
 
     Rotary 
         globalMixControl, decayControl, lowCutControl, highCutControl,
         strengthControl, spreadControl,
-        positionRateControl, positionModAControl, positionModBControl,
-        fieldRateControl, fieldModAControl, fieldModBControl;
+        positionRateControl {true}, positionModAControl, positionModBControl,
+        fieldRateControl {true}, fieldModAControl, fieldModBControl;
 
     SliderAttachment 
         globalMixControlAttachment, decayControlAttachment, lowCutControlAttachment, highCutControlAttachment,

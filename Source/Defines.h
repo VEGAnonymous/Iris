@@ -24,6 +24,9 @@ static constexpr auto CONTROL_RATE = 40.0f;
 static constexpr auto SWAP_INTERVAL_MIN = 5.0f,
                       SWAP_INTERVAL_MAX = 60.0f;
 
+static constexpr auto WAVEFORM_PREVIEW_POINTS = 126,
+                      WAVEFORM_POINTS = 216;
+
 namespace ParamID {
     static constexpr auto 
         globalMix = "Global Mix",
@@ -143,6 +146,7 @@ enum class ControlGroup { GLOBAL, INTERACTION, POSITION, FIELD };
 struct ControlDef {
     juce::Component* component;
     ControlGroup group;
+    std::function<void()> applyLookAndFeel;
 };
 
 struct CartesianCoordinate { 

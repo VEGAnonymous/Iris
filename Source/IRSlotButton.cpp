@@ -1,5 +1,6 @@
 #include "IRSlotButton.h"
 #include "GUIUtilities.h"
+#include "Theme.h"
 
 /* PRIVATE */
 

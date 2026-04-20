@@ -2,6 +2,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "MotionController.h"
+#include "Theme.h"
 #include "Utilities.h"
 
 /* PRIVATE */
@@ -346,11 +347,18 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, i);
+        swapControls[i]->swapMinControl.setLookAndFeel(&rotaryLookAndFeel);
+        swapControls[i]->swapMaxControl.setLookAndFeel(&rotaryLookAndFeel);
+
         addChildComponent(swapControls[i]->swapMinControl);
         addChildComponent(swapControls[i]->swapMaxControl);
     }
 
-    for (auto& control : getControls()) addAndMakeVisible(control.component);
+    // Setup base controls 
+    for (auto& control : getControls()) {
+        control.applyLookAndFeel();
+        addAndMakeVisible(control.component);
+    }
 
     // Setup components
     initComponents();
@@ -359,7 +367,10 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     setSize(1046, 721);
 }
 
-MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() { 
+MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
+    // Detach look and feel
+    for (auto& control : getControls()) control.component->setLookAndFeel(nullptr);
+
     // Detach listeners
     for (const auto& id : paramIDs) audioProcessor.apvts.removeParameterListener(id, this);
 }

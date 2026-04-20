@@ -1,32 +1,9 @@
 #pragma once
 
 #include "Defines.h"
+#include "Theme.h"
 
 #include <JuceHeader.h>
-
-static constexpr auto
-    WAVEFORM_PREVIEW_POINTS = 126,
-    WAVEFORM_POINTS = 216;
-
-static const std::array<juce::Colour, MAX_IR_COUNT> IR_SLOT_COLORS{
-    juce::Colours::red,
-    juce::Colours::orange,
-    juce::Colours::yellow,
-    juce::Colours::green,
-    juce::Colours::cyan,
-    juce::Colours::blue,
-    juce::Colours::purple,
-    juce::Colours::hotpink
-};
-
-namespace Theme {
-    namespace Colors {
-        const auto
-            background = juce::Colour::fromRGB(22, 31, 38),
-            section = juce::Colour::fromRGB(36, 45, 54),
-            highlight = juce::Colour::fromRGB(147, 255, 219);
-    }
-}
 
 inline juce::String formatPath(juce::File path) { 
     auto parent = path.getParentDirectory();

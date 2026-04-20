@@ -26,6 +26,13 @@
         <FILE id="etOKfT" name="PolarMap.h" compile="0" resource="0" file="Source/PolarMap.h"/>
       </GROUP>
       <GROUP id="{0020543F-18A4-A177-2507-1186AC105CC3}" name="UI">
+        <GROUP id="{2713E190-9F5A-917D-FD16-DE7994196ECA}" name="Theme">
+          <FILE id="luuNEE" name="RotaryLookAndFeel.cpp" compile="1" resource="0"
+                file="Source/RotaryLookAndFeel.cpp"/>
+          <FILE id="NNq7Lm" name="RotaryLookAndFeel.h" compile="0" resource="0"
+                file="Source/RotaryLookAndFeel.h"/>
+          <FILE id="zNNZ6Y" name="Theme.h" compile="0" resource="0" file="Source/Theme.h"/>
+        </GROUP>
         <FILE id="zrFvt5" name="SettingsComponent.cpp" compile="1" resource="0"
               file="Source/SettingsComponent.cpp"/>
         <FILE id="xeOq7a" name="SettingsComponent.h" compile="0" resource="0"
@@ -48,9 +55,11 @@
                 resource="0" file="Source/DirectoryManagerComponent.cpp"/>
           <FILE id="tFKTOZ" name="DirectoryManagerComponent.h" compile="0" resource="0"
                 file="Source/DirectoryManagerComponent.h"/>
+          <FILE id="iE9yKo" name="Hoverable.h" compile="0" resource="0" file="Source/Hoverable.h"/>
           <FILE id="JplaSJ" name="IRSlotButton.cpp" compile="1" resource="0"
                 file="Source/IRSlotButton.cpp"/>
           <FILE id="dxx4ij" name="IRSlotButton.h" compile="0" resource="0" file="Source/IRSlotButton.h"/>
+          <FILE id="ks8tHp" name="Rotary.h" compile="0" resource="0" file="Source/Rotary.h"/>
         </GROUP>
       </GROUP>
       <GROUP id="{E15B03E3-A046-6FC1-8173-A3A3183E8AF2}" name="DSP">
