@@ -177,10 +177,12 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
 void MareverbAudioProcessorEditor::initComponents() {
     // Weighting mode toggle switch
-    weightingModeControl.setClickingTogglesState(true);
-    auto updateWeightingModeText = [this] { weightingModeControl.setButtonText(weightingModes[weightingModeControl.getToggleState()]); };
+    weightingModeControl.control.setClickingTogglesState(true);
+    auto updateWeightingModeText = [this] { 
+        weightingModeControl.control.setButtonText(weightingModes[weightingModeControl.control.getToggleState()]); 
+    };
     updateWeightingModeText();
-    weightingModeControl.onStateChange = updateWeightingModeText;
+    weightingModeControl.control.onStateChange = updateWeightingModeText;
 
     // Pattern combo boxes
     positionPatternControl.addItemList(positionPatterns, 1);
@@ -312,24 +314,24 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     polarMapComponent(audioProcessor),
 
-    globalMixControlAttachment(audioProcessor.apvts, ParamID::globalMix, globalMixControl),
-    decayControlAttachment(audioProcessor.apvts, ParamID::decay, decayControl),
-    lowCutControlAttachment(audioProcessor.apvts, ParamID::lowCut, lowCutControl),
-    highCutControlAttachment(audioProcessor.apvts, ParamID::highCut, highCutControl),
+    globalMixControlAttachment(audioProcessor.apvts, ParamID::globalMix, globalMixControl.control),
+    decayControlAttachment(audioProcessor.apvts, ParamID::decay, decayControl.control),
+    lowCutControlAttachment(audioProcessor.apvts, ParamID::lowCut, lowCutControl.control),
+    highCutControlAttachment(audioProcessor.apvts, ParamID::highCut, highCutControl.control),
 
-    weightingModeControlAttachment(audioProcessor.apvts, ParamID::weightingMode, weightingModeControl),
-    strengthControlAttachment(audioProcessor.apvts, ParamID::strength, strengthControl),
-    spreadControlAttachment(audioProcessor.apvts, ParamID::spread, spreadControl),
+    weightingModeControlAttachment(audioProcessor.apvts, ParamID::weightingMode, weightingModeControl.control),
+    strengthControlAttachment(audioProcessor.apvts, ParamID::strength, strengthControl.control),
+    spreadControlAttachment(audioProcessor.apvts, ParamID::spread, spreadControl.control),
 
     positionPatternControlAttachment(audioProcessor.apvts, ParamID::positionPattern, positionPatternControl),
-    positionRateControlAttachment(audioProcessor.apvts, ParamID::positionRate, positionRateControl),
-    positionModAControlAttachment(audioProcessor.apvts, ParamID::positionModA, positionModAControl),
-    positionModBControlAttachment(audioProcessor.apvts, ParamID::positionModB, positionModBControl),
+    positionRateControlAttachment(audioProcessor.apvts, ParamID::positionRate, positionRateControl.control),
+    positionModAControlAttachment(audioProcessor.apvts, ParamID::positionModA, positionModAControl.control),
+    positionModBControlAttachment(audioProcessor.apvts, ParamID::positionModB, positionModBControl.control),
 
     fieldPatternControlAttachment(audioProcessor.apvts, ParamID::fieldPattern, fieldPatternControl),
-    fieldRateControlAttachment(audioProcessor.apvts, ParamID::fieldRate, fieldRateControl),
-    fieldModAControlAttachment(audioProcessor.apvts, ParamID::fieldModA, fieldModAControl),
-    fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl),
+    fieldRateControlAttachment(audioProcessor.apvts, ParamID::fieldRate, fieldRateControl.control),
+    fieldModAControlAttachment(audioProcessor.apvts, ParamID::fieldModA, fieldModAControl.control),
+    fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl.control),
 
     irHeaderComponent(animatorUpdater, buttonLookAndFeel), irWaveformComponent(animatorUpdater) {
 
@@ -451,10 +453,13 @@ void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
 }
 
 void MareverbAudioProcessorEditor::resized() {
-    auto fillFlex = [this](juce::FlexBox& flex, ControlGroup group) {
+    auto fillFlex = [this](juce::FlexBox& flex, ControlGroup group, juce::FlexItem::Margin margin = 10.0f, float width = 60.0f, float height = 75.0f) {
         for (const auto& control : controls)
             if (control.group == group)
-                flex.items.add(juce::FlexItem(*control.component).withFlex(1.0f).withHeight(80).withMargin(10));
+                flex.items.add(juce::FlexItem(*control.component).withFlex(0.0f)
+                    .withWidth(width)
+                    .withHeight(height)
+                    .withMargin(margin));
         };
 
     Bounds totalBounds = getLocalBounds();
@@ -469,15 +474,20 @@ void MareverbAudioProcessorEditor::resized() {
     // Position + field controls
     Bounds& positionFieldControlsBounds = leftPanel; 
 
-    juce::FlexBox positionFieldTabs;
+    juce::FlexBox positionFieldTabs(juce::FlexBox::JustifyContent::center);
     positionFieldTabs.flexDirection = juce::FlexBox::Direction::column;
-    positionFieldTabs.items.add(juce::FlexItem(positionTabButton).withFlex(1.0f).withMargin(3));
-    positionFieldTabs.items.add(juce::FlexItem(fieldTabButton).withFlex(1.0f).withMargin(3));
-    positionFieldTabs.performLayout(positionFieldControlsBounds.removeFromLeft(static_cast<int>(positionFieldControlsBounds.getWidth() * 0.15f)));
+    positionFieldTabs.items.add(juce::FlexItem(positionTabButton).withFlex(1.0f).withMargin(juce::FlexItem::Margin(10.0f, 0.0f, 5.0f, 10.0f)));
+    positionFieldTabs.items.add(juce::FlexItem(fieldTabButton).withFlex(1.0f).withMargin(juce::FlexItem::Margin(5.0f, 0.0f, 10.0f, 10.0f)));
+    positionFieldTabs.performLayout(positionFieldControlsBounds.removeFromLeft(static_cast<int>(positionFieldControlsBounds.getWidth() * 0.175f)));
 
-    juce::FlexBox positionControlRow, fieldControlRow;
-    fillFlex(positionControlRow, ControlGroup::POSITION);
-    fillFlex(fieldControlRow, ControlGroup::FIELD);
+    juce::FlexBox positionControlRow(juce::FlexBox::JustifyContent::center);
+    juce::FlexBox fieldControlRow(juce::FlexBox::JustifyContent::center);
+    positionControlRow.alignItems = juce::FlexBox::AlignItems::center;
+    fieldControlRow.alignItems = juce::FlexBox::AlignItems::center;
+
+    fillFlex(positionControlRow, ControlGroup::POSITION, juce::FlexItem::Margin(10.0f, 30.0f, 10.0f, 30.0f), 68.0f, 80.0f);
+    fillFlex(fieldControlRow, ControlGroup::FIELD, juce::FlexItem::Margin(10.0f, 30.0f, 10.0f, 30.0f), 68.0f, 80.0f);
+
     positionControlRow.performLayout(positionFieldControlsBounds);
     fieldControlRow.performLayout(positionFieldControlsBounds);
 
@@ -539,15 +549,17 @@ void MareverbAudioProcessorEditor::resized() {
 
     // Interaction controls
     Bounds interactionControlsBounds = rightPanel.removeFromTop(100); 
-    juce::FlexBox interactionControlRow;
-    fillFlex(interactionControlRow, ControlGroup::INTERACTION);
+    juce::FlexBox interactionControlRow(juce::FlexBox::JustifyContent::center);
+    interactionControlRow.alignItems = juce::FlexBox::AlignItems::center;
+    fillFlex(interactionControlRow, ControlGroup::INTERACTION, juce::FlexItem::Margin(10.0f, 30.0f, 10.0f, 30.0f), 68.0f, 80.0f);
     interactionControlRow.performLayout(interactionControlsBounds);
 
     // Global controls
     Bounds globalControlsBounds = rightPanel.removeFromTop(100);
-    juce::FlexBox globalControlRow;
-    fillFlex(globalControlRow, ControlGroup::GLOBAL);
-    globalControlRow.performLayout(globalControlsBounds.removeFromLeft(static_cast<int>(globalControlsBounds.getWidth() * 0.8f)));
+    juce::FlexBox globalControlRow(juce::FlexBox::JustifyContent::center);
+    globalControlRow.alignItems = juce::FlexBox::AlignItems::center;
+    fillFlex(globalControlRow, ControlGroup::GLOBAL, juce::FlexItem::Margin(10.0f, 20.0f, 10.0f, 20.0f), 68.0f, 80.0f);
+    globalControlRow.performLayout(globalControlsBounds);
 
 }
 

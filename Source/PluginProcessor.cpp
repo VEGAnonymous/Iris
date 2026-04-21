@@ -9,12 +9,12 @@
 juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::createParameterLayout() {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::globalMix, "Global Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::globalMix, "Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::decay, "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::lowCut, "Low Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20.0f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::highCut, "High Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20000.0f));
 
-    layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::weightingMode, "Weighting Mode", weightingModes, static_cast<int>(WeightingMode::ABSOLUTE)));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::weightingMode, "Weighting", weightingModes, static_cast<int>(WeightingMode::WEIGHTING_ABSOLUTE)));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::strength, "Strength", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::spread, "Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 1.0f));
 
@@ -26,15 +26,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
         layout.add(std::make_unique<juce::AudioParameterFloat>(maxID, maxID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 0.0f));
     }
 
-    layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::positionPattern, "Position Pattern", positionPatterns, static_cast<int>(PositionPattern::LISSAJOUS)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Position Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModA, "Position Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModB, "Position Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::positionPattern, "Pattern", positionPatterns, static_cast<int>(PositionPattern::LISSAJOUS)));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModA, "Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModB, "Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
     
-    layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::fieldPattern, "Field Pattern", fieldPatterns, static_cast<int>(FieldPattern::RING)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Field Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModA, "Field Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModB, "Field Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::fieldPattern, "Pattern", fieldPatterns, static_cast<int>(FieldPattern::RING)));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModA, "Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModB, "Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
 
     return layout;
 }

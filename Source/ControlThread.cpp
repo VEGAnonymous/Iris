@@ -53,12 +53,12 @@ void ControlThread::updateWeights() {
 
     // Compute inverse-distance weights
     auto relatives = polarMap.getRelatives();
-    if (weightingMode == WeightingMode::RELATIVE) {
+    if (weightingMode == WeightingMode::WEIGHTING_RELATIVE) {
         for (int ir = 0; ir < MAX_IR_COUNT; ++ir) distanceWeights[ir] = 1.0f / powf(relatives[ir].r + EPSILON, distanceFactor);
         float sum = std::accumulate(distanceWeights.begin(), distanceWeights.end(), 0.0f);
         if (sum > 0.0f) for (int ir = 0; ir < MAX_IR_COUNT; ++ir) distanceWeights[ir] /= sum; // Normalize weights sum to 1
     }
-    else { // WeightingMode::ABSOLUTE
+    else { // WeightingMode::WEIGHTING_ABSOLUTE
         for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
             float d = std::max(relatives[ir].r, minDistance);
             distanceWeights[ir] = ((1.0f / (d * d)) / maxWeight) * trim;

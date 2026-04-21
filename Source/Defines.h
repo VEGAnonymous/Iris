@@ -135,7 +135,7 @@ using SpectraData =
     N_CHANNELS>;
 
 // Enums
-enum class WeightingMode { ABSOLUTE, RELATIVE };
+enum class WeightingMode { WEIGHTING_ABSOLUTE, WEIGHTING_RELATIVE };
 
 enum class Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
 enum class PositionPattern { MANUAL, ORBIT, SPIRAL, LISSAJOUS, FLORAL, RANDOM_DISCRETE, RANDOM_WALK };

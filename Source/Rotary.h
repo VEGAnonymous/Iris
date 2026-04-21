@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AnimatedAlpha.h"
+
 #include <JuceHeader.h>
 
 class Rotary : public juce::Slider {
