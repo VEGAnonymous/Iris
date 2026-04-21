@@ -18,8 +18,8 @@ public:
 
     ~Rotary() override = default;
 
-    void mouseEnter(const juce::MouseEvent&) override { hoverAnim.animateIn(); }
-    void mouseExit(const juce::MouseEvent&) override { hoverAnim.animateOut(); }
+    void mouseEnter(const juce::MouseEvent&) override { hoverAnim.setAlpha(1.0f); }
+    void mouseExit(const juce::MouseEvent&) override { hoverAnim.setAlpha(0.0f); }
 
     bool hitTest(int x, int y) override {
         // Constrain mouse event region to the knob area
@@ -32,5 +32,5 @@ public:
     void setBipolar(bool nBipolar) { bipolar = nBipolar; }
     bool isBipolar() const { return bipolar; }
 
-    float getHoverAlpha() const { return hoverAnim.getAnimateAlpha(); }
+    float getHoverAlpha() const { return hoverAnim.getAlpha(); }
 };

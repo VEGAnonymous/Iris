@@ -18,7 +18,7 @@ void IRHeaderComponent::mouseDown(const juce::MouseEvent& e) {
 /* PUBLIC */
 
 IRHeaderComponent::IRHeaderComponent(juce::AnimatorUpdater& updater) 
-    : indicatorActiveAnim(*this, updater, true, ACTIVE_ANIMATION_TIME_MS) {
+    : indicatorActiveAnim(*this, updater, ACTIVE_ANIMATION_TIME_MS) {
     setBufferedToImage(true);
 }
 
@@ -34,10 +34,8 @@ void IRHeaderComponent::setSlot(int irIndex, const IRSlot& slot) {
 }
 
 void IRHeaderComponent::setActive(bool nActive, bool animate) {
-    if (currentIR.active != nActive && animate) {
-        if (nActive) indicatorActiveAnim.animateIn();
-        else indicatorActiveAnim.animateOut();
-    } else indicatorActiveAnim.setAnimateAlpha(nActive ? 1.0f : 0.0f);
+    if (nActive) indicatorActiveAnim.setAlpha(1.0f, animate);
+    else indicatorActiveAnim.setAlpha(0.0f, animate);
 
     currentIR.active = nActive;
     repaint();
@@ -50,7 +48,7 @@ void IRHeaderComponent::paint(juce::Graphics& g) {
     const float indicatorX = bounds.getX() + 14.0f;
     const float indicatorY = bounds.getCentreY();
 
-    float activeAlpha = indicatorActiveAnim.getAnimateAlpha();
+    float activeAlpha = indicatorActiveAnim.getAlpha();
     float indicatorAlpha = juce::jmap(activeAlpha, currentIR.occupied ? 0.35f : 0.1f, currentIR.occupied ? 1.0f : 0.2f);
 
     Paint::irIndicator(g, {indicatorX, indicatorY}, indicatorRadius, currentIndex, currentIR.occupied, currentIR.active, indicatorAlpha);

@@ -14,7 +14,7 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
 
     // Background
     g.setColour(selected ? juce::Colours::white.withAlpha(0.1f)
-          : juce::Colours::white.withAlpha(0.05f).interpolatedWith(juce::Colours::transparentBlack, hoverAnim.getAnimateAlpha()));
+          : juce::Colours::white.withAlpha(0.05f).interpolatedWith(juce::Colours::transparentBlack, hoverAnim.getAlpha()));
     g.fillRoundedRectangle(bounds, 3.0f);
 
     // Selection ring
@@ -25,7 +25,7 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
     const float indicatorX = bounds.getX() + 6.0f;
     const float indicatorY = bounds.getY() + 6.0f;
 
-    float activeAlpha = indicatorActiveAnim.getAnimateAlpha();
+    float activeAlpha = indicatorActiveAnim.getAlpha();
     float indicatorAlpha = juce::jmap(activeAlpha, occupied ? 0.35f : 0.1f, occupied ? 1.0f : 0.2f);
 
     Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius, irIndex, occupied, active, indicatorAlpha);
@@ -36,8 +36,8 @@ void IRSlotButton::resized() {
     waveformPreview.setBounds(bounds);
 }
 
-void IRSlotButton::mouseEnter(const juce::MouseEvent& /*e*/) { hoverAnim.animateIn(); }
-void IRSlotButton::mouseExit(const juce::MouseEvent& /*e*/) { hoverAnim.animateOut(); }
+void IRSlotButton::mouseEnter(const juce::MouseEvent& /*e*/) { hoverAnim.setAlpha(1.0f); }
+void IRSlotButton::mouseExit(const juce::MouseEvent& /*e*/) { hoverAnim.setAlpha(0.0f); }
 void IRSlotButton::mouseDown(const juce::MouseEvent& e) {
     // Check if clicked on indicator
     auto indicatorBounds = getIndicatorBounds(getLocalBounds(), indicatorRadius + 1.0f);
@@ -55,7 +55,7 @@ BoundsF IRSlotButton::getIndicatorBounds(Bounds bounds, const float radius) cons
 /* PUBLIC */
 
 IRSlotButton::IRSlotButton(int index, juce::AnimatorUpdater& updater) : 
-    hoverAnim(*this, updater), indicatorActiveAnim(*this, updater, true, ACTIVE_ANIMATION_TIME_MS),
+    hoverAnim(*this, updater), indicatorActiveAnim(*this, updater, ACTIVE_ANIMATION_TIME_MS),
     waveformPreview(updater),
     juce::Button("IR " + juce::String(index)), irIndex(index) {
     waveformPreview.setDimensions(8.0f, 8.0f, -8.0f, 0.4f);
@@ -79,10 +79,8 @@ void IRSlotButton::setOccupied(bool nOccupied) {
 }
 
 void IRSlotButton::setActive(bool nActive) {
-    if (nActive != active) {
-        if (nActive) indicatorActiveAnim.animateIn();
-        else indicatorActiveAnim.animateOut();
-    } else indicatorActiveAnim.setAnimateAlpha(nActive ? 1.0f : 0.0f);
+    if (nActive) indicatorActiveAnim.setAlpha(1.0f);
+    else indicatorActiveAnim.setAlpha(0.0f);
 
     active = nActive;
     waveformPreview.setActive(nActive, true);

@@ -40,7 +40,7 @@ void WaveformComponent::paint(juce::Graphics& g) {
 
         waveform.closeSubPath();
 
-        const float waveformAlpha = juce::jmap(activeAnim.getAnimateAlpha(), 0.25f, 1.0f);
+        const float waveformAlpha = juce::jmap(activeAnim.getAlpha(), 0.25f, 1.0f);
         const float channelAlphaOffset = (channel == 0) ? 0.0f : 0.2f;
         g.setColour(color.withAlpha(waveformAlpha - channelAlphaOffset));
         g.fillPath(waveform);
@@ -49,7 +49,7 @@ void WaveformComponent::paint(juce::Graphics& g) {
 
 /* PUBLIC */
 
-WaveformComponent::WaveformComponent(juce::AnimatorUpdater& updater) : activeAnim(*this, updater, true, ACTIVE_ANIMATION_TIME_MS) {
+WaveformComponent::WaveformComponent(juce::AnimatorUpdater& updater) : activeAnim(*this, updater, ACTIVE_ANIMATION_TIME_MS) {
     formatManager.registerBasicFormats(); // .wav, .aiff, .flac, .opus, .mp3
     setBufferedToImage(true);
 }
@@ -81,10 +81,8 @@ void WaveformComponent::setColor(juce::Colour nColor) {
 }
 
 void WaveformComponent::setActive(bool nActive, bool animate) { 
-    if (nActive != active && animate) {
-        if (nActive) activeAnim.animateIn();
-        else if (!nActive) activeAnim.animateOut();
-    } else activeAnim.setAnimateAlpha(nActive ? 1.0f : 0.25f);
+    if (nActive) activeAnim.setAlpha(1.0f, animate);
+    else activeAnim.setAlpha(0.0f, animate);
 
     active = nActive;
     repaint();

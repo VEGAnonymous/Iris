@@ -10,23 +10,23 @@ private:
     AnimatedAlpha hoverAnim;
 
 public:
-    HoverableTextButton(juce::AnimatorUpdater& updater) : juce::TextButton(), hoverAnim(*this, updater, true) {}
+    HoverableTextButton(juce::AnimatorUpdater& updater) : juce::TextButton(), hoverAnim(*this, updater) {}
     ~HoverableTextButton() override = default;
 
-    void mouseEnter(const juce::MouseEvent& /*e*/) override { hoverAnim.animateIn(); }
-    void mouseExit(const juce::MouseEvent& /*e*/) override { hoverAnim.animateOut(); }
+    void mouseEnter(const juce::MouseEvent& /*e*/) override { hoverAnim.setAlpha(1.0f); }
+    void mouseExit(const juce::MouseEvent& /*e*/) override { hoverAnim.setAlpha(0.0f); }
 
     void mouseDown(const juce::MouseEvent& e) override { 
         juce::TextButton::mouseDown(e);
-        hoverAnim.animateOut();
+        hoverAnim.setAlpha(0.0f);
     }
 
     void mouseUp(const juce::MouseEvent& e) override { 
         juce::TextButton::mouseUp(e);
-        hoverAnim.animateIn(); 
+        hoverAnim.setAlpha(1.0f); 
     }
 
-    float getHoverAlpha() const { return hoverAnim.getAnimateAlpha(); }
+    float getHoverAlpha() const { return hoverAnim.getAlpha(); }
 
     void paintButton(juce::Graphics& g, bool isMouseOver, bool isButtonDown) override {
         auto bounds = getLocalBounds();

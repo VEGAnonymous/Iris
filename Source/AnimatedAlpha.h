@@ -4,53 +4,26 @@
 
 class AnimatedAlpha {
 private:
-    float animateAlpha = 0.0f;
-    bool holdState = false;
+    float currentAlpha = 0.0f;
+    float targetAlpha = 0.0f;
 
     juce::AnimatorUpdater& animationUpdater;
-    std::unique_ptr<juce::Animator> animatorIn, animatorOut;
+    std::unique_ptr<juce::Animator> animator;
 
 public:
-    AnimatedAlpha(juce::Component& base, juce::AnimatorUpdater& updater, bool hold = false, int animateTimeMs = 75)
-        : animationUpdater(updater), holdState(hold) {
+    AnimatedAlpha(juce::Component& base, juce::AnimatorUpdater& updater, int animateTimeMs = 75) : animationUpdater(updater) {
         juce::Component::SafePointer<juce::Component> basePtr(&base);
-        animatorIn = std::make_unique<juce::Animator>(juce::ValueAnimatorBuilder{}
+        animator = std::make_unique<juce::Animator>(juce::ValueAnimatorBuilder{}
             .withDurationMs(animateTimeMs)
             .withEasing(juce::Easings::createEaseIn())
-            .withValueChangedCallback([basePtr, this](float value) {
-                if (basePtr) {
-                    animateAlpha = value;
-                    basePtr->repaint();
-
-                    if (animatorIn->isComplete()) {
-                        if (!basePtr->isMouseOver(true) && !holdState) {
-                            animateOut();
-                            return;
-                        }
-                    }
-                }
+            .withValueChangedCallback([this, basePtr](float value) {
+                if (!basePtr) return;
+                currentAlpha = juce::jmap(value, currentAlpha, targetAlpha);
+                basePtr->repaint();
             })
             .build());
 
-        animatorOut = std::make_unique<juce::Animator>(juce::ValueAnimatorBuilder{}
-            .withDurationMs(animateTimeMs)
-            .withEasing(juce::Easings::createEaseIn())
-            .withValueChangedCallback([basePtr, this](float value) {
-                if (basePtr) {
-                    animateAlpha = 1.0f - value;
-                    basePtr->repaint();
-                    if (animatorOut->isComplete()) {
-                        if (basePtr->isMouseOver(true) && !holdState) {
-                            animateIn();
-                            return;
-                        }
-                    }
-                }
-            })
-            .build());
-
-        animationUpdater.addAnimator(*animatorIn);
-        animationUpdater.addAnimator(*animatorOut);
+        animationUpdater.addAnimator(*animator);
     }
 
     /* // Causes an assertion failure for some reason
@@ -60,9 +33,19 @@ public:
     }
     */
 
-    void animateIn() { if (animatorIn) animatorIn->start(); }
-    void animateOut() { if (animatorOut) animatorOut->start(); }
+    void setAlpha(float nAlpha, bool animate = true) { 
+        nAlpha = juce::jlimit(0.0f, 1.0f, nAlpha);
+        if (!animate) {
+            currentAlpha = nAlpha; 
+            return;
+        }
 
-    void setAnimateAlpha(float nAlpha) { animateAlpha = juce::jlimit(0.0f, 1.0f, nAlpha); } // Override animation
-    float getAnimateAlpha() const { return animateAlpha; }
+        if (animator) {
+            if (nAlpha == targetAlpha) return;
+            targetAlpha = nAlpha;
+            animator->start();
+        }
+    }
+
+    float getAlpha() const { return currentAlpha; }
 };
