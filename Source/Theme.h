@@ -27,6 +27,14 @@ namespace Theme {
             auto fontOptions = options.withStyle("").withTypeface(typeface);
             return juce::Font(juce::Font(fontOptions));
         }
+        inline const juce::Font getEquestriaBoldFont(juce::FontOptions options = juce::FontOptions()) {
+            static auto typeface = juce::Typeface::createSystemTypefaceFor(
+                MareverbFonts::Equestria_Bold_otf,
+                MareverbFonts::Equestria_Bold_otfSize
+            ); jassert(typeface);
+            auto fontOptions = options.withStyle("").withTypeface(typeface);
+            return juce::Font(juce::Font(fontOptions));
+        }
     }
 }
 

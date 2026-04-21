@@ -14,7 +14,7 @@ struct ParameterSettings {
 
     ParameterSettings() : globalMix(0.5f), decay(0.5f), lowCut(20.0f), highCut(20000.0f),
 
-        weightingMode(WeightingMode::ABSOLUTE), strength(0.5f), spread(1.0f),
+        weightingMode(WeightingMode::WEIGHTING_ABSOLUTE), strength(0.5f), spread(1.0f),
 
         positionPattern(PositionPattern::LISSAJOUS),
         positionRate(0.0f), positionModA(0.5f), positionModB(0.5f),

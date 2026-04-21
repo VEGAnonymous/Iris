@@ -222,10 +222,10 @@ void MareverbAudioProcessorEditor::initComponents() {
     selectPositionTab();
 
     // Randomize / clear all buttons
-    randomAllButton.setButtonText("Random All");
+    randomAllButton.setButtonText("RANDOM ALL");
     randomAllButton.onClick = [this]() { audioProcessor.getIRManager()->loadRandomIRs(); };
 
-    clearAllButton.setButtonText("Clear All");
+    clearAllButton.setButtonText("CLEAR ALL");
     clearAllButton.onClick = [this]() { audioProcessor.getIRManager()->clearIRs(); };
 
     // Settings modal
@@ -272,16 +272,6 @@ void MareverbAudioProcessorEditor::initComponents() {
         irSlotButtons[selectedIR]->setToggleState(true, juce::dontSendNotification);
 
     // Selected IR header
-    irHeaderComponent.onClear = [this]() {
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        if (validateIRIndex(selectedIR)) {
-            audioProcessor.getIRManager()->clearIR(selectedIR);
-
-            const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
-            irHeaderComponent.setSlot(selectedIR, slot);
-        }
-    };
-
     irHeaderComponent.onActiveToggle = [this](bool active) {
         audioProcessor.getIRManager()->setIRActive(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), active);
         audioProcessor.guiState.updateField.store(true, std::memory_order_release);
@@ -292,14 +282,21 @@ void MareverbAudioProcessorEditor::initComponents() {
     irWaveformComponent.setColor(Theme::Colors::highlight);
 
     // Selected IR controls
-    loadIRButton.setButtonText("Load");
+    loadIRButton.setButtonText("LOAD");
     loadIRButton.onClick = [this]() { 
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
             audioProcessor.getIRManager()->chooseIR(selectedIR);
     };
 
-    randomIRButton.setButtonText("Random");
+    clearIRButton.setButtonText("CLEAR");
+    clearIRButton.onClick = [this]() {
+        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        if (validateIRIndex(selectedIR))
+            audioProcessor.getIRManager()->clearIR(selectedIR);
+    };
+
+    randomIRButton.setButtonText("RANDOM");
     randomIRButton.onClick = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
@@ -333,7 +330,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     fieldModAControlAttachment(audioProcessor.apvts, ParamID::fieldModA, fieldModAControl.control),
     fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl.control),
 
-    irHeaderComponent(animatorUpdater, buttonLookAndFeel), irWaveformComponent(animatorUpdater) {
+    irHeaderComponent(animatorUpdater), irWaveformComponent(animatorUpdater) {
 
     // Attach listeners
     for (const auto& id : paramIDs) audioProcessor.apvts.addParameterListener(id, this);
@@ -364,8 +361,10 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     addAndMakeVisible(irWaveformComponent);
 
     loadIRButton.setLookAndFeel(&buttonLookAndFeel);
+    clearIRButton.setLookAndFeel(&buttonLookAndFeel);
     randomIRButton.setLookAndFeel(&buttonLookAndFeel);
     addAndMakeVisible(loadIRButton);
+    addAndMakeVisible(clearIRButton);
     addAndMakeVisible(randomIRButton);
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
@@ -496,17 +495,18 @@ void MareverbAudioProcessorEditor::resized() {
 
     // Top bar
     Bounds topBarBounds = rightPanel.removeFromTop(81); 
-    juce::FlexBox topBarRow;
-    topBarRow.alignItems = juce::FlexBox::AlignItems::center;
     const auto topBarWidth = topBarBounds.getWidth(), topBarHeight = topBarBounds.getHeight();
+
+    juce::FlexBox topBarRow(juce::FlexBox::JustifyContent::flexStart);
+    topBarRow.alignItems = juce::FlexBox::AlignItems::center;
     
-    juce::FlexBox globalIROperations;
+    juce::FlexBox globalIROperations(juce::FlexBox::JustifyContent::center);
     globalIROperations.flexDirection = juce::FlexBox::Direction::column;
     globalIROperations.items.add(juce::FlexItem(randomAllButton).withFlex(1.0f));
     globalIROperations.items.add(juce::FlexItem(clearAllButton).withFlex(1.0f));
 
-    topBarRow.items.add(juce::FlexItem(globalIROperations).withFlex(1.0f).withWidth(topBarWidth * 0.25f).withHeight(topBarHeight * 0.8f).withMargin(10));
-    topBarRow.items.add(juce::FlexItem(settingsButton).withFlex(1.0f).withWidth(topBarWidth * 0.075f).withHeight(topBarHeight * 0.6f));
+    topBarRow.items.add(juce::FlexItem(globalIROperations).withFlex(0.0f).withWidth(topBarWidth * 0.15f).withHeight(topBarHeight * 0.8f).withMargin(22.5f));
+    topBarRow.items.add(juce::FlexItem(settingsButton).withFlex(0.0f).withWidth(topBarWidth * 0.075f).withHeight(topBarHeight * 0.6f));
 
     topBarRow.performLayout(topBarBounds.removeFromLeft(static_cast<int>(topBarWidth * 0.4f)));
 
@@ -531,19 +531,23 @@ void MareverbAudioProcessorEditor::resized() {
     Bounds irControlsBounds = rightPanel.removeFromTop(100);
     const auto irControlsWidth = irControlsBounds.getWidth(), irControlsHeight = irControlsBounds.getHeight();
 
-    juce::FlexBox irControlRow;
+    juce::FlexBox irControlRow(juce::FlexBox::JustifyContent::flexStart);
     irControlRow.alignItems = juce::FlexBox::AlignItems::center;
-    irControlRow.alignContent = juce::FlexBox::AlignContent::flexStart;
-    irControlRow.items.add(juce::FlexItem(loadIRButton).withFlex(1.0f).withHeight(irControlsHeight * 0.7f).withMargin(10));
-    irControlRow.items.add(juce::FlexItem(randomIRButton).withFlex(1.0f).withHeight(irControlsHeight * 0.7f).withMargin(10));
+
+    juce::FlexBox irControlColumn(juce::FlexBox::JustifyContent::center);
+    irControlColumn.flexDirection = juce::FlexBox::Direction::column;
+    irControlColumn.items.add(juce::FlexItem(loadIRButton).withFlex(1.0f).withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 3.0f, 0.0f)));
+    irControlColumn.items.add(juce::FlexItem(clearIRButton).withFlex(1.0f).withMargin(juce::FlexItem::Margin(3.0f, 0.0f, 0.0f, 0.0f)));
+
+    irControlRow.items.add(juce::FlexItem(irControlColumn).withFlex(0.0f).withWidth(irControlsWidth * 0.15f).withHeight(irControlsHeight * 0.75f).withMargin(22.5f));
+    irControlRow.items.add(juce::FlexItem(randomIRButton).withFlex(0.0f).withWidth(irControlsWidth * 0.25f).withHeight(irControlsHeight * 0.5f).withMargin(juce::FlexItem::Margin(10.0f, 15.0f, 10.0f, 10.0f)));
     irControlRow.performLayout(irControlsBounds.removeFromLeft(static_cast<int>(irControlsWidth * 0.6f)));
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        juce::FlexBox swapControlsRow;
+        juce::FlexBox swapControlsRow(juce::FlexBox::JustifyContent::center);
         swapControlsRow.alignItems = juce::FlexBox::AlignItems::center;
-        swapControlsRow.alignContent = juce::FlexBox::AlignContent::flexEnd;
-        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMinControl).withFlex(1.0f).withHeight(irControlsHeight * 0.7f).withMargin(5));
-        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMaxControl).withFlex(1.0f).withHeight(irControlsHeight * 0.7f).withMargin(5));
+        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMinControl).withFlex(1.0f).withWidth(60.0f).withHeight(70.0f).withMargin(10));
+        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMaxControl).withFlex(1.0f).withWidth(60.0f).withHeight(70.0f).withMargin(10));
         swapControlsRow.performLayout(irControlsBounds);
     }
 

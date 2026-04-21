@@ -17,21 +17,19 @@ void IRHeaderComponent::mouseDown(const juce::MouseEvent& e) {
 
 /* PUBLIC */
 
-IRHeaderComponent::IRHeaderComponent(juce::AnimatorUpdater& updater, ButtonLookAndFeel& buttonLookAndFeel) 
-    : indicatorActiveAnim(*this, updater, true, ACTIVE_ANIMATION_TIME_MS), clearButton(updater) {
-    clearButton.setLookAndFeel(&buttonLookAndFeel);
-    clearButton.setButtonText("Clear");
-    addAndMakeVisible(clearButton);
-    clearButton.onClick = [this]() { if (onClear) onClear(); };
+IRHeaderComponent::IRHeaderComponent(juce::AnimatorUpdater& updater) 
+    : indicatorActiveAnim(*this, updater, true, ACTIVE_ANIMATION_TIME_MS) {
     setBufferedToImage(true);
 }
-
-IRHeaderComponent::~IRHeaderComponent() { clearButton.setLookAndFeel(nullptr); }
 
 void IRHeaderComponent::setSlot(int irIndex, const IRSlot& slot) {
     currentIndex = irIndex;
     currentIR = slot;
-    currentPath = slot.occupied ? formatPath(slot.file.getFileName(), 42, Ellipsis::MIDDLE) : "-";
+
+    const auto parent = slot.file.getParentDirectory();
+    const auto parentPath = formatPath(parent.getFileName(), 25, Ellipsis::FRONT);
+    auto fullPath = parentPath + "/" + formatPath(slot.file.getFileName(), 100 - parentPath.length(), Ellipsis::MIDDLE);
+    currentPath = slot.occupied ? fullPath : "---";
     repaint();
 }
 
@@ -61,20 +59,15 @@ void IRHeaderComponent::paint(juce::Graphics& g) {
     const float labelX = (indicatorX + indicatorRadius) + 12.0f;
     const float labelWidth = 36.0f;
     g.setColour(juce::Colours::white);
-    g.setFont(juce::Font(juce::FontOptions{14.0f, juce::Font::bold}));
+    g.setFont(Theme::Fonts::getEquestriaBoldFont(juce::FontOptions().withHeight(14.0f)));
     g.drawText("IR " + juce::String(currentIndex), 
         BoundsF(labelX, 0, labelWidth, bounds.getHeight()), juce::Justification::centredLeft);
 
     // Filepath
     const float pathX = (labelX + labelWidth) + 16.0f;
-    const float pathWidth = (bounds.getWidth() - pathX) - (clearButton.getWidth() + 32.0f);
+    const float pathWidth = bounds.getWidth() - pathX - 10.0f;
     g.setColour(juce::Colours::lightgrey);
-    g.setFont(juce::Font(juce::FontOptions{12.0f, juce::Font::bold}));
+    g.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions().withHeight(12.0f)));
     g.drawFittedText(currentPath, 
         BoundsF(pathX, 0, pathWidth, bounds.getHeight()).toNearestInt(), juce::Justification::centredLeft, 1, 1.0f);
-}
-
-void IRHeaderComponent::resized() {
-    const int clearButtonWidth = 54;
-    clearButton.setBounds(getWidth() - clearButtonWidth - 8, (getHeight() - 22) / 2, clearButtonWidth, 22);
 }

@@ -108,7 +108,7 @@ private:
 
     std::array<std::unique_ptr<IRSlotButton>, MAX_IR_COUNT> irSlotButtons;
 
-    HoverableTextButton loadIRButton {animatorUpdater}, randomIRButton {animatorUpdater};
+    HoverableTextButton loadIRButton {animatorUpdater}, clearIRButton {animatorUpdater}, randomIRButton {animatorUpdater};
 
     HoverableTextButton settingsButton {animatorUpdater};
 
