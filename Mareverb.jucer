@@ -26,6 +26,10 @@
         <FILE id="etOKfT" name="PolarMap.h" compile="0" resource="0" file="Source/PolarMap.h"/>
       </GROUP>
       <GROUP id="{0020543F-18A4-A177-2507-1186AC105CC3}" name="UI">
+        <FILE id="twFd95" name="WindowOverlayComponent.cpp" compile="1" resource="0"
+              file="Source/WindowOverlayComponent.cpp"/>
+        <FILE id="rHAUyc" name="WindowOverlayComponent.h" compile="0" resource="0"
+              file="Source/WindowOverlayComponent.h"/>
         <GROUP id="{2713E190-9F5A-917D-FD16-DE7994196ECA}" name="Theme">
           <FILE id="r2Ba1I" name="ButtonLookAndFeel.cpp" compile="1" resource="0"
                 file="Source/ButtonLookAndFeel.cpp"/>

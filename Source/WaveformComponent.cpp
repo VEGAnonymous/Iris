@@ -6,7 +6,7 @@ void WaveformComponent::paint(juce::Graphics& g) {
     if (thumbnail.getNumChannels() == 0) return;
     if (numPoints <= 0) return;
 
-    auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+    auto bounds = getLocalBounds().toFloat();
     const float waveformX = bounds.getX() + offsetX;
     const float waveformY = bounds.getCentreY() + offsetY;
     const float waveformWidth = bounds.getRight() - waveformX + offsetWidth;
@@ -41,7 +41,7 @@ void WaveformComponent::paint(juce::Graphics& g) {
         waveform.closeSubPath();
 
         const float waveformAlpha = juce::jmap(activeAnim.getAlpha(), 0.25f, 1.0f);
-        const float channelAlphaOffset = (channel == 0) ? 0.0f : 0.2f;
+        const float channelAlphaOffset = (channel == 0) ? 0.0f : 0.3f;
         g.setColour(color.withAlpha(waveformAlpha - channelAlphaOffset));
         g.fillPath(waveform);
     }

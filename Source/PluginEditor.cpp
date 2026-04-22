@@ -41,30 +41,6 @@ void MareverbAudioProcessorEditor::timerCallback() {
         // DBG("Passed coordinates to map");
     }
 
-    auto updateIRSlot = [this](bool animate = false) {
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        // DBG("Selected IR " << selectedIR);
-        if (validateIRIndex(selectedIR)) {
-            const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
-            irHeaderComponent.setActive(slot.active, animate);
-            irHeaderComponent.setSlot(selectedIR, slot);
-
-            irWaveformComponent.setNumPoints(WAVEFORM_POINTS);
-            irWaveformComponent.setWaveform(&slot.buffer, audioProcessor.getSampleRate());
-            irWaveformComponent.setActive(slot.active, animate);
-            
-            for (int i = 0; i < MAX_IR_COUNT; ++i) {
-                if (irSlotButtons[i]) 
-                    irSlotButtons[i]->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
-
-                if (swapControls[i]) {
-                    swapControls[i]->swapMinControl.setVisible(i == selectedIR);
-                    swapControls[i]->swapMaxControl.setVisible(i == selectedIR);
-                }
-            }
-        }
-    };
-
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
             const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
@@ -175,6 +151,32 @@ void MareverbAudioProcessorEditor::timerCallback() {
         if (settingsModal) settingsModal->refreshDirectories();
 }
 
+void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
+    int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+    // DBG("Selected IR " << selectedIR);
+    if (validateIRIndex(selectedIR)) {
+        const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
+        irHeaderComponent.setActive(slot.active, animate);
+        irHeaderComponent.setSlot(selectedIR, slot);
+
+        irWaveformComponent.setNumPoints(WAVEFORM_POINTS);
+        irWaveformComponent.setWaveform(&slot.buffer, audioProcessor.getSampleRate());
+        irWaveformComponent.setActive(slot.active, animate);
+
+        windowOverlayComponent.setWindow(slot.window.start, slot.window.start + slot.window.length);
+
+        for (int i = 0; i < MAX_IR_COUNT; ++i) {
+            if (irSlotButtons[i])
+                irSlotButtons[i]->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
+
+            if (swapControls[i]) {
+                swapControls[i]->swapMinControl.setVisible(i == selectedIR);
+                swapControls[i]->swapMaxControl.setVisible(i == selectedIR);
+            }
+        }
+    }
+};
+
 void MareverbAudioProcessorEditor::initComponents() {
     // Weighting mode toggle switch
     weightingModeControl.control.setClickingTogglesState(true);
@@ -281,6 +283,11 @@ void MareverbAudioProcessorEditor::initComponents() {
     irWaveformComponent.setDimensions(16.0f, 0.0f, -16.0f, 0.9f);
     irWaveformComponent.setColor(Theme::Colors::highlight);
 
+    windowOverlayComponent.setOffsetX(16);
+    windowOverlayComponent.onWindowChanged = [this](float start, float length) {
+        audioProcessor.getIRManager()->setWindow(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), start, length);
+    };
+
     // Selected IR controls
     loadIRButton.setButtonText("LOAD");
     loadIRButton.onClick = [this]() { 
@@ -330,7 +337,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     fieldModAControlAttachment(audioProcessor.apvts, ParamID::fieldModA, fieldModAControl.control),
     fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl.control),
 
-    irHeaderComponent(animatorUpdater), irWaveformComponent(animatorUpdater) {
+    irHeaderComponent(animatorUpdater), irWaveformComponent(animatorUpdater), windowOverlayComponent(animatorUpdater) {
 
     // Attach listeners
     for (const auto& id : paramIDs) audioProcessor.apvts.addParameterListener(id, this);
@@ -359,6 +366,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     addAndMakeVisible(irHeaderComponent);
     
     addAndMakeVisible(irWaveformComponent);
+    addAndMakeVisible(windowOverlayComponent);
 
     loadIRButton.setLookAndFeel(&buttonLookAndFeel);
     clearIRButton.setLookAndFeel(&buttonLookAndFeel);
@@ -526,6 +534,7 @@ void MareverbAudioProcessorEditor::resized() {
     // Selected IR waveform
     Bounds irWaveformBounds = rightPanel.removeFromTop(140);
     irWaveformComponent.setBounds(irWaveformBounds);
+    windowOverlayComponent.setBounds(irWaveformBounds.withTrimmedLeft(16).withTrimmedRight(16));
 
     // Selected IR controls
     Bounds irControlsBounds = rightPanel.removeFromTop(100);

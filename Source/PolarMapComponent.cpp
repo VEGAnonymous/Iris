@@ -60,7 +60,10 @@ int PolarMapComponent::hitField(juce::Point<float> p) const {
 
 /* PUBLIC */
 
-PolarMapComponent::PolarMapComponent(MareverbAudioProcessor& p) : audioProcessor(p) { setBufferedToImage(true); }
+PolarMapComponent::PolarMapComponent(MareverbAudioProcessor& p) : audioProcessor(p) { 
+    setMouseCursor(juce::MouseCursor::NormalCursor);
+    setBufferedToImage(true); 
+}
 
 void PolarMapComponent::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
@@ -94,6 +97,26 @@ void PolarMapComponent::paint(juce::Graphics& g) {
         Paint::irIndicator(g, map(polarToCartesian(coordinate)), coordinateRadius, i, 
             irManager->getIRSlot(i).occupied, irManager->getIRSlot(i).active);
     }
+}
+
+void PolarMapComponent::mouseMove(const juce::MouseEvent& e) {
+    auto p = e.position;
+    auto positionPattern = static_cast<PositionPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
+    if (positionPattern == PositionPattern::MANUAL && hitPosition(p)) {
+        setMouseCursor(juce::MouseCursor::CrosshairCursor);
+        return;
+    }
+
+    fieldIndex = hitField(p);
+    if (fieldIndex >= 0) {
+        auto fieldPattern = static_cast<FieldPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load());
+        if (fieldPattern == FieldPattern::MANUAL) {
+            setMouseCursor(juce::MouseCursor::CrosshairCursor);
+            return;
+        }
+    }
+
+    setMouseCursor(juce::MouseCursor::NormalCursor);
 }
 
 void PolarMapComponent::mouseDown(const juce::MouseEvent& e) {

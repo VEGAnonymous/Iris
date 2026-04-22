@@ -11,6 +11,7 @@
 #include "RotaryLookAndFeel.h"
 #include "SettingsComponent.h"
 #include "WaveformComponent.h"
+#include "WindowOverlayComponent.h"
 
 #include <JuceHeader.h>
 
@@ -31,6 +32,8 @@ private:
 
     void parameterChanged (const juce::String& parameterID, float newValue) override;
     void timerCallback() override;
+
+    void updateIRSlot(bool animate = false);
 
     // Parameters
     const std::vector<juce::String> paramIDs = {
@@ -120,6 +123,7 @@ private:
     PolarMapComponent polarMapComponent;
     IRHeaderComponent irHeaderComponent;
     WaveformComponent irWaveformComponent;
+    WindowOverlayComponent windowOverlayComponent;
     std::unique_ptr<SettingsComponent> settingsModal;
 
     void initComponents();
