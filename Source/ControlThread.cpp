@@ -105,9 +105,9 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
             irsSet.pop_front();
             if (validateIRIndex(irIndex)) {
                 DBG("Setting IR " << irIndex);
-                const auto& buffer = irManager.getIRSlot(irIndex).buffer;
+                auto buffer = irManager.applyWindow(irIndex);
                 irJobs.push_back(std::async(std::launch::async,
-                    [&nBank, &buffer, irIndex]() { nBank->setIR(irIndex, buffer); }
+                    [&nBank, buf = std::move(buffer), irIndex]() { nBank->setIR(irIndex, buf); }
                 ));
             }
         }

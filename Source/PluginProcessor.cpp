@@ -265,8 +265,15 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
 
         slotTree.setProperty(PropertyID::IRSlot::occupied, slot.occupied, nullptr);
         slotTree.setProperty(PropertyID::IRSlot::active, slot.active, nullptr);
-        slotTree.setProperty(PropertyID::IRSlot::swapMin, slot.swapMin, nullptr);
-        slotTree.setProperty(PropertyID::IRSlot::swapMax, slot.swapMax, nullptr);
+
+        slotTree.setProperty(PropertyID::IRSlot::Window::start, slot.window.start, nullptr);
+        slotTree.setProperty(PropertyID::IRSlot::Window::length, slot.window.length, nullptr);
+        slotTree.setProperty(PropertyID::IRSlot::Window::Envelope::type, static_cast<int>(slot.window.envelope.type), nullptr);
+        slotTree.setProperty(PropertyID::IRSlot::Window::Envelope::attack, slot.window.envelope.attack, nullptr);
+        slotTree.setProperty(PropertyID::IRSlot::Window::Envelope::release, slot.window.envelope.release, nullptr);
+
+        slotTree.setProperty(PropertyID::IRSlot::AutoSwap::minTime, slot.autoSwap.minTime, nullptr);
+        slotTree.setProperty(PropertyID::IRSlot::AutoSwap::maxTime, slot.autoSwap.maxTime, nullptr);
 
         irManagerTree.addChild(slotTree, -1, nullptr);
     }
@@ -345,8 +352,18 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
             auto filePath = slotTree.getProperty(PropertyID::IRSlot::filePath).toString();
             bool occupied = slotTree.getProperty(PropertyID::IRSlot::occupied, false);
             bool active = slotTree.getProperty(PropertyID::IRSlot::active, true);
-            float swapMin = slotTree.getProperty(PropertyID::IRSlot::swapMin, 0.0f);
-            float swapMax = slotTree.getProperty(PropertyID::IRSlot::swapMax, 0.0f);
+
+            float windowStart = slotTree.getProperty(PropertyID::IRSlot::Window::start, 0.0f);
+            float windowLength = slotTree.getProperty(PropertyID::IRSlot::Window::length, 1.0f);
+
+            EnvelopeType envelopeType = static_cast<EnvelopeType>(
+                static_cast<int>(slotTree.getProperty(
+                    PropertyID::IRSlot::Window::Envelope::type, static_cast<int>(EnvelopeType::NONE))));
+            float envelopeAttack = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::attack, 0.0f);
+            float envelopeRelease = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::release, 0.0f);
+
+            float swapMin = slotTree.getProperty(PropertyID::IRSlot::AutoSwap::minTime, 0.0f);
+            float swapMax = slotTree.getProperty(PropertyID::IRSlot::AutoSwap::maxTime, 0.0f);
 
             if (occupied && filePath.isNotEmpty()) {
                 bool restoredIR = irManager.loadIR(i, juce::File(filePath));
@@ -354,6 +371,8 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
             }
 
             irManager.setIRActive(i, active);
+            irManager.setWindow(i, windowStart, windowLength);
+            irManager.setEnvelope(i, envelopeType, envelopeAttack, envelopeRelease);
             irManager.setSwapInterval(i, swapMin, swapMax);
         }
     }

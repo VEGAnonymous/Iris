@@ -36,6 +36,36 @@ void IRManager::collectIRs() {
     }
 }
 
+void IRManager::computeEnvelope(IRSlot& slot) {
+    if (slot.buffer.getNumSamples() == 0) return;
+    const int length = juce::jlimit(1,
+        std::min(MAX_IR_SAMPLES, slot.buffer.getNumSamples()), 
+        static_cast<int>(slot.window.length * slot.buffer.getNumSamples()));
+
+    auto& envelope = slot.window.envelope;
+    envelope.curve.resize(length);
+
+    const int attackSamples = static_cast<int>(envelope.attack * length);
+    const int releaseSamples = static_cast<int>(envelope.release * length);
+    const int sustainSamples = length - (attackSamples + releaseSamples);
+
+    for (int i = 0; i < attackSamples; ++i) {
+        float t = static_cast<float>(i) / static_cast<float>(juce::jmax(1, attackSamples - 1));
+        envelope.curve[i] = getEnvelopeValue(t, envelope.type);
+    }
+
+    for (int i = 0; i < sustainSamples; ++i) {
+        const int idx = attackSamples + i;
+        envelope.curve[idx] = getEnvelopeValue(1.0f, envelope.type);
+    }
+
+    for (int i = 0; i < releaseSamples; ++i) {
+        float t = static_cast<float>(i) / static_cast<float>(juce::jmax(1, releaseSamples - 1));
+        const int idx = attackSamples + sustainSamples + i;
+        envelope.curve[idx] = getEnvelopeValue(1.0f - t, envelope.type);
+    }
+}
+
 /* PUBLIC */
 
 IRManager::IRManager(juce::ApplicationProperties* p) : applicationProperties(p) {
@@ -60,6 +90,8 @@ void IRManager::prepare() {
     // bool loadedIRs = loadRandomIRs();
     // jassert(loadedIRs);
     // clearIRs();
+
+    for (int i = 0; i < irSlots.size(); ++i) computeEnvelope(irSlots[i]);
 }
 
 void IRManager::chooseIR(int irIndex) {
@@ -78,6 +110,7 @@ void IRManager::chooseIRDirectory() {
     irDirectoryChooser->launchAsync(
         juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
         [this](const juce::FileChooser& fileChooser) {
+            // TODO: Apply look and feel to alert window
             if (fileChooser.getResults().isEmpty() || fileChooser.getResult().isRoot() || !fileChooser.getResult().hasReadAccess()) {
                 juce::AlertWindow whoops("Oops...My bad!", "I just don't know what went wrong!", juce::MessageBoxIconType::WarningIcon);
                 whoops.showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Oops...My bad!", "I just don't know what went wrong!", "Muffin?");
@@ -121,7 +154,7 @@ bool IRManager::loadIR(int irIndex, juce::File irFile) {
     if (!reader) return false;
 
     const int numChannels = static_cast<int>(reader->numChannels);
-    const int numSamples = std::min(static_cast<int>(reader->lengthInSamples), MAX_IR_SAMPLES);
+    const int numSamples = std::min(static_cast<int>(reader->lengthInSamples), MAX_IR_FILE_SAMPLES);
 
     // Read IR buffer, update state
     auto& slot = irSlots[irIndex];
@@ -130,6 +163,11 @@ bool IRManager::loadIR(int irIndex, juce::File irFile) {
         slot.file = irFile; // File validated
         slot.occupied = true;
         // slot.active = true;
+
+        // Reset window
+        slot.window.start = 0.0f;
+        slot.window.length = 1.0f;
+        slot.window.envelope.type = EnvelopeType::NONE;
 
         irChanges.irsSet.push_back(irIndex); // Request update
         irChanges.irsActiveStateSet.push_back(irIndex);
@@ -143,7 +181,7 @@ bool IRManager::loadRandomIR(int irIndex) {
 
     int idx = irRNG.nextInt(irFiles.size());
     juce::File randomIR = irFiles[idx];
-    DBG("Generated random index: " << idx);
+    // DBG("Generated random index: " << idx);
     return loadIR(irIndex, randomIR);
 }
 
@@ -171,29 +209,78 @@ void IRManager::clearIRs() {
 
 void IRManager::setIRActive(int irIndex, bool nState) {
     if (!validateIRIndex(irIndex)) return;
-    irSlots[irIndex].active = nState;
-    irChanges.irsActiveStateSet.push_back(irIndex);
+    auto& slot = irSlots[irIndex];
+    slot.active = nState;
+    irChanges.irsActiveStateSet.push_back(irIndex); // Request update
+}
+
+bool IRManager::setWindow(int irIndex, float start, float length) {
+    if (!validateIRIndex(irIndex)) return false;
+    auto& slot = irSlots[irIndex];
+    if (slot.buffer.getNumSamples() == 0) return false;
+
+    slot.window.start = juce::jlimit(0.0f, 1.0f, start);
+    slot.window.length = juce::jlimit(0.0f, 1.0f - slot.window.start, length);
+
+    computeEnvelope(slot);
+    irChanges.irsSet.push_back(irIndex); // Request update
+    return true;
+}
+
+void IRManager::setEnvelope(int irIndex, EnvelopeType type, float attack, float release) {
+    if (!validateIRIndex(irIndex)) return;
+    auto& slot = irSlots[irIndex];
+
+    slot.window.envelope.type = type;
+    slot.window.envelope.attack = juce::jlimit(0.0f, 0.5f, attack); // Limit to half window
+    slot.window.envelope.release = juce::jlimit(0.0f, 0.5f, release);
+
+    computeEnvelope(slot);
+    irChanges.irsSet.push_back(irIndex); // Request update
+}
+
+juce::AudioBuffer<float> IRManager::applyWindow(int irIndex) const {
+    const auto& slot = irSlots[irIndex];
+    const int bufferSamples = slot.buffer.getNumSamples();
+    if (bufferSamples == 0) return {};
+
+    const int numChannels = std::min(slot.buffer.getNumChannels(), N_CHANNELS);
+    const int startSamples = static_cast<int>(slot.window.start * bufferSamples);
+    const int lengthSamples = juce::jlimit(1, 
+        std::min(MAX_IR_SAMPLES, bufferSamples - startSamples),
+        static_cast<int>(slot.window.length * bufferSamples));
+
+    // Copy windowed samples and envelope
+    // DBG("Applying envelope: " << irIndex);
+    juce::AudioBuffer<float> out(numChannels, lengthSamples);
+    for (int channel = 0; channel < numChannels; ++channel) {
+        out.copyFrom(channel, 0, slot.buffer, channel, startSamples, lengthSamples);
+        if (static_cast<int>(slot.window.envelope.curve.size()) >= lengthSamples)
+            juce::FloatVectorOperations::multiply(out.getWritePointer(channel), slot.window.envelope.curve.data(), lengthSamples);
+    }
+    
+    return out;
 }
 
 void IRManager::setSwapInterval(int irIndex, float nMin, float nMax) {
-    auto& slot = irSlots[irIndex];
-    if (nMin != slot.swapMin || nMax != slot.swapMax) {
-        slot.swapMin = nMin;
-        slot.swapMax = nMax;
-        if (slot.swapEnabled()) slot.resetCountdown(irRNG);
-        else slot.swapCountdown = 0.0f;
+    auto& slotSwap = irSlots[irIndex].autoSwap;
+    if (nMin != slotSwap.minTime || nMax != slotSwap.maxTime) {
+        slotSwap.minTime = nMin;
+        slotSwap.maxTime = nMax;
+        if (slotSwap.swapEnabled()) slotSwap.resetCountdown(irRNG);
+        else slotSwap.countdown = 0.0f;
     }
 }
 
 void IRManager::advanceSwapTimers(float dt) {
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        auto& slot = irSlots[i];
-        if (!slot.swapEnabled()) continue;
+        auto& slotSwap = irSlots[i].autoSwap;
+        if (!slotSwap.swapEnabled()) continue;
 
-        slot.swapCountdown -= dt;
-        if (slot.swapCountdown <= 0.0f) {
+        slotSwap.countdown -= dt;
+        if (slotSwap.countdown <= 0.0f) {
             loadRandomIR(i);
-            slot.resetCountdown(irRNG);
+            slotSwap.resetCountdown(irRNG);
         }
     }
 }

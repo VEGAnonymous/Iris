@@ -16,7 +16,8 @@ static constexpr auto L = 512,
 static constexpr auto N_CHANNELS = 2,
                       MAX_IR_COUNT = 8,
                       MAX_IR_PARTITIONS = 512,
-                      MAX_IR_SAMPLES = MAX_IR_PARTITIONS * PARTITION_SIZE;
+                      MAX_IR_SAMPLES = MAX_IR_PARTITIONS * 512, // ~6s @ 44.1k
+                      MAX_IR_FILE_SAMPLES = MAX_IR_SAMPLES * 10; // ~60s @ 44.1k
 
 static constexpr auto REFRESH_RATE = 30;
 static constexpr auto CONTROL_RATE = 40.0f;
@@ -82,9 +83,26 @@ namespace PropertyID {
         static constexpr auto
             filePath = "IR Slot Filepath",
             occupied = "IR Slot Occupied",
-            active = "IR Slot Active",
-            swapMin = "IR Slot Swap Min",
-            swapMax = "IR Slot Swap Max";
+            active = "IR Slot Active";
+
+        namespace Window {
+            static constexpr auto
+                start = "IR Slot Window Start",
+                length = "IR Slot Window Length";
+
+            namespace Envelope {
+                static constexpr auto
+                    type = "IR Slot Window Envelope Type",
+                    attack = "IR Slot Window Envelope Attack",
+                    release = "IR Slot Window Envelope Attack";
+            }
+        }
+
+        namespace AutoSwap {
+            static constexpr auto
+                minTime = "IR Slot Swap Min",
+                maxTime = "IR Slot Swap Max";
+        }
     }
 }
 
@@ -135,6 +153,8 @@ using SpectraData =
     N_CHANNELS>;
 
 // Enums
+enum class EnvelopeType { NONE, HANN, HAMMING, SINE, TRI, PERC, SMOOTH_RECT };
+
 enum class WeightingMode { WEIGHTING_ABSOLUTE, WEIGHTING_RELATIVE };
 
 enum class Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
