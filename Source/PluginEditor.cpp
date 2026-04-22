@@ -163,6 +163,7 @@ void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
         irWaveformComponent.setWaveform(&slot.buffer, audioProcessor.getSampleRate());
         irWaveformComponent.setActive(slot.active, animate);
 
+        windowOverlayComponent.setMaxLength(slot.getMaxWindowLength());
         windowOverlayComponent.setWindow(slot.window.start, slot.window.start + slot.window.length);
 
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
@@ -283,7 +284,6 @@ void MareverbAudioProcessorEditor::initComponents() {
     irWaveformComponent.setDimensions(16.0f, 0.0f, -16.0f, 0.9f);
     irWaveformComponent.setColor(Theme::Colors::highlight);
 
-    windowOverlayComponent.setOffsetX(16);
     windowOverlayComponent.onWindowChanged = [this](float start, float length) {
         audioProcessor.getIRManager()->setWindow(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), start, length);
     };

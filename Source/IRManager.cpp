@@ -166,7 +166,7 @@ bool IRManager::loadIR(int irIndex, juce::File irFile) {
 
         // Reset window
         slot.window.start = 0.0f;
-        slot.window.length = 1.0f;
+        slot.window.length = juce::jlimit(0.0f, 1.0f, static_cast<float>(MAX_IR_SAMPLES) / static_cast<float>(numSamples));
         slot.window.envelope.type = EnvelopeType::NONE;
 
         irChanges.irsSet.push_back(irIndex); // Request update

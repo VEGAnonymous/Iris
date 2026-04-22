@@ -10,13 +10,14 @@ private:
     float start = 0.0f, end = 1.0f;
     int offsetX = 0;
 
+    const float hitRadius = 4.0f;
     enum class DragTarget { NONE, START, END };
     DragTarget dragTarget{ DragTarget::NONE };
 
     bool selecting = false;
     float dragStart = 0.0f;
 
-    const float hitRadius = 4.0f;
+    float maxLength = 1.0f; // norm
 
     AnimatedAlpha hoverStart, hoverEnd;
 
@@ -41,6 +42,6 @@ public:
     void mouseUp(const juce::MouseEvent& e) override;
     void mouseExit(const juce::MouseEvent& e) override;
 
-    void setOffsetX(int nOffsetX = 0);
     void setWindow(float nStart, float nEnd);
+    void setMaxLength(float norm);
 };

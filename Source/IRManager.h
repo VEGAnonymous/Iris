@@ -33,6 +33,11 @@ struct IRSlot {
 
     // Windowing
     Window window;
+    float getMaxWindowLength() const {
+        const int numSamples = buffer.getNumSamples();
+        if (numSamples == 0) return 1.0f;
+        else return juce::jlimit(0.0f, 1.0f, static_cast<float>(MAX_IR_SAMPLES) / static_cast<float>(numSamples));
+    }
 
     // Self-swap
     AutoSwap autoSwap;
@@ -106,4 +111,5 @@ public:
 
     const IRSlot& getIRSlot(int index) const;
     const std::vector<IRDirectory> getIRDirectories() const;
+    float getMaxWindowLength(int irIndex) const;
 };

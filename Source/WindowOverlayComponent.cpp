@@ -85,11 +85,19 @@ void WindowOverlayComponent::mouseDown(const juce::MouseEvent& e) {
 void WindowOverlayComponent::mouseDrag(const juce::MouseEvent& e) {
     const float norm = map(e.position.x);
     if (dragTarget != DragTarget::NONE) {
-        if (dragTarget == DragTarget::START) start = juce::jlimit(0.0f, end - 0.01f, norm);
-        else end = juce::jlimit(start + 0.01f, 1.0f, norm);
+        if (dragTarget == DragTarget::START) {
+            start = juce::jlimit(0.0f, end - 0.01f, norm);
+            // Push end handle if window exceeds max length
+            if (end - start > maxLength) end = juce::jlimit(0.0f, 1.0f, start + maxLength);
+        } else {
+            end = juce::jlimit(start + 0.01f, 1.0f, norm);
+            // Push start handle if window exceeds max length
+            if (end - start > maxLength) start = juce::jlimit(0.0f, 1.0f, end - maxLength);
+
+        }
     } else if (selecting) {
         start = std::min(dragStart, norm);
-        end = std::max(dragStart, norm);
+        end = std::min(start + maxLength, std::max(dragStart, norm));
     }
 
     repaint();
@@ -113,9 +121,10 @@ void WindowOverlayComponent::mouseExit(const juce::MouseEvent&) {
     }
 }
 
-void WindowOverlayComponent::setOffsetX(int nOffsetX) { offsetX = std::max(nOffsetX, 0); }
 void WindowOverlayComponent::setWindow(float nStart, float nEnd) {
     start = juce::jlimit(0.0f, 1.0f, nStart);
     end = juce::jlimit(start, 1.0f, nEnd);
     repaint();
 }
+
+void WindowOverlayComponent::setMaxLength(float norm) { maxLength = juce::jlimit(0.0f, 1.0f, norm); }
