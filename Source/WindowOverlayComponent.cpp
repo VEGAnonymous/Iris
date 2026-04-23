@@ -87,11 +87,10 @@ void WindowOverlayComponent::mouseDrag(const juce::MouseEvent& e) {
     if (dragTarget != DragTarget::NONE) {
         if (dragTarget == DragTarget::START) {
             start = juce::jlimit(0.0f, end - 0.01f, norm);
-            // Push end handle if window exceeds max length
+            // Push other handle if window exceeds max length
             if (end - start > maxLength) end = juce::jlimit(0.0f, 1.0f, start + maxLength);
         } else {
             end = juce::jlimit(start + 0.01f, 1.0f, norm);
-            // Push start handle if window exceeds max length
             if (end - start > maxLength) start = juce::jlimit(0.0f, 1.0f, end - maxLength);
 
         }
@@ -104,8 +103,12 @@ void WindowOverlayComponent::mouseDrag(const juce::MouseEvent& e) {
 }
 
 void WindowOverlayComponent::mouseUp(const juce::MouseEvent&) {
-    if (dragTarget != DragTarget::NONE || selecting)
+    if (dragTarget != DragTarget::NONE || selecting) {
         if (onWindowChanged) onWindowChanged(start, end - start);
+        if (dragTarget == DragTarget::START) hoverStart.setAlpha(1.0f);
+        else if (dragTarget == DragTarget::END) hoverEnd.setAlpha(1.0f);
+    }
+
     dragTarget = DragTarget::NONE;
     selecting = false;
 

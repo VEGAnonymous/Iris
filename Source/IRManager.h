@@ -111,5 +111,4 @@ public:
 
     const IRSlot& getIRSlot(int index) const;
     const std::vector<IRDirectory> getIRDirectories() const;
-    float getMaxWindowLength(int irIndex) const;
 };

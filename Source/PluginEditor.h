@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ButtonLookAndFeel.h"
+#include "ComboBoxLookAndFeel.h"
 #include "HoverableTextButton.h"
 #include "IRHeaderComponent.h"
 #include "IRSlotButton.h"
@@ -20,10 +21,11 @@ class MareverbAudioProcessorEditor  : public juce::AudioProcessorEditor,
 private:
     MareverbAudioProcessor& audioProcessor;
 
-    // Look and feel
+    // Theme
     juce::AnimatorUpdater animatorUpdater;
 
     ButtonLookAndFeel buttonLookAndFeel;
+    ComboBoxLookAndFeel comboBoxLookAndFeel;
     RotaryLookAndFeel rotaryLookAndFeel;
 
     // Listeners and callbacks
@@ -52,11 +54,11 @@ private:
         { &weightingModeControl,   ControlGroup::INTERACTION, [&]() { weightingModeControl.control.setLookAndFeel(&buttonLookAndFeel); } },
         { &strengthControl,        ControlGroup::INTERACTION, [&]() { strengthControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
         { &spreadControl,          ControlGroup::INTERACTION, [&]() { spreadControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &positionPatternControl, ControlGroup::POSITION, []() {} },
+        { &positionPatternControl, ControlGroup::POSITION, [&]() { positionPatternControl.setLookAndFeel(&comboBoxLookAndFeel); } },
         { &positionRateControl,    ControlGroup::POSITION, [&]() { positionRateControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
         { &positionModAControl,    ControlGroup::POSITION, [&]() { positionModAControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
         { &positionModBControl,    ControlGroup::POSITION, [&]() { positionModBControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &fieldPatternControl,    ControlGroup::FIELD, []() {} },
+        { &fieldPatternControl,    ControlGroup::FIELD, [&]() { fieldPatternControl.setLookAndFeel(&comboBoxLookAndFeel); } },
         { &fieldRateControl,       ControlGroup::FIELD, [&]() { fieldRateControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
         { &fieldModAControl,       ControlGroup::FIELD, [&]() { fieldModAControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
         { &fieldModBControl,       ControlGroup::FIELD, [&]() { fieldModBControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
@@ -102,9 +104,11 @@ private:
     std::array<std::unique_ptr<SwapControl>, MAX_IR_COUNT> swapControls;
 
     // Buttons
+    // TODO: Replace with toggle switch
     LabelledControl<HoverableTextButton> weightingModeControl { getParameterName(audioProcessor.apvts, ParamID::weightingMode), animatorUpdater };
     juce::AudioProcessorValueTreeState::ButtonAttachment weightingModeControlAttachment;
 
+    // Buttons
     HoverableTextButton positionTabButton {animatorUpdater}, fieldTabButton {animatorUpdater};
 
     HoverableTextButton clearAllButton {animatorUpdater}, randomAllButton {animatorUpdater};
@@ -127,6 +131,22 @@ private:
     std::unique_ptr<SettingsComponent> settingsModal;
 
     void initComponents();
+
+    // Layout
+    void fillFlex(juce::FlexBox& flexBox, ControlGroup group, // HACK SHIT: ONLY USE FOR UNIFORM LAYOUTS
+        juce::FlexItem::Margin margin = 10.0f, float flex = 0.0f, float width = 60.0f, float height = 75.0f);
+
+    void layoutLeftPanel(Bounds bounds);
+    void layoutRightPanel(Bounds bounds);
+
+    void layoutPositionFieldControls(Bounds bounds);
+
+    void layoutTopBar(Bounds bounds);
+    void layoutIRSelectorGrid(Bounds bounds);
+    void layoutSelectedIR(Bounds bounds);
+    void layoutIRControls(Bounds bounds);
+    void layoutInteractionControls(Bounds bounds);
+    void layoutGlobalControls(Bounds bounds);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MareverbAudioProcessorEditor)
 
