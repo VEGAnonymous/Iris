@@ -461,11 +461,11 @@ void MareverbAudioProcessorEditor::layoutIRControls(Bounds bounds) {
     juce::FlexBox irControlRow(juce::FlexBox::JustifyContent::flexStart);
     irControlRow.alignItems = juce::FlexBox::AlignItems::center;
 
-    // 'Load' / 'Clear' button
+    // 'Random' / 'Clear' button
     juce::FlexBox irControlColumn(juce::FlexBox::JustifyContent::center);
     irControlColumn.flexDirection = juce::FlexBox::Direction::column;
 
-    irControlColumn.items.add(juce::FlexItem(loadIRButton)
+    irControlColumn.items.add(juce::FlexItem(randomIRButton)
         .withFlex(1.0f)
         .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 3.0f, 0.0f)));
 
@@ -479,14 +479,6 @@ void MareverbAudioProcessorEditor::layoutIRControls(Bounds bounds) {
         .withWidth(w * 0.15f)
         .withHeight(h * 0.75f)
         .withMargin(22.5f));
-
-    /* // TEMP
-    irControlRow.items.add(juce::FlexItem(randomIRButton) // 'Random' button
-        .withFlex(0.0f)
-        .withWidth(w * 0.25f)
-        .withHeight(h * 0.5f)
-        .withMargin(juce::FlexItem::Margin(10.0f, 15.0f, 10.0f, 10.0f)));
-    */
 
     irControlRow.items.add(juce::FlexItem(envelopeComponent) // Window envelope
         .withFlex(1.0f)
