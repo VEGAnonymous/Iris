@@ -38,32 +38,11 @@ void IRManager::collectIRs() {
 
 void IRManager::computeEnvelope(IRSlot& slot) {
     if (slot.buffer.getNumSamples() == 0) return;
-    const int length = juce::jlimit(1,
+    slot.window.envelope.length = juce::jlimit(1,
         std::min(MAX_IR_SAMPLES, slot.buffer.getNumSamples()), 
         static_cast<int>(slot.window.length * slot.buffer.getNumSamples()));
 
-    auto& envelope = slot.window.envelope;
-    envelope.curve.resize(length);
-
-    const int attackSamples = static_cast<int>(envelope.attack * length);
-    const int releaseSamples = static_cast<int>(envelope.release * length);
-    const int sustainSamples = length - (attackSamples + releaseSamples);
-
-    for (int i = 0; i < attackSamples; ++i) {
-        float t = static_cast<float>(i) / static_cast<float>(juce::jmax(1, attackSamples - 1));
-        envelope.curve[i] = getEnvelopeValue(t, envelope.type);
-    }
-
-    for (int i = 0; i < sustainSamples; ++i) {
-        const int idx = attackSamples + i;
-        envelope.curve[idx] = getEnvelopeValue(1.0f, envelope.type);
-    }
-
-    for (int i = 0; i < releaseSamples; ++i) {
-        float t = static_cast<float>(i) / static_cast<float>(juce::jmax(1, releaseSamples - 1));
-        const int idx = attackSamples + sustainSamples + i;
-        envelope.curve[idx] = getEnvelopeValue(1.0f - t, envelope.type);
-    }
+    slot.window.envelope.computeEnvelope();
 }
 
 /* PUBLIC */
@@ -232,8 +211,8 @@ void IRManager::setEnvelope(int irIndex, EnvelopeType type, float attack, float 
     auto& slot = irSlots[irIndex];
 
     slot.window.envelope.type = type;
-    slot.window.envelope.attack = juce::jlimit(0.0f, 0.5f, attack); // Limit to half window
-    slot.window.envelope.release = juce::jlimit(0.0f, 0.5f, release);
+    slot.window.envelope.attack = attack; // Validate these elsewhere
+    slot.window.envelope.release = release;
 
     computeEnvelope(slot);
     irChanges.irsSet.push_back(irIndex); // Request update

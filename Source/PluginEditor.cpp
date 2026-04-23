@@ -166,6 +166,8 @@ void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
         windowOverlayComponent.setMaxLength(slot.getMaxWindowLength());
         windowOverlayComponent.setWindow(slot.window.start, slot.window.start + slot.window.length);
 
+        envelopeComponent.setSlot(slot);
+
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
             if (irSlotButtons[i])
                 irSlotButtons[i]->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
@@ -308,6 +310,12 @@ void MareverbAudioProcessorEditor::initComponents() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
             audioProcessor.getIRManager()->loadRandomIR(selectedIR);
+    };
+
+    envelopeComponent.onEnvelopeChanged = [this](EnvelopeType type, float atk, float rel) {
+        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        if (validateIRIndex(selectedIR))
+            audioProcessor.getIRManager()->setEnvelope(selectedIR, type, atk, rel);
     };
 
     // Misc
@@ -472,11 +480,19 @@ void MareverbAudioProcessorEditor::layoutIRControls(Bounds bounds) {
         .withHeight(h * 0.75f)
         .withMargin(22.5f));
 
+    /* // TEMP
     irControlRow.items.add(juce::FlexItem(randomIRButton) // 'Random' button
         .withFlex(0.0f)
         .withWidth(w * 0.25f)
         .withHeight(h * 0.5f)
         .withMargin(juce::FlexItem::Margin(10.0f, 15.0f, 10.0f, 10.0f)));
+    */
+
+    irControlRow.items.add(juce::FlexItem(envelopeComponent) // Window envelope
+        .withFlex(1.0f)
+        .withWidth(w * 0.25f)
+        .withHeight(h * 0.8f)
+        .withMargin(10.0f));
 
     irControlRow.performLayout(bounds.removeFromLeft(static_cast<int>(w * 0.6f)));
 
@@ -584,6 +600,8 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     addAndMakeVisible(loadIRButton);
     addAndMakeVisible(clearIRButton);
     addAndMakeVisible(randomIRButton);
+
+    addAndMakeVisible(envelopeComponent);
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, animatorUpdater, i);

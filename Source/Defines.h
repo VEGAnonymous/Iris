@@ -26,7 +26,8 @@ static constexpr auto SWAP_INTERVAL_MIN = 5.0f,
                       SWAP_INTERVAL_MAX = 60.0f;
 
 static constexpr auto WAVEFORM_PREVIEW_POINTS = 126,
-                      WAVEFORM_POINTS = 216;
+                      WAVEFORM_POINTS = 216,
+                      ENVELOPE_PREVIEW_POINTS = 216;
 
 static constexpr auto ACTIVE_ANIMATION_TIME_MS = 60;
 
@@ -134,6 +135,7 @@ namespace TreeID {
     }
 }
 
+const juce::StringArray envelopeTypes { "None", "Hann", "Hamming", "Sine", "Tri", "Perc" };
 const juce::StringArray weightingModes { "Absolute", "Relative" };
 const juce::StringArray positionPatterns { "Vanilla", "Orbit", "Spiral", "Floral", "Lissajous", "Random", "Walk" };
 const juce::StringArray fieldPatterns { "Vanilla", "Ring", "Orbits", "Random", "Walk" };
@@ -153,8 +155,6 @@ using SpectraData =
     N_CHANNELS>;
 
 // Enums
-enum class EnvelopeType { NONE, HANN, HAMMING, SINE, TRI, PERC, SMOOTH_RECT };
-
 enum class WeightingMode { WEIGHTING_ABSOLUTE, WEIGHTING_RELATIVE };
 
 enum class Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis

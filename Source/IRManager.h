@@ -1,14 +1,9 @@
 #pragma once
 
+#include "Envelope.h"
 #include "Utilities.h"
 
 #include <JuceHeader.h>
-
-struct Envelope {
-    EnvelopeType type = EnvelopeType::NONE;
-    float attack = 0.0f, release = 0.0f; // Normalized (up to half window length)
-    std::vector<float> curve {};
-};
 
 struct Window {
     // Normalized (up to MAX_IR_SAMPLES)
@@ -33,7 +28,7 @@ struct IRSlot {
 
     // Windowing
     Window window;
-    float getMaxWindowLength() const {
+    inline float getMaxWindowLength() const {
         const int numSamples = buffer.getNumSamples();
         if (numSamples == 0) return 1.0f;
         else return juce::jlimit(0.0f, 1.0f, static_cast<float>(MAX_IR_SAMPLES) / static_cast<float>(numSamples));

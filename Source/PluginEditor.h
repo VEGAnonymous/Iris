@@ -2,6 +2,7 @@
 
 #include "ButtonLookAndFeel.h"
 #include "ComboBoxLookAndFeel.h"
+#include "EnvelopeComponent.h"
 #include "HoverableTextButton.h"
 #include "IRHeaderComponent.h"
 #include "IRSlotButton.h"
@@ -128,6 +129,7 @@ private:
     IRHeaderComponent irHeaderComponent;
     WaveformComponent irWaveformComponent;
     WindowOverlayComponent windowOverlayComponent;
+    EnvelopeComponent envelopeComponent;
     std::unique_ptr<SettingsComponent> settingsModal;
 
     void initComponents();

@@ -8,7 +8,7 @@ void ComboBoxLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
     const bool hovered = box.isMouseOver(); // ComboBox doesn't extend mouseEnter() or mouseExit() so no animation
 
     // Background
-    const float cornerSize = 18.0f;
+    const float cornerSize = 8.0f;
     g.setColour(Theme::Colors::background);
     g.fillRoundedRectangle(bounds, cornerSize);
 
@@ -34,6 +34,7 @@ void ComboBoxLookAndFeel::positionComboBoxText(juce::ComboBox& box, juce::Label&
     label.setBounds(12, 0, box.getWidth() - 24, box.getHeight());
     label.setFont(getComboBoxFont(box));
     label.setColour(juce::Label::ColourIds::textColourId, Theme::Colors::textLight);
+    label.setInterceptsMouseClicks(false, false);
 }
 
 void ComboBoxLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height) {

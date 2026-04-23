@@ -7,6 +7,8 @@
   <MAINGROUP id="uSBxoM" name="Mareverb">
     <GROUP id="{52C29717-2BB5-4F62-25D3-FC09807A17AA}" name="Source">
       <GROUP id="{EEAD8167-2CFA-8E66-97CC-395255AA520C}" name="Control">
+        <FILE id="tmobty" name="Envelope.cpp" compile="1" resource="0" file="Source/Envelope.cpp"/>
+        <FILE id="lYidmv" name="Envelope.h" compile="0" resource="0" file="Source/Envelope.h"/>
         <FILE id="g9UPJQ" name="ControlThread.cpp" compile="1" resource="0"
               file="Source/ControlThread.cpp"/>
         <FILE id="h4NZuy" name="ControlThread.h" compile="0" resource="0" file="Source/ControlThread.h"/>
@@ -66,8 +68,10 @@
         <FILE id="VvHUrK" name="PolarMapComponent.h" compile="0" resource="0"
               file="Source/PolarMapComponent.h"/>
         <GROUP id="{3F80DDB6-76F4-8F87-F86F-4F5FE9E7A606}" name="Controls">
-          <FILE id="FUD3DJ" name="HoverableComboBox.h" compile="0" resource="0"
-                file="Source/HoverableComboBox.h"/>
+          <FILE id="FDI7gT" name="EnvelopeComponent.cpp" compile="1" resource="0"
+                file="Source/EnvelopeComponent.cpp"/>
+          <FILE id="cMSQSF" name="EnvelopeComponent.h" compile="0" resource="0"
+                file="Source/EnvelopeComponent.h"/>
           <FILE id="vGLhz4" name="LabelledControl.h" compile="0" resource="0"
                 file="Source/LabelledControl.h"/>
           <FILE id="cJBn2d" name="ControlLabel.h" compile="0" resource="0" file="Source/ControlLabel.h"/>
