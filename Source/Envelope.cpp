@@ -47,9 +47,11 @@ inline float Envelope::getEnvelopeValue(float t, EnvelopeType type, bool isRelea
         return isRelease ? 0.5f * (1.0f + cosf(PI * t))
             : 0.5f * (1.0f - cosf(PI * t));
 
+    /*
     case EnvelopeType::HAMMING:
         return isRelease ? 0.54f + (0.46f * cosf(PI * t))
             : 0.54f - (0.46f * cosf(PI * t));
+    */
 
     case EnvelopeType::SINE:
         return isRelease ? cosf(PI * 0.5f * t)

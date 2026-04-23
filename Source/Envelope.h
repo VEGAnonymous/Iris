@@ -1,8 +1,11 @@
 #pragma once
 
+#include <JuceHeader.h>
 #include <vector>
 
-enum class EnvelopeType { NONE, HANN, HAMMING, SINE, TRI, PERC };
+enum class EnvelopeType { NONE, HANN, SINE, TRI, PERC };
+
+const juce::StringArray envelopeTypes { "None", "Hann", "Sine", "Tri", "Perc" };
 
 struct Envelope {
     int length = 0;

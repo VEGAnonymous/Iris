@@ -135,7 +135,6 @@ namespace TreeID {
     }
 }
 
-const juce::StringArray envelopeTypes { "None", "Hann", "Hamming", "Sine", "Tri", "Perc" };
 const juce::StringArray weightingModes { "Absolute", "Relative" };
 const juce::StringArray positionPatterns { "Vanilla", "Orbit", "Spiral", "Floral", "Lissajous", "Random", "Walk" };
 const juce::StringArray fieldPatterns { "Vanilla", "Ring", "Orbits", "Random", "Walk" };

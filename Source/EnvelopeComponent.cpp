@@ -114,9 +114,12 @@ void EnvelopeComponent::mouseMove(const juce::MouseEvent& e) {
 
 void EnvelopeComponent::mouseDown(const juce::MouseEvent& e) {
     if (!curveBounds.toFloat().contains(e.position)) return;
-    const float arCutoff = (envelope.type == EnvelopeType::PERC) ? juce::jlimit(0.05f, 1.0f, envelope.attack) : 0.5f;
+    const bool isPerc = (envelope.type == EnvelopeType::PERC);
+    const float arCutoff = isPerc ? juce::jlimit(0.05f, 1.0f, envelope.attack) : 0.5f;
     dragTarget = (map(e.position.x) < arCutoff) ? DragTarget::ATTACK : DragTarget::RELEASE;
-    dragStartValue = dragTarget == DragTarget::ATTACK ? envelope.attack : envelope.release;
+    dragStartValue = dragTarget == DragTarget::ATTACK
+        ? (isPerc ? envelope.attack : std::sqrt(envelope.attack * 0.5f))
+        : (isPerc ? envelope.release : std::sqrt(envelope.release * 0.5f));
     repaint();
 }
 
