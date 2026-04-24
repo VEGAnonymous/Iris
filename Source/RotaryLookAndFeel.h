@@ -5,16 +5,16 @@
 class RotaryLookAndFeel : public juce::LookAndFeel_V4 {
 private:
     void drawOutline(juce::Graphics& g, juce::Point<float> center, float outlineRadius, float outlineThickness,
-        float startAngle, float endAngle, float hoverAlpha);
+        float startAngle, float endAngle, float hoverAlpha, bool isEnabled = true);
 
     void drawTicks(juce::Graphics& g, juce::Point<float> center, float tickRadius, 
-        float startAngle, float endAngle, int numTicks, float hoverAlpha);
+        float startAngle, float endAngle, int numTicks, float hoverAlpha, bool isEnabled = true);
 
     void drawArc(juce::Graphics& g, juce::Point<float> center, float arcRadius, float arcThickness,
-        float startAngle, float endAngle, float valueAngle, float hoverAlpha, bool isBipolar);
+        float startAngle, float endAngle, float valueAngle, float hoverAlpha, bool isBipolar, bool isEnabled = true);
 
     void drawIndicator(juce::Graphics& g, juce::Point<float> center, float indicatorRadius, float indicatorDotRadius, 
-        float valueAngle, float hoverAlpha);
+        float valueAngle, float hoverAlpha, bool isEnabled = true);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RotaryLookAndFeel)
 

@@ -380,6 +380,7 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
     guiState.positionChanged.store(true, std::memory_order_release);
     guiState.fieldChanged.store(true, std::memory_order_release);
     guiState.irChanged.store(true, std::memory_order_release);
+    guiState.swapChanged.store(true, std::memory_order_release);
 }
 
 IRManager* MareverbAudioProcessor::getIRManager() { return &irManager; }

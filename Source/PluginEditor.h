@@ -34,7 +34,6 @@ private:
     // Listeners and callbacks
     std::atomic<bool> positionPathChanged { false };
     std::atomic<bool> selectedIRChanged { false };
-    std::atomic<bool> swapChanged{ false };
 
     void parameterChanged (const juce::String& parameterID, float newValue) override;
     void timerCallback() override;

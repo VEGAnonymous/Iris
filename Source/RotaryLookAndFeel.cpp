@@ -6,7 +6,7 @@
 /* PRIVATE */
 
 void RotaryLookAndFeel::drawTicks(juce::Graphics& g, juce::Point<float> center, float tickRadius,
-    float startAngle, float endAngle, int numTicks, float hoverAlpha) {
+    float startAngle, float endAngle, int numTicks, float hoverAlpha, bool isEnabled) {
     for (int i = 0; i < numTicks; ++i) {
         const float normAngle = static_cast<float>(i) / static_cast<float>(numTicks - 1);
         const float angle = juce::jmap(normAngle, startAngle, endAngle);
@@ -16,15 +16,17 @@ void RotaryLookAndFeel::drawTicks(juce::Graphics& g, juce::Point<float> center, 
         const float tickDotRadius = 1.2f;
 
         juce::Colour tickColor = (Theme::Colors::highlight).withAlpha(0.3f);
-        if (hoverAlpha > 0.0f) tickColor = tickColor.brighter(hoverAlpha * 0.25f);
+        tickColor = tickColor.brighter(hoverAlpha * 0.25f).withMultipliedAlpha(isEnabled ? 1.0f : 0.3f);
+
         g.setColour(tickColor);
         g.fillEllipse(tickX - tickDotRadius, tickY - tickDotRadius, tickDotRadius * 2.0f, tickDotRadius * 2.0f);
     }
 }
 
 void RotaryLookAndFeel::drawOutline(juce::Graphics& g, juce::Point<float> center, float outlineRadius, float outlineThickness,
-    float startAngle, float endAngle, float hoverAlpha) {
+    float startAngle, float endAngle, float hoverAlpha, bool isEnabled) {
     auto outlineColor = (Theme::Colors::outline).interpolatedWith(Theme::Colors::outlineHover, hoverAlpha);
+    outlineColor = outlineColor.withMultipliedAlpha(isEnabled ? 1.0f : 0.3f);
 
     juce::Path outline;
     outline.addCentredArc(center.x, center.y, outlineRadius, outlineRadius, 0.0f, startAngle, endAngle, true);
@@ -34,8 +36,9 @@ void RotaryLookAndFeel::drawOutline(juce::Graphics& g, juce::Point<float> center
 }
 
 void RotaryLookAndFeel::drawArc(juce::Graphics& g, juce::Point<float> center, float arcRadius, float arcThickness,
-    float startAngle, float endAngle, float valueAngle, float hoverAlpha, bool isBipolar) {
+    float startAngle, float endAngle, float valueAngle, float hoverAlpha, bool isBipolar, bool isEnabled) {
     auto arcColor = (Theme::Colors::highlight).interpolatedWith(Theme::Colors::highlightHover, hoverAlpha);
+    arcColor = arcColor.withMultipliedAlpha(isEnabled ? 1.0f : 0.3f);
 
     juce::Path arc;
     arc.addCentredArc(center.x, center.y, arcRadius, arcRadius, 0.0f,
@@ -46,9 +49,10 @@ void RotaryLookAndFeel::drawArc(juce::Graphics& g, juce::Point<float> center, fl
 }
 
 void RotaryLookAndFeel::drawIndicator(juce::Graphics& g, juce::Point<float> center, float indicatorRadius, float indicatorDotRadius,
-    float valueAngle, float hoverAlpha) {
+    float valueAngle, float hoverAlpha, bool isEnabled) {
 
     auto indicatorColor = (Theme::Colors::highlight).interpolatedWith(Theme::Colors::highlightHover, hoverAlpha);
+    indicatorColor = indicatorColor.withMultipliedAlpha(isEnabled ? 1.0f : 0.3f);
 
     const float indicatorX = center.x + (indicatorRadius * std::sin(valueAngle));
     const float indicatorY = center.y - (indicatorRadius * std::cos(valueAngle));
@@ -71,6 +75,8 @@ void RotaryLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wi
         hoverAlpha = rotarySlider->getHoverAlpha();
     }
 
+    bool enabled = slider.isEnabled();
+
     const float outerRadius = (static_cast<float>(juce::jmin(width, height)) * 0.5f);
     const juce::Point<float> center(
         static_cast<float>(x) + static_cast<float>(width) * 0.5f,
@@ -90,15 +96,15 @@ void RotaryLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wi
     const float outlineInset = 10.0f;
     const float outlineThickness = 4.0f;
     const float outlineRadius = outerRadius - outlineInset;
-    drawOutline(g, center, outlineRadius, outlineThickness, rotaryStartAngle, rotaryEndAngle, hoverAlpha);
+    drawOutline(g, center, outlineRadius, outlineThickness, rotaryStartAngle, rotaryEndAngle, hoverAlpha, enabled);
 
     const float arcInset = outlineInset;
     const float arcThickness = 4.0f;
     const float arcRadius = outerRadius - arcInset;
-    drawArc(g, center, arcRadius, arcThickness, rotaryStartAngle, rotaryEndAngle, valueAngle, hoverAlpha, isBipolar);
+    drawArc(g, center, arcRadius, arcThickness, rotaryStartAngle, rotaryEndAngle, valueAngle, hoverAlpha, isBipolar, enabled);
 
     const float indicatorInset = 5.0f;
     const float indicatorRadius = arcRadius - arcThickness - indicatorInset;
     const float indicatorDotRadius = outerRadius * 0.06f;
-    drawIndicator(g, center, indicatorRadius, indicatorDotRadius, valueAngle, hoverAlpha);
+    drawIndicator(g, center, indicatorRadius, indicatorDotRadius, valueAngle, hoverAlpha, enabled);
 }

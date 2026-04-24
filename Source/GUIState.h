@@ -19,6 +19,7 @@ struct GUIState {
     std::atomic<bool> updateField { false }; // Editor forced update
     std::atomic<bool> syncingField { false }; // Guard
 
+    std::atomic<bool> swapChanged { false };
     std::atomic<bool> syncingSwap { false }; // Guard
 
     std::atomic<bool> irChanged { false };

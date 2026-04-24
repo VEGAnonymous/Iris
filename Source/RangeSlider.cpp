@@ -13,7 +13,8 @@ void RangeSlider::paint(juce::Graphics& g) {
     const float startX = inverseMap(start);
     const float endX = inverseMap(end);
     const float trackY = bounds.getCentreY();
-    float startAlpha = hoverStart.getAlpha(), endAlpha = hoverEnd.getAlpha();
+    const float startAlpha = hoverStart.getAlpha(), endAlpha = hoverEnd.getAlpha();
+    const bool enabled = isEnabled();
 
     // Background
     //g.setColour(Theme::Colors::background);
@@ -21,11 +22,11 @@ void RangeSlider::paint(juce::Graphics& g) {
 
     // Track
     const float trackThickness = 2.0f;
-    g.setColour(Theme::Colors::outline);
+    g.setColour((Theme::Colors::outline).withMultipliedAlpha(enabled ? 1.0f : 0.3f));
     g.drawLine(bounds.getX(), trackY, bounds.getRight(), trackY, trackThickness);
 
     // Active range
-    g.setColour(Theme::Colors::highlight.withAlpha(0.5f));
+    g.setColour(Theme::Colors::highlight.withAlpha(0.5f).withMultipliedAlpha(enabled ? 1.0f : 0.3f));
     g.drawLine(startX, trackY, endX, trackY, trackThickness);
 
     // Handles
@@ -35,18 +36,17 @@ void RangeSlider::paint(juce::Graphics& g) {
     const float handleThickness = 2.0f;
     const float dotRadius = 3.0f;
 
-    g.setColour(Theme::Colors::highlight.withAlpha(juce::jmap(startAlpha, 0.7f, 1.0f)));
+    g.setColour(Theme::Colors::highlight.withAlpha(juce::jmap(startAlpha, 0.7f, 1.0f)).withMultipliedAlpha(enabled ? 1.0f : 0.3f));
     g.drawLine(startX, handleTop, startX, handleBottom, handleThickness + (handleThickness * startAlpha * 0.5f));
     g.fillEllipse(startX - dotRadius, trackY - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
 
-    g.setColour(Theme::Colors::highlight.withAlpha(juce::jmap(endAlpha, 0.7f, 1.0f)));
+    g.setColour(Theme::Colors::highlight.withAlpha(juce::jmap(endAlpha, 0.7f, 1.0f)).withMultipliedAlpha(enabled ? 1.0f : 0.3f));
     g.drawLine(endX, handleTop, endX, handleBottom, handleThickness + (handleThickness * endAlpha * 0.5f));
     g.fillEllipse(endX - dotRadius, trackY - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
 
     // Dragging selection
     if (selecting) {
-        g.setColour(Theme::Colors::highlight.withAlpha(0.15f));
+        g.setColour(Theme::Colors::highlight.withAlpha(0.15f).withMultipliedAlpha(enabled ? 1.0f : 0.3f));
         g.fillRect(BoundsF(inverseMap(start), handleTop, inverseMap(end) - inverseMap(start), handleHeight));
     }
-
 }

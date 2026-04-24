@@ -25,7 +25,7 @@ void MareverbAudioProcessorEditor::parameterChanged(const juce::String& paramete
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         if (parameterID == ParamID::irSwapActive(i) /*|| parameterID == ParamID::irSwapMin(i) || parameterID == ParamID::irSwapMax(i)*/) {
-            swapChanged.store(true, std::memory_order_release);
+            audioProcessor.guiState.swapChanged.store(true, std::memory_order_release);
         }
     }
 }
@@ -49,10 +49,14 @@ void MareverbAudioProcessorEditor::timerCallback() {
         // DBG("Passed coordinates to map");
     }
 
-    if (swapChanged.exchange(false, std::memory_order_acquire)) {
+    if (audioProcessor.guiState.swapChanged.exchange(false, std::memory_order_acquire)) {
         audioProcessor.guiState.syncingSwap.store(true, std::memory_order_release);
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        audioProcessor.getIRManager()->setSwapActive(selectedIR, swapControls[selectedIR]->swapActiveToggle.control.getToggleState());
+        bool swapActive = swapControls[selectedIR]->swapActiveToggle.control.getToggleState();
+
+        swapControls[selectedIR]->swapRangeSlider.setEnabled(swapActive);
+        swapControls[selectedIR]->swapRangeSlider.repaint();
+        audioProcessor.getIRManager()->setSwapActive(selectedIR, swapActive);
         audioProcessor.guiState.syncingSwap.store(false, std::memory_order_release);
         // DBG("Swap changed");
     }
@@ -101,10 +105,15 @@ void MareverbAudioProcessorEditor::timerCallback() {
               nModB = nMods.modB;
 
         if (positionPattern == PositionPattern::MANUAL) {
+            positionRateControl.setEnabled(false);
+
             PolarCoordinate position = audioProcessor.guiState.position.load();
             nModA = positionModA->convertTo0to1(position.r);
             nModB = positionModB->convertTo0to1(position.theta / juce::MathConstants<float>::twoPi);
+        } else { 
+            positionRateControl.setEnabled(true); 
         }
+        positionRateControl.repaint();
 
         if (positionRate) positionRate->setValueNotifyingHost(nRate);
         if (positionModA) positionModA->setValueNotifyingHost(nModA);
@@ -141,6 +150,8 @@ void MareverbAudioProcessorEditor::timerCallback() {
               nModB = nMods.modB;
 
         if (fieldPattern == FieldPattern::MANUAL) {
+            fieldRateControl.setEnabled(false);
+
             PolarCoordinate coordinate;
             {
                 juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
@@ -149,7 +160,10 @@ void MareverbAudioProcessorEditor::timerCallback() {
             }
             nModA = fieldModA->convertTo0to1(coordinate.r);
             nModB = fieldModB->convertTo0to1(coordinate.theta / juce::MathConstants<float>::twoPi);
+        } else {
+            fieldRateControl.setEnabled(true);
         }
+        fieldRateControl.repaint();
 
         if (fieldRate) fieldRate->setValueNotifyingHost(nRate);
         if (fieldModA) fieldModA->setValueNotifyingHost(nModA);
