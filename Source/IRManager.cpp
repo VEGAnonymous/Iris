@@ -70,7 +70,13 @@ void IRManager::prepare() {
     // jassert(loadedIRs);
     // clearIRs();
 
-    for (int i = 0; i < irSlots.size(); ++i) computeEnvelope(irSlots[i]);
+    for (int i = 0; i < irSlots.size(); ++i) {
+        computeEnvelope(irSlots[i]);
+        irSlots[i].autoSwap.callback = [&, i]() {
+            loadRandomIR(i);
+            irSlots[i].autoSwap.resetCountdown(irRNG);
+        };
+    }
 }
 
 void IRManager::chooseIR(int irIndex) {
@@ -146,7 +152,7 @@ bool IRManager::loadIR(int irIndex, juce::File irFile) {
         // Reset window
         slot.window.start = 0.0f;
         slot.window.length = juce::jlimit(0.0f, 1.0f, static_cast<float>(MAX_IR_SAMPLES) / static_cast<float>(numSamples));
-        slot.window.envelope.type = EnvelopeType::NONE;
+        // slot.window.envelope.type = EnvelopeType::NONE;
 
         irChanges.irsSet.push_back(irIndex); // Request update
         irChanges.irsActiveStateSet.push_back(irIndex);
@@ -246,22 +252,19 @@ void IRManager::setSwapInterval(int irIndex, float nMin, float nMax) {
     if (nMin != slotSwap.minTime || nMax != slotSwap.maxTime) {
         slotSwap.minTime = nMin;
         slotSwap.maxTime = nMax;
-        if (slotSwap.swapEnabled()) slotSwap.resetCountdown(irRNG);
-        else slotSwap.countdown = 0.0f;
+        slotSwap.resetCountdown(irRNG);
     }
 }
 
-void IRManager::advanceSwapTimers(float dt) {
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        auto& slotSwap = irSlots[i].autoSwap;
-        if (!slotSwap.swapEnabled()) continue;
+void IRManager::setSwapActive(int irIndex, bool nActive) {
+    auto& slotSwap = irSlots[irIndex].autoSwap;
+    slotSwap.active = nActive;
+    if (nActive) slotSwap.resetCountdown(irRNG);
+}
 
-        slotSwap.countdown -= dt;
-        if (slotSwap.countdown <= 0.0f) {
-            loadRandomIR(i);
-            slotSwap.resetCountdown(irRNG);
-        }
-    }
+void IRManager::advanceSwapTimers(float dt) {
+    for (int i = 0; i < MAX_IR_COUNT; ++i)
+        irSlots[i].autoSwap.advanceTimer(dt);
 }
 
 IRChanges IRManager::consumeIRChanges() {

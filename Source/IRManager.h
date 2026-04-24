@@ -5,20 +5,33 @@
 
 #include <JuceHeader.h>
 
+// Leaving these here for now but may move to separate headers later /*
+
 struct Window {
-    // Normalized (up to MAX_IR_SAMPLES)
-    float start = 0.0f;
+    float start = 0.0f; // Normalized (up to MAX_IR_SAMPLES)
     float length = 1.0f;
     Envelope envelope;
 };
 
-struct AutoSwap {
-    float minTime = 0.0f, maxTime = 0.0f; // seconds
+struct RandomTimer {
+    float minTime = SWAP_INTERVAL_MIN; // seconds
+    float maxTime = SWAP_INTERVAL_MAX;
     float countdown = 0.0f;
+    bool active = true;
+    std::function<void()> callback;
 
-    bool swapEnabled() const { return validateSwapInterval(minTime, maxTime); }
-    void resetCountdown(juce::Random& rng) { countdown = juce::jmap(rng.nextFloat(), minTime, maxTime); }
+    void advanceTimer(float dt) {
+        if (!active) return;
+        countdown -= dt;
+        if (countdown <= 0.0f && callback) callback();
+        // Callback should probably call resetCountdown()
+    }
+    void resetCountdown(juce::Random& rng) {
+        countdown = active ? juce::jmap(rng.nextFloat(), minTime, maxTime) : 0.0f;
+    }
 };
+
+// */
 
 struct IRSlot {
     juce::File file{};
@@ -34,8 +47,8 @@ struct IRSlot {
         else return juce::jlimit(0.0f, 1.0f, static_cast<float>(MAX_IR_SAMPLES) / static_cast<float>(numSamples));
     }
 
-    // Self-swap
-    AutoSwap autoSwap;
+    // Auto swap at random intervals
+    RandomTimer autoSwap;
 };
 
 struct IRDirectory {
@@ -99,6 +112,7 @@ public:
     juce::AudioBuffer<float> applyWindow(int irIndex) const;
 
     void setSwapInterval(int irIndex, float minTime, float maxTime);
+    void setSwapActive(int irIndex, bool nActive);
     void advanceSwapTimers(float dt);
 
     IRChanges consumeIRChanges();

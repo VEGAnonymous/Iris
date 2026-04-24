@@ -1,5 +1,6 @@
 #include "ButtonLookAndFeel.h"
 #include "HoverableTextButton.h"
+#include "HoverableToggleButton.h"
 #include "Theme.h"
 
 /* PUBLIC */
@@ -26,4 +27,22 @@ void ButtonLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& butt
     g.setColour(textColor);
     g.setFont(getTextButtonFont(button, bounds.getHeight()));
     g.drawFittedText(button.getButtonText(), bounds, juce::Justification::centred, 1);
+}
+
+void ButtonLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
+    bool /*shouldDrawButtonAsHighlighted*/, bool /*shouldDrawButtonAsDown*/) {
+    const auto bounds = button.getLocalBounds().toFloat();
+
+    juce::Colour baseColor;
+    if (button.getToggleState()) baseColor = Theme::Colors::highlight;
+    else baseColor = Theme::Colors::outline;
+
+    float hoverAlpha = 0.0f;
+    if (auto* hoverable = dynamic_cast<HoverableToggleButton*>(&button)) hoverAlpha = hoverable->getHoverAlpha();
+
+    // Fill
+    const float cornerSize = 3.0f;
+    auto toggleColor = baseColor.withAlpha(juce::jmap(hoverAlpha, 0.8f, 1.0f));
+    g.setColour(toggleColor);
+    g.fillRoundedRectangle(bounds, cornerSize);
 }

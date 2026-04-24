@@ -18,12 +18,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::strength, "Strength", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::spread, "Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 1.0f));
 
-    // IR swap intervals
+    // IR swap controls
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         juce::String minID = ParamID::irSwapMin(i);
         juce::String maxID = ParamID::irSwapMax(i);
+        juce::String activeID = ParamID::irSwapActive(i);
         layout.add(std::make_unique<juce::AudioParameterFloat>(minID, minID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 0.0f));
-        layout.add(std::make_unique<juce::AudioParameterFloat>(maxID, maxID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 0.0f));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(maxID, maxID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 1.0f));
+        layout.add(std::make_unique<juce::AudioParameterBool>(activeID, activeID, false));
     }
 
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::positionPattern, "Pattern", positionPatterns, static_cast<int>(PositionPattern::LISSAJOUS)));
@@ -272,9 +274,6 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
         slotTree.setProperty(PropertyID::IRSlot::Window::Envelope::attack, slot.window.envelope.attack, nullptr);
         slotTree.setProperty(PropertyID::IRSlot::Window::Envelope::release, slot.window.envelope.release, nullptr);
 
-        slotTree.setProperty(PropertyID::IRSlot::AutoSwap::minTime, slot.autoSwap.minTime, nullptr);
-        slotTree.setProperty(PropertyID::IRSlot::AutoSwap::maxTime, slot.autoSwap.maxTime, nullptr);
-
         irManagerTree.addChild(slotTree, -1, nullptr);
     }
 
@@ -362,9 +361,6 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
             float envelopeAttack = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::attack, 0.0f);
             float envelopeRelease = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::release, 0.0f);
 
-            float swapMin = slotTree.getProperty(PropertyID::IRSlot::AutoSwap::minTime, 0.0f);
-            float swapMax = slotTree.getProperty(PropertyID::IRSlot::AutoSwap::maxTime, 0.0f);
-
             if (occupied && filePath.isNotEmpty()) {
                 bool restoredIR = irManager.loadIR(i, juce::File(filePath));
                 jassert(restoredIR);
@@ -373,7 +369,10 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
             irManager.setIRActive(i, active);
             irManager.setWindow(i, windowStart, windowLength);
             irManager.setEnvelope(i, envelopeType, envelopeAttack, envelopeRelease);
-            irManager.setSwapInterval(i, swapMin, swapMax);
+            irManager.setSwapInterval(i, 
+                apvts.getRawParameterValue(ParamID::irSwapMin(i))->load(), 
+                apvts.getRawParameterValue(ParamID::irSwapMax(i))->load());
+            irManager.setSwapActive(i, apvts.getRawParameterValue(ParamID::irSwapActive(i))->load());
         }
     }
 

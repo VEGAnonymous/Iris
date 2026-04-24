@@ -6,15 +6,22 @@ float RangeSelectorComponent::map(float x) const { return juce::jlimit(0.0f, 1.0
 float RangeSelectorComponent::inverseMap(float norm) const { return norm * static_cast<float>(getWidth()); } // Normalized to pixels
 
 RangeSelectorComponent::DragTarget RangeSelectorComponent::hitHandle(juce::Point<float> p) const {
-    if (std::abs(p.x - inverseMap(start)) <= hitRadius) return DragTarget::START;
-    if (std::abs(p.x - inverseMap(end)) <= hitRadius) return DragTarget::END;
+    const float distStart = std::abs(p.x - inverseMap(start));
+    const float distEnd = std::abs(p.x - inverseMap(end));
+    const bool hitStart = distStart <= hitRadius;
+    const bool hitEnd = distEnd <= hitRadius;
+
+    if (hitStart && hitEnd) return (distStart < distEnd) ? DragTarget::START : DragTarget::END; // Hit both, prefer closest
+    if (hitStart) return DragTarget::START;
+    if (hitEnd) return DragTarget::END;
+
     return DragTarget::NONE;
 }
 
 /* PUBLIC */
 
-RangeSelectorComponent::RangeSelectorComponent(juce::AnimatorUpdater& updater, bool shouldUpdateDuringDrag) : 
-    hoverStart(*this, updater), hoverEnd(*this, updater), updateDuringDrag(shouldUpdateDuringDrag) {
+RangeSelectorComponent::RangeSelectorComponent(juce::AnimatorUpdater& updater, float hitRadius, bool shouldUpdateDuringDrag) : 
+    hoverStart(*this, updater), hoverEnd(*this, updater), hitRadius(hitRadius), updateDuringDrag(shouldUpdateDuringDrag) {
     setInterceptsMouseClicks(true, false);
     setMouseCursor(juce::MouseCursor::NormalCursor);
 }
@@ -50,12 +57,12 @@ void RangeSelectorComponent::mouseDrag(const juce::MouseEvent& e) {
     const float norm = map(e.position.x);
     if (dragTarget != DragTarget::NONE) {
         if (dragTarget == DragTarget::START) {
-            start = juce::jlimit(0.0f, end - 0.01f, norm);
+            start = juce::jlimit(0.0f, std::max(end - MIN_GAP, 0.0f), norm);
             // Push other handle if window exceeds max length
-            if (end - start > maxLength) end = juce::jlimit(0.0f, 1.0f, start + maxLength);
+            if (end - start > maxLength) end = juce::jlimit(start + MIN_GAP, 1.0f, start + maxLength);
         } else {
-            end = juce::jlimit(start + 0.01f, 1.0f, norm);
-            if (end - start > maxLength) start = juce::jlimit(0.0f, 1.0f, end - maxLength);
+            end = juce::jlimit(std::min(start + MIN_GAP, 1.0f), 1.0f, norm);
+            if (end - start > maxLength) start = juce::jlimit(0.0f, end - MIN_GAP, end - maxLength);
         }
         if (updateDuringDrag) fireCallback();
     } else if (selecting) {

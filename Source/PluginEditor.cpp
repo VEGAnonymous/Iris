@@ -1,4 +1,5 @@
 #include "GUIUtilities.h"
+#include "LabelledControl.h"
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "MotionController.h"
@@ -8,6 +9,7 @@
 /* PRIVATE */
 
 void MareverbAudioProcessorEditor::parameterChanged(const juce::String& parameterID, float /*newValue*/) {
+    // DBG("Parameter changed");
     if (parameterID == ParamID::positionPattern || parameterID == ParamID::positionModA || parameterID == ParamID::positionModB) {
         positionPathChanged.store(true, std::memory_order_release);
         audioProcessor.guiState.updatePosition.store(true, std::memory_order_release);
@@ -19,6 +21,12 @@ void MareverbAudioProcessorEditor::parameterChanged(const juce::String& paramete
         audioProcessor.guiState.updateField.store(true, std::memory_order_release);
         if (parameterID == ParamID::fieldPattern)
             audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
+    }
+
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        if (parameterID == ParamID::irSwapActive(i) /*|| parameterID == ParamID::irSwapMin(i) || parameterID == ParamID::irSwapMax(i)*/) {
+            swapChanged.store(true, std::memory_order_release);
+        }
     }
 }
 
@@ -39,6 +47,14 @@ void MareverbAudioProcessorEditor::timerCallback() {
         }
         polarMapComponent.notifyFieldChanged(std::move(coordinates));
         // DBG("Passed coordinates to map");
+    }
+
+    if (swapChanged.exchange(false, std::memory_order_acquire)) {
+        audioProcessor.guiState.syncingSwap.store(true, std::memory_order_release);
+        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        audioProcessor.getIRManager()->setSwapActive(selectedIR, swapControls[selectedIR]->swapActiveToggle.control.getToggleState());
+        audioProcessor.guiState.syncingSwap.store(false, std::memory_order_release);
+        // DBG("Swap changed");
     }
 
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
@@ -169,14 +185,16 @@ void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
         envelopeComponent.setSlot(slot);
 
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
-            if (irSlotButtons[i])
-                irSlotButtons[i]->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
-
+            if (irSlotButtons[i]) irSlotButtons[i]->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
             if (swapControls[i]) {
-                swapControls[i]->swapMinControl.setVisible(i == selectedIR);
-                swapControls[i]->swapMaxControl.setVisible(i == selectedIR);
+                swapControls[i]->swapActiveToggle.setVisible(i == selectedIR);
+                swapControls[i]->swapRangeSlider.setVisible(i == selectedIR);
             }
         }
+
+        const float swapMin = juce::jmap(slot.autoSwap.minTime, SWAP_INTERVAL_MIN, SWAP_INTERVAL_MAX, 0.0f, 1.0f); // normalized
+        const float swapMax = juce::jmap(slot.autoSwap.maxTime, SWAP_INTERVAL_MIN, SWAP_INTERVAL_MAX, 0.0f, 1.0f);
+        swapControls[selectedIR]->swapRangeSlider.control.setRange(swapMin, swapMax);
     }
 };
 
@@ -318,19 +336,18 @@ void MareverbAudioProcessorEditor::initComponents() {
             audioProcessor.getIRManager()->setEnvelope(selectedIR, type, atk, rel);
     };
 
-    // Misc
-    weightingModeControl.setControlHeight(40);
-}
+    for (int i = 0; i < swapControls.size(); ++i) {
+        swapControls[i]->swapRangeSlider.control.onRangeChanged = [this, i](float swapMin, float swapMax /* normalized */) {
+            const float minTime = juce::jmap(swapMin, 0.0f, 1.0f, SWAP_INTERVAL_MIN, SWAP_INTERVAL_MAX); // seconds
+            const float maxTime = juce::jmap(swapMax, 0.0f, 1.0f, SWAP_INTERVAL_MIN, SWAP_INTERVAL_MAX);
 
-void MareverbAudioProcessorEditor::fillFlex(juce::FlexBox& flexBox, ControlGroup group, 
-    juce::FlexItem::Margin margin, float flex, float width, float height) {
-    for (const auto& control : controls)
-        if (control.group == group)
-            flexBox.items.add(juce::FlexItem(*control.component)
-                .withFlex(flex)
-                .withWidth(width)
-                .withHeight(height)
-                .withMargin(margin));
+            // Set parameters
+            audioProcessor.apvts.getParameter(ParamID::irSwapMin(i))->setValueNotifyingHost(
+                audioProcessor.apvts.getParameter(ParamID::irSwapMin(i))->convertTo0to1(minTime));
+            audioProcessor.apvts.getParameter(ParamID::irSwapMax(i))->setValueNotifyingHost(
+                audioProcessor.apvts.getParameter(ParamID::irSwapMax(i))->convertTo0to1(maxTime));
+        };
+    }
 }
 
 void MareverbAudioProcessorEditor::layoutLeftPanel(Bounds bounds) {
@@ -366,6 +383,7 @@ void MareverbAudioProcessorEditor::layoutPositionFieldControls(Bounds bounds) {
     // Position control row
     const float comboBoxWidth = 100.0f, comboBoxHeight = 30.0f;
     const float rotaryWidth = 70.0f, rotaryHeight = 80.0f;
+    const float labelHeight = 12.0f;
     const auto rowItemMargin = juce::FlexItem::Margin(10.0f, 20.0f, 10.0f, 20.0f);
 
     juce::FlexBox positionControlRow(juce::FlexBox::JustifyContent::flexEnd);
@@ -378,12 +396,15 @@ void MareverbAudioProcessorEditor::layoutPositionFieldControls(Bounds bounds) {
         .withMargin(rowItemMargin));
 
     std::vector<LabelledControl<Rotary>*> positionRotaries { &positionRateControl, &positionModAControl, &positionModBControl };
-    for (auto* rotary : positionRotaries)
+    for (auto* rotary : positionRotaries) {
+        rotary->setLabelDimensions(rotaryWidth - 6.0f, labelHeight);
+        rotary->setControlDimensions(rotaryWidth, rotaryHeight - labelHeight);
         positionControlRow.items.add(juce::FlexItem(*rotary)
             .withFlex(0.0f)
             .withWidth(rotaryWidth)
             .withHeight(rotaryHeight)
             .withMargin(rowItemMargin));
+    }
 
     // Field control row
     juce::FlexBox fieldControlRow(juce::FlexBox::JustifyContent::flexEnd);
@@ -396,12 +417,15 @@ void MareverbAudioProcessorEditor::layoutPositionFieldControls(Bounds bounds) {
         .withMargin(rowItemMargin));
     
     std::vector<LabelledControl<Rotary>*> fieldRotaries { &fieldRateControl, &fieldModAControl, &fieldModBControl };
-    for (auto* rotary : fieldRotaries)
+    for (auto* rotary : fieldRotaries) {
+        rotary->setLabelDimensions(rotaryWidth - 6.0f, labelHeight);
+        rotary->setControlDimensions(rotaryWidth, rotaryHeight - labelHeight);
         fieldControlRow.items.add(juce::FlexItem(*rotary)
             .withFlex(0.0f)
             .withWidth(rotaryWidth)
             .withHeight(rotaryHeight)
             .withMargin(rowItemMargin));
+    }
 
     // Layout
     positionControlRow.performLayout(bounds);
@@ -489,23 +513,26 @@ void MareverbAudioProcessorEditor::layoutIRControls(Bounds bounds) {
     irControlRow.performLayout(bounds.removeFromLeft(static_cast<int>(w * 0.6f)));
 
     // Swap controls
+    Bounds swapToggleBounds = bounds.removeFromTop(30);
+    Bounds swapSliderBounds = bounds;
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        juce::FlexBox swapControlsRow(juce::FlexBox::JustifyContent::center);
-        swapControlsRow.alignItems = juce::FlexBox::AlignItems::center;
+        auto& activeToggle = swapControls[i]->swapActiveToggle;
+        auto& rangeSlider = swapControls[i]->swapRangeSlider;
 
-        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMinControl) // 'Auto Min' knob
-            .withFlex(1.0f)
-            .withWidth(60.0f)
-            .withHeight(70.0f)
-            .withMargin(10));
+        activeToggle.setBounds(swapToggleBounds.reduced(4));
+        activeToggle.setLabelPosition(LabelledControl<HoverableToggleButton>::LabelPosition::LEFT);
+        activeToggle.setLabelDimensions(66.0f, 14.0f);
+        activeToggle.setControlDimensions(12.0f, 12.0f);
+        activeToggle.setLabelMargin(juce::FlexItem::Margin(15.0f, 0.0f, 5.0f, 0.0f));
+        activeToggle.setControlMargin(juce::FlexItem::Margin(15.0f, 5.0f, 5.0f, 8.0f));
+        activeToggle.resized();
 
-        swapControlsRow.items.add(juce::FlexItem(swapControls[i]->swapMaxControl) // 'Auto Max' knob
-            .withFlex(1.0f)
-            .withWidth(60.0f)
-            .withHeight(70.0f)
-            .withMargin(10));
-
-        swapControlsRow.performLayout(bounds);
+        rangeSlider.setBounds(swapSliderBounds.reduced(4));
+        rangeSlider.setLabelDimensions(92.0f, 14.0f);
+        rangeSlider.setControlDimensions(130.0f, 30.0f);
+        rangeSlider.setLabelMargin(juce::FlexItem::Margin(0.0f, 0.0f, 2.0f, 0.0f));
+        rangeSlider.setControlMargin(juce::FlexItem::Margin(5.0f, 0.0f, 5.0f, 0.0f));
+        rangeSlider.resized();
     }
 }
 
@@ -513,8 +540,30 @@ void MareverbAudioProcessorEditor::layoutInteractionControls(Bounds bounds) {
     juce::FlexBox interactionControlRow(juce::FlexBox::JustifyContent::center);
     interactionControlRow.alignItems = juce::FlexBox::AlignItems::center;
 
-    fillFlex(interactionControlRow, ControlGroup::INTERACTION, 
-        juce::FlexItem::Margin(10.0f, 30.0f, 10.0f, 30.0f), 0.0f, 68.0f, 80.0f);
+    const auto rowItemMargin = juce::FlexItem::Margin(10.0f, 30.0f, 10.0f, 30.0f);
+    const float labelHeight = 12.0f;
+
+    weightingModeControl.setLabelDimensions(68.0f, 12.0f);
+    weightingModeControl.setControlDimensions(70.0f, 40.0f);
+    weightingModeControl.setControlMargin(juce::FlexItem::Margin(0.0f, 0.0f, 12.5f, 0.0f));
+    weightingModeControl.flex.justifyContent = juce::FlexBox::JustifyContent::flexEnd;
+    interactionControlRow.items.add(juce::FlexItem(weightingModeControl)
+        .withFlex(0.0f)
+        .withWidth(68.0f)
+        .withHeight(80.0f)
+        .withMargin(rowItemMargin));
+
+    const float rotaryWidth = 70.0f, rotaryHeight = 80.0f;
+    std::vector<LabelledControl<Rotary>*> interactionRotaries{ &strengthControl, &spreadControl };
+    for (auto* rotary : interactionRotaries) {
+        rotary->setLabelDimensions(rotaryWidth - 6.0f, labelHeight);
+        rotary->setControlDimensions(rotaryWidth, rotaryHeight - labelHeight);
+        interactionControlRow.items.add(juce::FlexItem(*rotary)
+            .withFlex(0.0f)
+            .withWidth(rotaryWidth)
+            .withHeight(rotaryHeight)
+            .withMargin(rowItemMargin));
+    }
 
     interactionControlRow.performLayout(bounds);
 }
@@ -523,8 +572,20 @@ void MareverbAudioProcessorEditor::layoutGlobalControls(Bounds bounds) {
     juce::FlexBox globalControlRow(juce::FlexBox::JustifyContent::center);
     globalControlRow.alignItems = juce::FlexBox::AlignItems::center;
 
-    fillFlex(globalControlRow, ControlGroup::GLOBAL,
-        juce::FlexItem::Margin(10.0f, 20.0f, 10.0f, 20.0f), 0.0f, 68.0f, 80.0f);
+    const auto rowItemMargin = juce::FlexItem::Margin(10.0f, 20.0f, 10.0f, 20.0f);
+    const float labelHeight = 12.0f;
+
+    const float rotaryWidth = 70.0f, rotaryHeight = 80.0f;
+    std::vector<LabelledControl<Rotary>*> globalRotaries { &lowCutControl, &highCutControl, &decayControl, &globalMixControl };
+    for (auto* rotary : globalRotaries) {
+        rotary->setLabelDimensions(rotaryWidth - 6.0f, labelHeight);
+        rotary->setControlDimensions(rotaryWidth, rotaryHeight - labelHeight);
+        globalControlRow.items.add(juce::FlexItem(*rotary)
+            .withFlex(0.0f)
+            .withWidth(rotaryWidth)
+            .withHeight(rotaryHeight)
+            .withMargin(rowItemMargin));
+    }
 
     globalControlRow.performLayout(bounds);
 }
@@ -559,6 +620,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     // Attach listeners
     for (const auto& id : paramIDs) audioProcessor.apvts.addParameterListener(id, this);
+    for (int i = 0; i < MAX_IR_COUNT; ++i) audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
 
     // Add components
     addAndMakeVisible(polarMapComponent);
@@ -597,11 +659,9 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, animatorUpdater, i);
-        swapControls[i]->swapMinControl.setLookAndFeel(&rotaryLookAndFeel);
-        swapControls[i]->swapMaxControl.setLookAndFeel(&rotaryLookAndFeel);
-
-        addChildComponent(swapControls[i]->swapMinControl);
-        addChildComponent(swapControls[i]->swapMaxControl);
+        swapControls[i]->swapActiveToggle.control.setLookAndFeel(&buttonLookAndFeel);
+        addChildComponent(swapControls[i]->swapActiveToggle);
+        addChildComponent(swapControls[i]->swapRangeSlider);
     }
 
     // Setup base controls 
@@ -623,6 +683,7 @@ MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
 
     // Detach listeners
     for (const auto& id : paramIDs) audioProcessor.apvts.removeParameterListener(id, this);
+    for (int i = 0; i < MAX_IR_COUNT; ++i) audioProcessor.apvts.removeParameterListener(ParamID::irSwapActive(i), this);
 }
 
 // GUI

@@ -5,6 +5,8 @@
 
 #include <JuceHeader.h>
 
+static constexpr float MIN_GAP = 0.01f;
+
 class RangeSelectorComponent : public juce::Component {
 protected:
     float start = 0.0f, end = 1.0f;
@@ -29,7 +31,7 @@ protected:
     virtual void fireCallback() = 0;
 
 public:
-    RangeSelectorComponent(juce::AnimatorUpdater& updater, bool shouldUpdateDuringDrag = false);
+    RangeSelectorComponent(juce::AnimatorUpdater& updater, float hitRadius = 4.0f, bool shouldUpdateDuringDrag = false);
     ~RangeSelectorComponent() override = default;
 
     void mouseMove(const juce::MouseEvent& e) override;

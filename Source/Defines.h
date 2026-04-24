@@ -54,6 +54,7 @@ namespace ParamID {
 
     inline juce::String irSwapMin(int i) { return "IR " + juce::String(i) + " Swap Min"; }
     inline juce::String irSwapMax(int i) { return "IR " + juce::String(i) + " Swap Max"; }
+    inline juce::String irSwapActive(int i) { return "IR " + juce::String(i) + " Swap Active"; }
 }
 
 namespace PropertyID {
@@ -97,12 +98,6 @@ namespace PropertyID {
                     attack = "IR Slot Window Envelope Attack",
                     release = "IR Slot Window Envelope Attack";
             }
-        }
-
-        namespace AutoSwap {
-            static constexpr auto
-                minTime = "IR Slot Swap Min",
-                maxTime = "IR Slot Swap Max";
         }
     }
 }

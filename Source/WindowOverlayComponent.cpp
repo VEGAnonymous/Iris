@@ -6,7 +6,7 @@ void WindowOverlayComponent::fireCallback() { if (onWindowChanged) onWindowChang
 
 /* PUBLIC */
 
-WindowOverlayComponent::WindowOverlayComponent(juce::AnimatorUpdater& updater) : RangeSelectorComponent(updater, false) {}
+WindowOverlayComponent::WindowOverlayComponent(juce::AnimatorUpdater& updater) : RangeSelectorComponent(updater, 4.0f, false) {}
 
 void WindowOverlayComponent::paint(juce::Graphics& g) {
     const auto bounds = getLocalBounds().toFloat();
@@ -22,7 +22,7 @@ void WindowOverlayComponent::paint(juce::Graphics& g) {
     // Dragging selection
     if (selecting) {
         g.setColour(Theme::Colors::highlight.withAlpha(0.15f));
-        g.fillRect(juce::Rectangle<float>(inverseMap(start), bounds.getY(), inverseMap(end) - inverseMap(start), bounds.getHeight()));
+        g.fillRect(BoundsF(inverseMap(start), bounds.getY(), inverseMap(end) - inverseMap(start), bounds.getHeight()));
     }
 
     // Handles

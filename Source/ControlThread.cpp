@@ -174,7 +174,8 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
 
 std::shared_ptr<ConvolutionState> ControlThread::runControlCycle(float dt) {
     advancePhase(dt);
-    irManager.advanceSwapTimers(dt);
+
+    if (!guiState.syncingSwap.load(std::memory_order_acquire)) irManager.advanceSwapTimers(dt);
 
     // Position + field
     updateMotionParameters();

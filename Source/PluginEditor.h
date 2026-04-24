@@ -4,11 +4,13 @@
 #include "ComboBoxLookAndFeel.h"
 #include "EnvelopeComponent.h"
 #include "HoverableTextButton.h"
+#include "HoverableToggleButton.h"
 #include "IRHeaderComponent.h"
 #include "IRSlotButton.h"
 #include "LabelledControl.h"
 #include "PluginProcessor.h"
 #include "PolarMapComponent.h"
+#include "RangeSlider.h"
 #include "Rotary.h"
 #include "RotaryLookAndFeel.h"
 #include "SettingsComponent.h"
@@ -32,6 +34,7 @@ private:
     // Listeners and callbacks
     std::atomic<bool> positionPathChanged { false };
     std::atomic<bool> selectedIRChanged { false };
+    std::atomic<bool> swapChanged{ false };
 
     void parameterChanged (const juce::String& parameterID, float newValue) override;
     void timerCallback() override;
@@ -92,14 +95,13 @@ private:
         fieldRateControlAttachment, fieldModAControlAttachment, fieldModBControlAttachment;
 
     struct SwapControl {
-        LabelledControl<Rotary> swapMinControl, swapMaxControl;
-        SliderAttachment swapMinControlAttachment, swapMaxControlAttachment;
+        LabelledControl<RangeSlider> swapRangeSlider;
+        LabelledControl<HoverableToggleButton> swapActiveToggle;
+        juce::AudioProcessorValueTreeState::ButtonAttachment swapActiveToggleAttachment;
 
         SwapControl(juce::AudioProcessorValueTreeState& apvts, juce::AnimatorUpdater& updater, int i)
-            : swapMinControl("Auto Min", updater), swapMaxControl("Auto Max", updater),
-            swapMinControlAttachment(apvts, ParamID::irSwapMin(i), swapMinControl.control),
-            swapMaxControlAttachment(apvts, ParamID::irSwapMax(i), swapMaxControl.control)
-        {}
+            : swapRangeSlider("Auto Swap Time", updater, 2.0f), swapActiveToggle("Auto Swap", updater),
+              swapActiveToggleAttachment(apvts, ParamID::irSwapActive(i), swapActiveToggle.control) {}
     };
 
     std::array<std::unique_ptr<SwapControl>, MAX_IR_COUNT> swapControls;
@@ -135,9 +137,6 @@ private:
     void initComponents();
 
     // Layout
-    void fillFlex(juce::FlexBox& flexBox, ControlGroup group, // HACK SHIT: ONLY USE FOR UNIFORM LAYOUTS
-        juce::FlexItem::Margin margin = 10.0f, float flex = 0.0f, float width = 60.0f, float height = 75.0f);
-
     void layoutLeftPanel(Bounds bounds);
     void layoutRightPanel(Bounds bounds);
 
