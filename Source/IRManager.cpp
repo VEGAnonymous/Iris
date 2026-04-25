@@ -95,12 +95,25 @@ void IRManager::chooseIRDirectory() {
     irDirectoryChooser->launchAsync(
         juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
         [this](const juce::FileChooser& fileChooser) {
-            // TODO: Apply look and feel to alert window
-            if (fileChooser.getResults().isEmpty() || fileChooser.getResult().isRoot() || !fileChooser.getResult().hasReadAccess()) {
-                juce::AlertWindow whoops("Oops...My bad!", "I just don't know what went wrong!", juce::MessageBoxIconType::WarningIcon);
-                whoops.showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Oops...My bad!", "I just don't know what went wrong!", "Muffin?");
+            if (fileChooser.getResults().isEmpty()) return;
+
+            auto dir = fileChooser.getResult();
+            if (dir.isRoot() || !dir.hasReadAccess()) {
+                // TODO: Apply look and feel to alert window
+                // juce::AlertWindow whoops("Oops...My bad!", "I just don't know what went wrong!", juce::MessageBoxIconType::WarningIcon);
+                // whoops.showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Oops...My bad!", "I just don't know what went wrong!", "Muffin?");
                 return;
-            } else addIRDirectory(fileChooser.getResult());
+            }
+
+            for (auto& irDir : irDirectories) {
+                if (dir == irDir.irDirectory) return;
+                if (dir.isAChildOf(irDir.irDirectory)) return;
+            }
+
+            addIRDirectory(dir);
+
+            for (int i = static_cast<int>(irDirectories.size()) - 1; i >= 0; --i) // Iterate backwards since removal shifts indices
+                if (irDirectories[i].irDirectory.isAChildOf(dir)) removeIRDirectory(i);
         });
 }
 
