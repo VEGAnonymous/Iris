@@ -271,10 +271,11 @@ void MareverbAudioProcessorEditor::initComponents() {
         if (settingsModal) {
             settingsModal.reset();
         } else {
-            settingsModal = std::make_unique<SettingsComponent>(audioProcessor.getIRManager());
-            settingsModal->onCloseRequested = [this]() { settingsModal.reset(); };
+            settingsModal = std::make_unique<SettingsComponent>(audioProcessor.getIRManager(), animatorUpdater);
+            settingsModal->onCloseRequested = [this]() { juce::MessageManager::callAsync([this]() { settingsModal.reset(); }); };
+            settingsModal->setLookAndFeel(&buttonLookAndFeel);
+            settingsModal->setBounds(getLocalBounds().withSizeKeepingCentre(462, 361));
             addAndMakeVisible(*settingsModal);
-            settingsModal->setBounds(getLocalBounds().withSizeKeepingCentre(400, 300));
         }
     };
 

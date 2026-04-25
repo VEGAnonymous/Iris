@@ -35,7 +35,7 @@ void ButtonLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& 
 
     juce::Colour baseColor;
     if (button.getToggleState()) baseColor = Theme::Colors::highlight;
-    else baseColor = Theme::Colors::outline;
+    else baseColor = Theme::Colors::disabled;
 
     float hoverAlpha = 0.0f;
     if (auto* hoverable = dynamic_cast<HoverableToggleButton*>(&button)) hoverAlpha = hoverable->getHoverAlpha();

@@ -10,10 +10,11 @@ namespace Theme {
         const juce::Colour
             background = juce::Colour::fromRGB(22, 31, 38),
             section = juce::Colour::fromRGB(36, 45, 54),
-            outline = juce::Colour::fromRGB(52, 64, 76),
-            outlineHover = juce::Colour::fromRGB(62, 76, 90),
+            outline = juce::Colour::fromRGB(58, 70, 82),
+            outlineHover = juce::Colour::fromRGB(68, 82, 96),
             highlight = juce::Colour::fromRGB(147, 255, 219),
             highlightHover = juce::Colour::fromRGB(156, 255, 255),
+            disabled = juce::Colour::fromRGB(82, 94, 100),
             textLight = juce::Colour::fromRGB(196, 196, 196),
             textDark = juce::Colour::fromRGB(52, 64, 76);
     }
