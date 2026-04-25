@@ -115,6 +115,13 @@ void MareverbAudioProcessorEditor::timerCallback() {
         }
         positionRateControl.repaint();
 
+        bool modBEnabled = 
+            !( positionPattern == PositionPattern::EYES
+            || positionPattern == PositionPattern::ORBIT
+            || positionPattern == PositionPattern::SPIRAL);
+        positionModBControl.setEnabled(modBEnabled);
+        positionModBControl.repaint();
+
         if (positionRate) positionRate->setValueNotifyingHost(nRate);
         if (positionModA) positionModA->setValueNotifyingHost(nModA);
         if (positionModB) positionModB->setValueNotifyingHost(nModB);

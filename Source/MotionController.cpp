@@ -25,10 +25,7 @@ PolarCoordinate MotionController::randomDiscrete(PositionParameters positionPara
     }
 
     // Check if arrived
-    float dx = currentPosition.x - targetPosition.x, 
-          dy = currentPosition.y - targetPosition.y;
-
-    if ((dx * dx + dy * dy) < EPSILON) {
+    if (cartesianDistance(currentPosition, targetPosition) < EPSILON) {
         hasTarget = false;
         return cartesianToPolar(currentPosition);
     }
@@ -87,6 +84,22 @@ PolarCoordinate MotionController::computePositionParametric(PositionParameters p
             float r = positionModA;
             float theta = positionModB * juce::MathConstants<float>::twoPi;
             return { r, theta };
+        }
+        case PositionPattern::EYES: {
+            // https://www.desmos.com/calculator/4imekbuger
+            const float d = 0.52f;  // Horizontal distance from x = 0
+            const float a = 0.35f;  // Minor-axis width
+            const float b = 0.56f;   // Major-axis width
+            float phi = juce::jmap(positionModA, -0.3f, 0.3f); // Tilt in radians
+
+            const float timeScale = 2.0f;
+            t *= timeScale;
+
+            float x = (sgn(sinf(t / 2.0f)) * d) + (a * cosf(t) * cosf(phi)) - (b * sinf(t) * sinf(phi * sgn(sinf(t / 2.0f))));
+            float y = (a * cosf(t) * sinf(phi * sgn(sin(t / 2.0f)))) + (b * sinf(t) * cosf(phi));
+
+            PolarCoordinate p = cartesianToPolar({ x, y });
+            return { p.r, p.theta };
         }
         case PositionPattern::ORBIT: {
             float radius = positionModA;

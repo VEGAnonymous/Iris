@@ -14,7 +14,7 @@ private:
 
 	// Position data
 	struct PositionParameters {
-		PositionPattern positionPattern = PositionPattern::LISSAJOUS;
+		PositionPattern positionPattern = PositionPattern::EYES;
 		float positionRate = 0.5f;
 		float positionModA = 0.5f;
 		float positionModB = 0.5f;

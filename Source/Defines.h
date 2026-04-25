@@ -131,7 +131,7 @@ namespace TreeID {
 }
 
 const juce::StringArray weightingModes { "Absolute", "Relative" };
-const juce::StringArray positionPatterns { "Vanilla", "Orbit", "Spiral", "Floral", "Lissajous", "Random", "Walk" };
+const juce::StringArray positionPatterns { "Vanilla", "Eyes", "Orbit", "Spiral", "Floral", "Lissajous", "Random", "Walk" };
 const juce::StringArray fieldPatterns { "Vanilla", "Ring", "Orbits", "Random", "Walk" };
 
 // Aliases
@@ -152,7 +152,7 @@ using SpectraData =
 enum class WeightingMode { WEIGHTING_ABSOLUTE, WEIGHTING_RELATIVE };
 
 enum class Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
-enum class PositionPattern { MANUAL, ORBIT, SPIRAL, LISSAJOUS, FLORAL, RANDOM_DISCRETE, RANDOM_WALK };
+enum class PositionPattern { MANUAL, EYES, ORBIT, SPIRAL, LISSAJOUS, FLORAL, RANDOM_DISCRETE, RANDOM_WALK };
 enum class FieldPattern { MANUAL, RING, ORBITS, RANDOM_DISCRETE, RANDOM_WALK };
 
 enum class ControlGroup { GLOBAL, INTERACTION, POSITION, FIELD };

@@ -35,11 +35,32 @@ void PolarMapComponent::repaintPath() {
     float positionModA = settings.positionModA;
     float positionModB = settings.positionModB;
 
-    for (float t = 0.0f; t < 10.0f; t += 0.01f) {
+    CartesianCoordinate last = { 0.0f, 0.0f };
+    const float discontinuityThreshold = 0.2f;
+
+    float tEnd = 10.0f;
+    // Extend path time for certain patterns
+    if (positionPattern == PositionPattern::EYES) tEnd = 20.0f;
+    if (positionPattern == PositionPattern::SPIRAL) tEnd = 20.0f;
+
+    for (float t = 0.0f; t < tEnd; t += 0.01f) {
         PolarCoordinate p = MotionController::computePositionParametric({ positionPattern, 0.0f, positionModA, positionModB }, t);
-        CartesianCoordinate c = map(polarToCartesian(p));
-        if (t == 0.0f) parametricPath.startNewSubPath(c.x, c.y);
-        else parametricPath.lineTo(c.x, c.y);
+        CartesianCoordinate c = polarToCartesian(p);
+        if (t == 0.0f) {
+            last = c;
+            c = map(c);
+            parametricPath.startNewSubPath(c.x, c.y);
+        } else {
+            if (cartesianDistance(c, last) > discontinuityThreshold) { // Handle discontinuities
+                last = c;
+                c = map(c);
+                parametricPath.startNewSubPath(c.x, c.y);
+            } else {
+                last = c;
+                c = map(c);
+                parametricPath.lineTo(c.x, c.y);
+            }
+        }
     }
 
     pathChanged = false;

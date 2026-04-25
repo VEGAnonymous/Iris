@@ -16,7 +16,7 @@ struct ParameterSettings {
 
         weightingMode(WeightingMode::WEIGHTING_ABSOLUTE), strength(0.5f), spread(1.0f),
 
-        positionPattern(PositionPattern::LISSAJOUS),
+        positionPattern(PositionPattern::EYES),
         positionRate(0.0f), positionModA(0.5f), positionModB(0.5f),
 
         fieldPattern(FieldPattern::RING),
