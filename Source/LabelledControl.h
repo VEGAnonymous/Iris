@@ -16,12 +16,13 @@ public:
 
     T control;
     ControlLabel label;
+    juce::String paramName;
     LabelPosition labelPosition = LabelPosition::BOTTOM;
     juce::FlexBox flex;
 
     template <typename... Args>
     LabelledControl(const juce::String& paramName, Args&&... args)
-        : control(std::forward<Args>(args)...), label(paramName),
+        : control(std::forward<Args>(args)...), label(paramName), paramName(paramName),
         flex(juce::FlexBox::JustifyContent::center) {
         addAndMakeVisible(control);
         addAndMakeVisible(label);

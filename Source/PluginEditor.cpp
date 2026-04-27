@@ -8,6 +8,8 @@
 
 /* PRIVATE */
 
+// Listeners and callbacks
+
 void MareverbAudioProcessorEditor::parameterChanged(const juce::String& parameterID, float /*newValue*/) {
     // DBG("Parameter changed");
     if (parameterID == ParamID::positionPattern || parameterID == ParamID::positionModA || parameterID == ParamID::positionModB) {
@@ -82,111 +84,17 @@ void MareverbAudioProcessorEditor::timerCallback() {
         updateIRSlot(true);
     }
 
-    if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire)) {
-        auto positionPattern = static_cast<PositionPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
-        auto* positionRate = audioProcessor.apvts.getParameter(ParamID::positionRate);
-        auto* positionModA = audioProcessor.apvts.getParameter(ParamID::positionModA);
-        auto* positionModB = audioProcessor.apvts.getParameter(ParamID::positionModB);
+    if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire))
+        syncPosition();
 
-        PatternParameterState nMods;
-
-        {
-            juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
-            audioProcessor.patternState.positionParamStates[audioProcessor.patternState.lastPositionPattern] =
-            { positionRate->getValue(),
-              positionModA->getValue(),
-              positionModB->getValue() };
-
-            nMods = audioProcessor.patternState.positionParamStates[positionPattern];
-        }
-        
-        float nRate = nMods.rate,
-              nModA = nMods.modA,
-              nModB = nMods.modB;
-
-        if (positionPattern == PositionPattern::MANUAL) {
-            positionRateControl.setEnabled(false);
-
-            PolarCoordinate position = audioProcessor.guiState.position.load();
-            nModA = positionModA->convertTo0to1(position.r);
-            nModB = positionModB->convertTo0to1(position.theta / juce::MathConstants<float>::twoPi);
-        } else { 
-            positionRateControl.setEnabled(true); 
-        }
-        positionRateControl.repaint();
-
-        bool modBEnabled = (
-               positionPattern != PositionPattern::EYES
-            && positionPattern != PositionPattern::ORBIT
-            && positionPattern != PositionPattern::SPIRAL);
-        positionModBControl.setEnabled(modBEnabled);
-        positionModBControl.repaint();
-
-        if (positionRate) positionRate->setValueNotifyingHost(nRate);
-        if (positionModA) positionModA->setValueNotifyingHost(nModA);
-        if (positionModB) positionModB->setValueNotifyingHost(nModB);
-
-        {
-            juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
-            audioProcessor.patternState.lastPositionPattern = positionPattern;
-        }
-
-        audioProcessor.guiState.syncingPosition.store(false, std::memory_order_release);
-    }
-
-    if (audioProcessor.guiState.syncingField.load(std::memory_order_acquire)) {
-        auto fieldPattern = static_cast<FieldPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load());
-        auto* fieldRate = audioProcessor.apvts.getParameter(ParamID::fieldRate);
-        auto* fieldModA = audioProcessor.apvts.getParameter(ParamID::fieldModA);
-        auto* fieldModB = audioProcessor.apvts.getParameter(ParamID::fieldModB);
-
-        PatternParameterState nMods {};
-
-        {
-            juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
-            audioProcessor.patternState.fieldParamStates[audioProcessor.patternState.lastFieldPattern] =
-                { fieldRate->getValue(),
-                  fieldModA->getValue(),
-                  fieldModB->getValue() };
-
-            nMods = audioProcessor.patternState.fieldParamStates[fieldPattern];
-        }
-
-        float nRate = nMods.rate, 
-              nModA = nMods.modA, 
-              nModB = nMods.modB;
-
-        if (fieldPattern == FieldPattern::MANUAL) {
-            fieldRateControl.setEnabled(false);
-
-            PolarCoordinate coordinate;
-            {
-                juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
-                const int& selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-                coordinate = audioProcessor.guiState.fieldCoordinates[selectedIR];
-            }
-            nModA = fieldModA->convertTo0to1(coordinate.r);
-            nModB = fieldModB->convertTo0to1(coordinate.theta / juce::MathConstants<float>::twoPi);
-        } else {
-            fieldRateControl.setEnabled(true);
-        }
-        fieldRateControl.repaint();
-
-        if (fieldRate) fieldRate->setValueNotifyingHost(nRate);
-        if (fieldModA) fieldModA->setValueNotifyingHost(nModA);
-        if (fieldModB) fieldModB->setValueNotifyingHost(nModB);
-
-        {
-            juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
-            audioProcessor.patternState.lastFieldPattern = fieldPattern;
-        }
-
-        audioProcessor.guiState.syncingField.store(false, std::memory_order_release);
-    }
+    if (audioProcessor.guiState.syncingField.load(std::memory_order_acquire))
+        syncField();
 
     if (audioProcessor.getIRManager()->getDirectoryChanged().exchange(false, std::memory_order_acquire))
         if (settingsModal) settingsModal->refreshDirectories();
 }
+
+// GUI state
 
 void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
     int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
@@ -219,25 +127,185 @@ void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
     }
 };
 
-void MareverbAudioProcessorEditor::initComponents() {
-    // Weighting mode toggle switch
-    weightingModeControl.control.setClickingTogglesState(true);
-    auto updateWeightingModeText = [this] { 
-        weightingModeControl.control.setButtonText(weightingModes[weightingModeControl.control.getToggleState()]); 
-    };
-    updateWeightingModeText();
-    weightingModeControl.control.onStateChange = updateWeightingModeText;
+void MareverbAudioProcessorEditor::syncPosition() {
+    auto positionPattern = static_cast<PositionPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
+    auto* positionRate = audioProcessor.apvts.getParameter(ParamID::positionRate);
+    auto* positionModA = audioProcessor.apvts.getParameter(ParamID::positionModA);
+    auto* positionModB = audioProcessor.apvts.getParameter(ParamID::positionModB);
 
-    // Pattern combo boxes
-    positionPatternControl.addItemList(positionPatterns, 1);
-    positionPatternControl.setSelectedId(
-        static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load()) + 1, juce::dontSendNotification);
+    PatternParameterState nMods;
 
-    fieldPatternControl.addItemList(fieldPatterns, 1);
-    fieldPatternControl.setSelectedId(
-        static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load()) + 1, juce::dontSendNotification);
+    {
+        juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
+        audioProcessor.patternState.positionParamStates[audioProcessor.patternState.lastPositionPattern] =
+        { positionRate->getValue(), 
+          positionModA->getValue(),
+          positionModB->getValue() };
 
-    // Position / field tab selector
+        nMods = audioProcessor.patternState.positionParamStates[positionPattern];
+    }
+
+    float nRate = nMods.rate,
+          nModA = nMods.modA,
+          nModB = nMods.modB;
+
+    positionRateControl.setEnabled(true);
+    positionModAControl.setEnabled(true);
+    positionModBControl.setEnabled(true);
+
+    // Set label text, enabled/disabled for each pattern
+    switch (positionPattern) {
+        case PositionPattern::MANUAL: {
+            positionModAControl.label.setText("Radius", juce::dontSendNotification);
+            positionModBControl.label.setText("Angle", juce::dontSendNotification);
+            positionRateControl.setEnabled(false);
+
+            PolarCoordinate position = audioProcessor.guiState.position.load();
+            nModA = positionModA->convertTo0to1(position.r);
+            nModB = positionModB->convertTo0to1(position.theta / juce::MathConstants<float>::twoPi);
+            break;
+        }
+        case PositionPattern::EYES: {
+            positionModAControl.label.setText("Angle", juce::dontSendNotification);
+            positionModBControl.label.setText("-", juce::dontSendNotification);
+            positionModBControl.setEnabled(false);
+            break;
+        }
+        case PositionPattern::ORBIT: {
+            positionModAControl.label.setText("Radius", juce::dontSendNotification);
+            positionModBControl.label.setText("-", juce::dontSendNotification);
+            positionModBControl.setEnabled(false);
+            break;
+        }
+        case PositionPattern::SPIRAL: {
+            positionModAControl.label.setText("Swirl", juce::dontSendNotification);
+            positionModBControl.label.setText("-", juce::dontSendNotification);
+            positionModBControl.setEnabled(false);
+            break;
+        }
+        case PositionPattern::FLORAL:
+        case PositionPattern::LISSAJOUS: {
+            positionModAControl.label.setText("P", juce::dontSendNotification);
+            positionModBControl.label.setText("Q", juce::dontSendNotification);
+            break;
+        }
+        case PositionPattern::RANDOM_DISCRETE: {
+            positionModAControl.label.setText("Radius", juce::dontSendNotification);
+            positionModBControl.label.setText("Smoothing", juce::dontSendNotification);
+            break;
+        }
+        case PositionPattern::RANDOM_WALK: {
+            positionModAControl.label.setText("Wander", juce::dontSendNotification);
+            positionModBControl.label.setText("Bounce", juce::dontSendNotification);
+            break;
+        }
+        default: {
+            positionModAControl.label.setText(positionModAControl.paramName, juce::dontSendNotification);
+            positionModBControl.label.setText(positionModBControl.paramName, juce::dontSendNotification);
+        }
+    }
+
+    positionRateControl.repaint();
+    positionModAControl.repaint();
+    positionModBControl.repaint();
+
+    if (positionRate) positionRate->setValueNotifyingHost(nRate);
+    if (positionModA) positionModA->setValueNotifyingHost(nModA);
+    if (positionModB) positionModB->setValueNotifyingHost(nModB);
+
+    {
+        juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
+        audioProcessor.patternState.lastPositionPattern = positionPattern;
+    }
+
+    audioProcessor.guiState.syncingPosition.store(false, std::memory_order_release);
+}
+
+void MareverbAudioProcessorEditor::syncField() {
+    auto fieldPattern = static_cast<FieldPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load());
+    auto* fieldRate = audioProcessor.apvts.getParameter(ParamID::fieldRate);
+    auto* fieldModA = audioProcessor.apvts.getParameter(ParamID::fieldModA);
+    auto* fieldModB = audioProcessor.apvts.getParameter(ParamID::fieldModB);
+
+    PatternParameterState nMods{};
+
+    {
+        juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
+        audioProcessor.patternState.fieldParamStates[audioProcessor.patternState.lastFieldPattern] =
+        { fieldRate->getValue(),
+          fieldModA->getValue(),
+          fieldModB->getValue() };
+
+        nMods = audioProcessor.patternState.fieldParamStates[fieldPattern];
+    }
+
+    float nRate = nMods.rate,
+          nModA = nMods.modA,
+          nModB = nMods.modB;
+
+    fieldRateControl.setEnabled(true);
+    fieldModAControl.setEnabled(true);
+    fieldModBControl.setEnabled(true);
+
+    // Set label text, enabled/disabled for each pattern
+    switch (fieldPattern) {
+        case FieldPattern::MANUAL: {
+            fieldRateControl.setEnabled(false);
+            fieldModAControl.label.setText("Radius", juce::dontSendNotification);
+            fieldModBControl.label.setText("Angle", juce::dontSendNotification);
+
+            PolarCoordinate coordinate;
+            {
+                juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
+                const int& selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+                coordinate = audioProcessor.guiState.fieldCoordinates[selectedIR];
+            }
+            nModA = fieldModA->convertTo0to1(coordinate.r);
+            nModB = fieldModB->convertTo0to1(coordinate.theta / juce::MathConstants<float>::twoPi);
+            break;
+        }
+        case FieldPattern::RING: {
+            fieldModAControl.label.setText("Radius", juce::dontSendNotification);
+            fieldModBControl.label.setText("Offset", juce::dontSendNotification);
+            break;
+        }
+        case FieldPattern::ORBITS: {
+            fieldModAControl.label.setText("Radius", juce::dontSendNotification);
+            fieldModBControl.label.setText("Bias", juce::dontSendNotification);
+            break;
+        }
+        case FieldPattern::RANDOM_DISCRETE: {
+            fieldModAControl.label.setText("Radius", juce::dontSendNotification);
+            fieldModBControl.label.setText("Smoothing", juce::dontSendNotification);
+            break;
+        }
+        case FieldPattern::RANDOM_WALK: {
+            fieldModAControl.label.setText("Wander", juce::dontSendNotification);
+            fieldModBControl.label.setText("Bounce", juce::dontSendNotification);
+            break;
+        }
+    
+    }
+    
+    fieldRateControl.repaint();
+    fieldModAControl.repaint();
+    fieldModBControl.repaint();
+
+    if (fieldRate) fieldRate->setValueNotifyingHost(nRate);
+    if (fieldModA) fieldModA->setValueNotifyingHost(nModA);
+    if (fieldModB) fieldModB->setValueNotifyingHost(nModB);
+
+    {
+        juce::SpinLock::ScopedLockType lock(audioProcessor.patternState.patternStateLock);
+        audioProcessor.patternState.lastFieldPattern = fieldPattern;
+    }
+
+    audioProcessor.guiState.syncingField.store(false, std::memory_order_release);
+}
+
+// Components
+
+void MareverbAudioProcessorEditor::initPositionFieldControls() {
     auto positionControls = getControlsGroup(ControlGroup::POSITION);
     auto fieldControls = getControlsGroup(ControlGroup::FIELD);
 
@@ -245,7 +313,8 @@ void MareverbAudioProcessorEditor::initComponents() {
         positionTabButton.setToggleState(true, juce::dontSendNotification);
         fieldTabButton.setToggleState(false, juce::dontSendNotification);
         for (auto& positionControl : positionControls) positionControl.component->setVisible(true);
-        for (auto& fieldControl : fieldControls) fieldControl.component->setVisible(false); 
+        for (auto& fieldControl : fieldControls) fieldControl.component->setVisible(false);
+        audioProcessor.guiState.syncingPosition.store(true);
     };
 
     auto selectFieldTab = [this, positionControls, fieldControls] {
@@ -253,6 +322,7 @@ void MareverbAudioProcessorEditor::initComponents() {
         fieldTabButton.setToggleState(true, juce::dontSendNotification);
         for (auto& positionControl : positionControls) positionControl.component->setVisible(false);
         for (auto& fieldControl : fieldControls) fieldControl.component->setVisible(true);
+        audioProcessor.guiState.syncingField.store(true);
     };
 
     positionTabButton.setButtonText("POSITION");
@@ -265,6 +335,17 @@ void MareverbAudioProcessorEditor::initComponents() {
 
     selectPositionTab();
 
+    // Pattern combo boxes
+    positionPatternControl.addItemList(positionPatterns, 1);
+    positionPatternControl.setSelectedId(
+        static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load()) + 1, juce::dontSendNotification);
+
+    fieldPatternControl.addItemList(fieldPatterns, 1);
+    fieldPatternControl.setSelectedId(
+        static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load()) + 1, juce::dontSendNotification);
+}
+
+void MareverbAudioProcessorEditor::initTopBar() {
     // Randomize / clear all buttons
     randomAllButton.setButtonText("RANDOM ALL");
     randomAllButton.onClick = [this]() { audioProcessor.getIRManager()->loadRandomIRs(); };
@@ -285,8 +366,9 @@ void MareverbAudioProcessorEditor::initComponents() {
             addAndMakeVisible(*settingsModal);
         }
     };
+}
 
-    // IR slot buttons
+void MareverbAudioProcessorEditor::initIRSlotButtons() {
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         irSlotButtons[i] = std::make_unique<IRSlotButton>(i, animatorUpdater);
         irSlotButtons[i]->setRadioGroupId(1);
@@ -295,7 +377,7 @@ void MareverbAudioProcessorEditor::initComponents() {
         irSlotButtons[i]->onActiveToggle = [this, i](bool active) {
             audioProcessor.getIRManager()->setIRActive(i, active);
             audioProcessor.guiState.updateField.store(true, std::memory_order_release);
-        };
+            };
 
         irSlotButtons[i]->onClick = [this, i]() {
             int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
@@ -304,7 +386,7 @@ void MareverbAudioProcessorEditor::initComponents() {
                 selectedIRChanged.store(true, std::memory_order_relaxed);
                 audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
             }
-        };
+            };
 
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
         irSlotButtons[i]->setOccupied(slot.occupied);
@@ -315,12 +397,14 @@ void MareverbAudioProcessorEditor::initComponents() {
     int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
     if (validateIRIndex(selectedIR))
         irSlotButtons[selectedIR]->setToggleState(true, juce::dontSendNotification);
+}
 
+void MareverbAudioProcessorEditor::initSelectedIR() {
     // Selected IR header
     irHeaderComponent.onActiveToggle = [this](bool active) {
         audioProcessor.getIRManager()->setIRActive(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), active);
         audioProcessor.guiState.updateField.store(true, std::memory_order_release);
-    };
+        };
 
     // Selected IR waveform
     irWaveformComponent.setDimensions(16.0f, 0.0f, -16.0f, 0.9f);
@@ -332,32 +416,34 @@ void MareverbAudioProcessorEditor::initComponents() {
 
     // Selected IR controls
     loadIRButton.setButtonText("LOAD");
-    loadIRButton.onClick = [this]() { 
+    loadIRButton.onClick = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
             audioProcessor.getIRManager()->chooseIR(selectedIR);
-    };
+        };
 
     clearIRButton.setButtonText("CLEAR");
     clearIRButton.onClick = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
             audioProcessor.getIRManager()->clearIR(selectedIR);
-    };
+        };
 
     randomIRButton.setButtonText("RANDOM");
     randomIRButton.onClick = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
             audioProcessor.getIRManager()->loadRandomIR(selectedIR);
-    };
+        };
 
     envelopeComponent.onEnvelopeChanged = [this](EnvelopeType type, float atk, float rel) {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
             audioProcessor.getIRManager()->setEnvelope(selectedIR, type, atk, rel);
-    };
+        };
 
+    // Swap controls
+    // TODO: Replace this with ParameterAttachment for RangeSlider
     for (int i = 0; i < swapControls.size(); ++i) {
         swapControls[i]->swapRangeSlider.control.onRangeChanged = [this, i](float swapMin, float swapMax /* normalized */) {
             const float minTime = juce::jmap(swapMin, 0.0f, 1.0f, SWAP_INTERVAL_MIN, SWAP_INTERVAL_MAX); // seconds
@@ -368,9 +454,27 @@ void MareverbAudioProcessorEditor::initComponents() {
                 audioProcessor.apvts.getParameter(ParamID::irSwapMin(i))->convertTo0to1(minTime));
             audioProcessor.apvts.getParameter(ParamID::irSwapMax(i))->setValueNotifyingHost(
                 audioProcessor.apvts.getParameter(ParamID::irSwapMax(i))->convertTo0to1(maxTime));
-        };
+            };
     }
 }
+
+void MareverbAudioProcessorEditor::initComponents() {
+    // Weighting mode toggle switch
+    // TODO: Change from TextButton to ToggleSwitch-esque component
+    weightingModeControl.control.setClickingTogglesState(true);
+    auto updateWeightingModeText = [this] {
+        weightingModeControl.control.setButtonText(weightingModes[weightingModeControl.control.getToggleState()]);
+    };
+    updateWeightingModeText();
+    weightingModeControl.control.onStateChange = updateWeightingModeText;
+
+    initPositionFieldControls();
+    initTopBar();
+    initIRSlotButtons();
+    initSelectedIR();
+}
+
+// Layout
 
 void MareverbAudioProcessorEditor::layoutLeftPanel(Bounds bounds) {
     Bounds mapBounds = bounds.removeFromTop(621);

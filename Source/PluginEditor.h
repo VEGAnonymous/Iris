@@ -38,7 +38,10 @@ private:
     void parameterChanged (const juce::String& parameterID, float newValue) override;
     void timerCallback() override;
 
+    // GUI state
     void updateIRSlot(bool animate = false);
+    void syncPosition();
+    void syncField();
 
     // Controls
     std::vector<ControlDef> controls { {
@@ -59,12 +62,12 @@ private:
         { ParamID::fieldModB,       &fieldModBControl,       ControlGroup::FIELD,       &fieldModBControl.control,    [&]() { fieldModBControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
     } };
 
-    // Sliders
     inline juce::String getParameterName(juce::AudioProcessorValueTreeState& apvts, const juce::String& paramID) {
         if (auto* parameter = apvts.getParameter(paramID)) return parameter->getName(32);
         else return paramID;
     }
 
+    // Knobs
     LabelledControl<Rotary>
         globalMixControl { getParameterName(audioProcessor.apvts, ParamID::globalMix), animatorUpdater },
         decayControl { getParameterName(audioProcessor.apvts, ParamID::decay), animatorUpdater },
@@ -85,6 +88,7 @@ private:
         positionRateControlAttachment, positionModAControlAttachment, positionModBControlAttachment,
         fieldRateControlAttachment, fieldModAControlAttachment, fieldModBControlAttachment;
 
+    // Swap controls
     struct SwapControl {
         LabelledControl<RangeSlider> swapRangeSlider;
         LabelledControl<HoverableToggleButton> swapActiveToggle;
@@ -102,7 +106,6 @@ private:
     LabelledControl<HoverableTextButton> weightingModeControl { getParameterName(audioProcessor.apvts, ParamID::weightingMode), animatorUpdater };
     juce::AudioProcessorValueTreeState::ButtonAttachment weightingModeControlAttachment;
 
-    // Buttons
     HoverableTextButton positionTabButton {animatorUpdater}, fieldTabButton {animatorUpdater};
 
     HoverableTextButton clearAllButton {animatorUpdater}, randomAllButton {animatorUpdater};
@@ -127,6 +130,11 @@ private:
     std::unique_ptr<SettingsComponent> settingsModal;
 
     juce::TooltipWindow tooltipWindow;
+
+    void initPositionFieldControls();
+    void initTopBar();
+    void initIRSlotButtons();
+    void initSelectedIR();
 
     void initComponents();
 

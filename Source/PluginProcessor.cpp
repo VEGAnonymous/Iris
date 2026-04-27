@@ -104,9 +104,6 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     options.osxLibrarySubFolder = "Application Support";
     applicationProperties.setStorageParameters(options);
 
-    // Init parameters
-    
-
     // Init IRs
     irManager.prepare();
 
@@ -392,6 +389,10 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
     guiState.fieldChanged.store(true, std::memory_order_release);
     guiState.irChanged.store(true, std::memory_order_release);
     guiState.swapChanged.store(true, std::memory_order_release);
+
+    guiState.syncingPosition.store(true, std::memory_order_release);
+    // guiState.syncingField.store(true, std::memory_order_release); // BUG: Crashes with vector subscript OOB
+    guiState.syncingSwap.store(true, std::memory_order_release);
 }
 
 IRManager* MareverbAudioProcessor::getIRManager() { return &irManager; }
