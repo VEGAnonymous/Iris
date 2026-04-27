@@ -29,6 +29,15 @@ public:
         return juce::Point<float>(static_cast<float>(x), static_cast<float>(y)).getDistanceFrom({ centerX, centerY }) <= radius;
     }
 
+    juce::String getTextFromValue(double value) override {
+        if (textFromValueFunction) return textFromValueFunction(value);
+        else return juce::String(value);
+    }
+
+    juce::String getTooltip() override {
+        return getTextFromValue(getValue());
+    }
+
     void setBipolar(bool nBipolar) { bipolar = nBipolar; }
     bool isBipolar() const { return bipolar; }
 

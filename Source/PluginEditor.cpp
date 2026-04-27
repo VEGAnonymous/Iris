@@ -115,10 +115,10 @@ void MareverbAudioProcessorEditor::timerCallback() {
         }
         positionRateControl.repaint();
 
-        bool modBEnabled = 
-            !( positionPattern == PositionPattern::EYES
-            || positionPattern == PositionPattern::ORBIT
-            || positionPattern == PositionPattern::SPIRAL);
+        bool modBEnabled = (
+               positionPattern != PositionPattern::EYES
+            && positionPattern != PositionPattern::ORBIT
+            && positionPattern != PositionPattern::SPIRAL);
         positionModBControl.setEnabled(modBEnabled);
         positionModBControl.repaint();
 
@@ -640,10 +640,6 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     irHeaderComponent(animatorUpdater), irWaveformComponent(animatorUpdater), windowOverlayComponent(animatorUpdater) {
 
-    // Attach listeners
-    for (const auto& id : paramIDs) audioProcessor.apvts.addParameterListener(id, this);
-    for (int i = 0; i < MAX_IR_COUNT; ++i) audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
-
     // Add components
     addAndMakeVisible(polarMapComponent);
 
@@ -670,6 +666,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     addAndMakeVisible(irWaveformComponent);
     addAndMakeVisible(windowOverlayComponent);
 
+    // Selected IR controls
     loadIRButton.setLookAndFeel(&buttonLookAndFeel);
     clearIRButton.setLookAndFeel(&buttonLookAndFeel);
     randomIRButton.setLookAndFeel(&buttonLookAndFeel);
@@ -679,6 +676,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     addAndMakeVisible(envelopeComponent);
 
+    // Swap controls
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, animatorUpdater, i);
         swapControls[i]->swapActiveToggle.control.setLookAndFeel(&buttonLookAndFeel);
@@ -686,11 +684,27 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
         addChildComponent(swapControls[i]->swapRangeSlider);
     }
 
-    // Setup base controls 
-    for (auto& control : getControls()) {
+    /* Setup base controls */
+    for (auto& control : controls) {
         control.applyLookAndFeel();
-        addAndMakeVisible(control.component);
+
+        // Bind control formatting to apvts parameter formatting
+        if (control.slider && control.paramID.isNotEmpty()) {
+            if (auto* param = dynamic_cast<juce::RangedAudioParameter*>(audioProcessor.apvts.getParameter(control.paramID))) {
+                control.slider->textFromValueFunction = [param](double value) {
+                    return param->getText(param->convertTo0to1(static_cast<float>(value)), 0); 
+                };
+                control.slider->valueFromTextFunction = [param](const juce::String& text) {
+                    return static_cast<double>(param->convertFrom0to1(param->getValueForText(text)));
+                };
+            }
+        }
+
+        audioProcessor.apvts.addParameterListener(control.paramID, this);
+        addAndMakeVisible(*control.component);
     }
+
+    for (int i = 0; i < MAX_IR_COUNT; ++i) audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
 
     // Setup components
     initComponents();
@@ -704,7 +718,7 @@ MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
     for (auto& control : getControls()) control.component->setLookAndFeel(nullptr);
 
     // Detach listeners
-    for (const auto& id : paramIDs) audioProcessor.apvts.removeParameterListener(id, this);
+    for (auto& control : controls) audioProcessor.apvts.removeParameterListener(control.paramID, this);
     for (int i = 0; i < MAX_IR_COUNT; ++i) audioProcessor.apvts.removeParameterListener(ParamID::irSwapActive(i), this);
 }
 

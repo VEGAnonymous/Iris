@@ -9,34 +9,42 @@
 juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::createParameterLayout() {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::globalMix, "Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::decay, "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::lowCut, "Low Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20.0f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::highCut, "High Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20000.0f));
+    const auto percentFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::percent(value, 4); });
+    const auto frequencyFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::frequency(value, 4); });
+    const auto timeFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::seconds(value, 4); });
 
+    // Global controls
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::globalMix, "Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::decay, "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::lowCut, "Low Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20.0f, frequencyFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::highCut, "High Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20000.0f, frequencyFormat));
+
+    // Interaction controls
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::weightingMode, "Weighting", weightingModes, static_cast<int>(WeightingMode::WEIGHTING_ABSOLUTE)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::strength, "Strength", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::spread, "Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f), 1.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::strength, "Strength", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::spread, "Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 1.0f, percentFormat));
 
     // IR swap controls
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         juce::String minID = ParamID::irSwapMin(i);
         juce::String maxID = ParamID::irSwapMax(i);
         juce::String activeID = ParamID::irSwapActive(i);
-        layout.add(std::make_unique<juce::AudioParameterFloat>(minID, minID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 0.0f));
-        layout.add(std::make_unique<juce::AudioParameterFloat>(maxID, maxID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 1.0f));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(minID, minID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 0.0f, timeFormat));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(maxID, maxID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 1.0f, timeFormat));
         layout.add(std::make_unique<juce::AudioParameterBool>(activeID, activeID, false));
     }
 
+    // Position controls
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::positionPattern, "Pattern", positionPatterns, static_cast<int>(PositionPattern::EYES)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModA, "Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModB, "Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.0f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModA, "Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModB, "Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
     
+    // Field controls
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::fieldPattern, "Pattern", fieldPatterns, static_cast<int>(FieldPattern::RING)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f, 1.0f), 0.0f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModA, "Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModB, "Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.0f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModA, "Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModB, "Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
 
     return layout;
 }
@@ -95,6 +103,9 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     options.filenameSuffix = ".amre";
     options.osxLibrarySubFolder = "Application Support";
     applicationProperties.setStorageParameters(options);
+
+    // Init parameters
+    
 
     // Init IRs
     irManager.prepare();

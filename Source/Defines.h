@@ -160,8 +160,12 @@ enum class ControlGroup { GLOBAL, INTERACTION, POSITION, FIELD };
 // Structs
 
 struct ControlDef {
+    juce::String paramID = "";
     juce::Component* component;
     ControlGroup group;
+
+    juce::Slider* slider = nullptr;
+
     std::function<void()> applyLookAndFeel;
 };
 

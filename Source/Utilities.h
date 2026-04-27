@@ -2,11 +2,39 @@
 
 #include "Defines.h"
 
+/* VALIDATION */
+
 inline bool validateIRIndex(int irIndex) { return irIndex >= 0 && irIndex < MAX_IR_COUNT; }
 inline bool validateSwapInterval(float minTime, float maxTime) { return minTime >= SWAP_INTERVAL_MIN && 
 																	    maxTime <= SWAP_INTERVAL_MAX && 
                                                                         maxTime > SWAP_INTERVAL_MIN &&
 																		maxTime > minTime; }
+
+/* FORMATTING */
+
+namespace Format {
+    // digits + 1 for the decimal point
+    inline juce::String percent(float value, int digits = 4) {
+        return juce::String(value * 100.0f).substring(0, digits + 1) + "%";
+    }
+
+    inline juce::String frequency(float value, int digits = 4) {
+        if (abs(value) >= 1000.0f)
+             return juce::String(value / 1000.0f).substring(0, digits + 1) + " kHz";
+        else return juce::String(value).substring(0, digits + 1) + " Hz";
+    }
+
+    inline juce::String seconds(float value, int digits = 4) {
+        if (abs(value) < 1.0f)
+             return juce::String(value * 1000.0f).substring(0, digits + 1) + " ms";
+        else return juce::String(value).substring(0, digits + 1) + " s";
+    }
+}
+
+/* MATH */
+
+template <typename T>
+inline int sgn(T x) { return (T(0) < x) - (x < T(0)); }
 
 inline float randFloat() { return juce::Random::getSystemRandom().nextFloat(); } // [0, 1)
 inline float randSigned() { return (randFloat() * 2.0f) - 1.0f; } // [-1, 1]
@@ -27,6 +55,3 @@ inline float wrapAngle(float angle) {
     if (angle < 0.0f) angle += TWO_PI;
     return angle;
 }
-
-template <typename T> 
-inline int sgn(T x) { return (T(0) < x) - (x < T(0)); }

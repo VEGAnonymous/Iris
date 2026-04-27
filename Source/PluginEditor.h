@@ -40,31 +40,23 @@ private:
 
     void updateIRSlot(bool animate = false);
 
-    // Parameters
-    const std::vector<juce::String> paramIDs = {
-        ParamID::globalMix, ParamID::decay, ParamID::lowCut, ParamID::highCut,
-        ParamID::weightingMode, ParamID::strength, ParamID::spread,
-        ParamID::positionPattern, ParamID::positionRate, ParamID::positionModA, ParamID::positionModB,
-        ParamID::fieldPattern, ParamID::fieldRate, ParamID::fieldModA, ParamID::fieldModB
-    };
-
     // Controls
     std::vector<ControlDef> controls { {
-        { &globalMixControl,       ControlGroup::GLOBAL, [&]() { globalMixControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &decayControl,           ControlGroup::GLOBAL, [&]() { decayControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &lowCutControl,          ControlGroup::GLOBAL, [&]() { lowCutControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &highCutControl,         ControlGroup::GLOBAL, [&]() { highCutControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &weightingModeControl,   ControlGroup::INTERACTION, [&]() { weightingModeControl.control.setLookAndFeel(&buttonLookAndFeel); } },
-        { &strengthControl,        ControlGroup::INTERACTION, [&]() { strengthControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &spreadControl,          ControlGroup::INTERACTION, [&]() { spreadControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &positionPatternControl, ControlGroup::POSITION, [&]() { positionPatternControl.setLookAndFeel(&comboBoxLookAndFeel); } },
-        { &positionRateControl,    ControlGroup::POSITION, [&]() { positionRateControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &positionModAControl,    ControlGroup::POSITION, [&]() { positionModAControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &positionModBControl,    ControlGroup::POSITION, [&]() { positionModBControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &fieldPatternControl,    ControlGroup::FIELD, [&]() { fieldPatternControl.setLookAndFeel(&comboBoxLookAndFeel); } },
-        { &fieldRateControl,       ControlGroup::FIELD, [&]() { fieldRateControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &fieldModAControl,       ControlGroup::FIELD, [&]() { fieldModAControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { &fieldModBControl,       ControlGroup::FIELD, [&]() { fieldModBControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::globalMix,       &globalMixControl,       ControlGroup::GLOBAL,      &globalMixControl.control,    [&]() { globalMixControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::decay,           &decayControl,           ControlGroup::GLOBAL,      &decayControl.control,        [&]() { decayControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::lowCut,          &lowCutControl,          ControlGroup::GLOBAL,      &lowCutControl .control,      [&]() { lowCutControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::highCut,         &highCutControl,         ControlGroup::GLOBAL,      &highCutControl.control,      [&]() { highCutControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::weightingMode,   &weightingModeControl,   ControlGroup::INTERACTION, nullptr,                      [&]() { weightingModeControl.control.setLookAndFeel(&buttonLookAndFeel); } },
+        { ParamID::strength,        &strengthControl,        ControlGroup::INTERACTION, &strengthControl.control,     [&]() { strengthControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::spread,          &spreadControl,          ControlGroup::INTERACTION, &spreadControl.control,       [&]() { spreadControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::positionPattern, &positionPatternControl, ControlGroup::POSITION,    nullptr,                      [&]() { positionPatternControl.setLookAndFeel(&comboBoxLookAndFeel); } },
+        { ParamID::positionRate,    &positionRateControl,    ControlGroup::POSITION,    &positionRateControl.control, [&]() { positionRateControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::positionModA,    &positionModAControl,    ControlGroup::POSITION,    &positionModAControl.control, [&]() { positionModAControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::positionModB,    &positionModBControl,    ControlGroup::POSITION,    &positionModBControl.control, [&]() { positionModBControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::fieldPattern,    &fieldPatternControl,    ControlGroup::FIELD,       nullptr,                      [&]() { fieldPatternControl.setLookAndFeel(&comboBoxLookAndFeel); } },
+        { ParamID::fieldRate,       &fieldRateControl,       ControlGroup::FIELD,       &fieldRateControl.control,    [&]() { fieldRateControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::fieldModA,       &fieldModAControl,       ControlGroup::FIELD,       &fieldModAControl.control,    [&]() { fieldModAControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+        { ParamID::fieldModB,       &fieldModBControl,       ControlGroup::FIELD,       &fieldModBControl.control,    [&]() { fieldModBControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
     } };
 
     // Sliders
@@ -131,7 +123,10 @@ private:
     WaveformComponent irWaveformComponent;
     WindowOverlayComponent windowOverlayComponent;
     EnvelopeComponent envelopeComponent;
+
     std::unique_ptr<SettingsComponent> settingsModal;
+
+    juce::TooltipWindow tooltipWindow;
 
     void initComponents();
 
