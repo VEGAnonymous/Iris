@@ -11,6 +11,7 @@
 #include "PluginProcessor.h"
 #include "PolarMapComponent.h"
 #include "RangeSlider.h"
+#include "RangeSliderAttachment.h"
 #include "Rotary.h"
 #include "RotaryLookAndFeel.h"
 #include "SettingsComponent.h"
@@ -44,7 +45,8 @@ private:
     void syncField();
 
     // Controls
-    std::vector<ControlDef> controls { {
+    std::vector<ControlDef> controls { { 
+       // ParamID                   Component                ControlGroup               Slider (opt)                  applyLookAndFeel 
         { ParamID::globalMix,       &globalMixControl,       ControlGroup::GLOBAL,      &globalMixControl.control,    [&]() { globalMixControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
         { ParamID::decay,           &decayControl,           ControlGroup::GLOBAL,      &decayControl.control,        [&]() { decayControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
         { ParamID::lowCut,          &lowCutControl,          ControlGroup::GLOBAL,      &lowCutControl .control,      [&]() { lowCutControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
@@ -69,18 +71,18 @@ private:
 
     // Knobs
     LabelledControl<Rotary>
-        globalMixControl { getParameterName(audioProcessor.apvts, ParamID::globalMix), animatorUpdater },
-        decayControl { getParameterName(audioProcessor.apvts, ParamID::decay), animatorUpdater },
-        lowCutControl { getParameterName(audioProcessor.apvts, ParamID::lowCut), animatorUpdater },
-        highCutControl { getParameterName(audioProcessor.apvts, ParamID::highCut), animatorUpdater },
-        strengthControl { getParameterName(audioProcessor.apvts, ParamID::strength), animatorUpdater },
-        spreadControl { getParameterName(audioProcessor.apvts, ParamID::spread), animatorUpdater },
-        positionRateControl { getParameterName(audioProcessor.apvts, ParamID::positionRate), animatorUpdater, true },
+        globalMixControl    { getParameterName(audioProcessor.apvts, ParamID::globalMix),    animatorUpdater },
+        decayControl        { getParameterName(audioProcessor.apvts, ParamID::decay),        animatorUpdater },
+        lowCutControl       { getParameterName(audioProcessor.apvts, ParamID::lowCut),       animatorUpdater },
+        highCutControl      { getParameterName(audioProcessor.apvts, ParamID::highCut),      animatorUpdater },
+        strengthControl     { getParameterName(audioProcessor.apvts, ParamID::strength),     animatorUpdater },
+        spreadControl       { getParameterName(audioProcessor.apvts, ParamID::spread),       animatorUpdater },
+        positionRateControl { getParameterName(audioProcessor.apvts, ParamID::positionRate), animatorUpdater, true /* bipolar */},
         positionModAControl { getParameterName(audioProcessor.apvts, ParamID::positionModA), animatorUpdater },
         positionModBControl { getParameterName(audioProcessor.apvts, ParamID::positionModB), animatorUpdater },
-        fieldRateControl { getParameterName(audioProcessor.apvts, ParamID::fieldRate), animatorUpdater, true },
-        fieldModAControl { getParameterName(audioProcessor.apvts, ParamID::fieldModA), animatorUpdater },
-        fieldModBControl { getParameterName(audioProcessor.apvts, ParamID::fieldModB), animatorUpdater };
+        fieldRateControl    { getParameterName(audioProcessor.apvts, ParamID::fieldRate),    animatorUpdater, true /* bipolar */},
+        fieldModAControl    { getParameterName(audioProcessor.apvts, ParamID::fieldModA),    animatorUpdater },
+        fieldModBControl    { getParameterName(audioProcessor.apvts, ParamID::fieldModB),    animatorUpdater };
 
     SliderAttachment
         globalMixControlAttachment, decayControlAttachment, lowCutControlAttachment, highCutControlAttachment,
@@ -91,11 +93,15 @@ private:
     // Swap controls
     struct SwapControl {
         LabelledControl<RangeSlider> swapRangeSlider;
+        RangeSliderAttachment swapRangeAttachment;
+
         LabelledControl<HoverableToggleButton> swapActiveToggle;
         juce::AudioProcessorValueTreeState::ButtonAttachment swapActiveToggleAttachment;
 
         SwapControl(juce::AudioProcessorValueTreeState& apvts, juce::AnimatorUpdater& updater, int i)
-            : swapRangeSlider("Auto Swap Time", updater, 2.0f), swapActiveToggle("Auto Swap", updater),
+            : swapRangeSlider("Auto Swap Time", updater, 2.0f),
+              swapRangeAttachment(apvts, ParamID::irSwapMin(i), ParamID::irSwapMax(i), swapRangeSlider.control),
+              swapActiveToggle("Auto Swap", updater),
               swapActiveToggleAttachment(apvts, ParamID::irSwapActive(i), swapActiveToggle.control) {}
     };
 

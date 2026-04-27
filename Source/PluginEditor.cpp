@@ -120,10 +120,6 @@ void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
                 swapControls[i]->swapRangeSlider.setVisible(i == selectedIR);
             }
         }
-
-        const float swapMin = juce::jmap(slot.autoSwap.minTime, SWAP_INTERVAL_MIN, SWAP_INTERVAL_MAX, 0.0f, 1.0f); // normalized
-        const float swapMax = juce::jmap(slot.autoSwap.maxTime, SWAP_INTERVAL_MIN, SWAP_INTERVAL_MAX, 0.0f, 1.0f);
-        swapControls[selectedIR]->swapRangeSlider.control.setRange(swapMin, swapMax);
     }
 };
 
@@ -377,7 +373,7 @@ void MareverbAudioProcessorEditor::initIRSlotButtons() {
         irSlotButtons[i]->onActiveToggle = [this, i](bool active) {
             audioProcessor.getIRManager()->setIRActive(i, active);
             audioProcessor.guiState.updateField.store(true, std::memory_order_release);
-            };
+        };
 
         irSlotButtons[i]->onClick = [this, i]() {
             int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
@@ -386,7 +382,7 @@ void MareverbAudioProcessorEditor::initIRSlotButtons() {
                 selectedIRChanged.store(true, std::memory_order_relaxed);
                 audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
             }
-            };
+        };
 
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
         irSlotButtons[i]->setOccupied(slot.occupied);
@@ -404,7 +400,7 @@ void MareverbAudioProcessorEditor::initSelectedIR() {
     irHeaderComponent.onActiveToggle = [this](bool active) {
         audioProcessor.getIRManager()->setIRActive(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), active);
         audioProcessor.guiState.updateField.store(true, std::memory_order_release);
-        };
+    };
 
     // Selected IR waveform
     irWaveformComponent.setDimensions(16.0f, 0.0f, -16.0f, 0.9f);
@@ -420,42 +416,27 @@ void MareverbAudioProcessorEditor::initSelectedIR() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
             audioProcessor.getIRManager()->chooseIR(selectedIR);
-        };
+    };
 
     clearIRButton.setButtonText("CLEAR");
     clearIRButton.onClick = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
             audioProcessor.getIRManager()->clearIR(selectedIR);
-        };
+    };
 
     randomIRButton.setButtonText("RANDOM");
     randomIRButton.onClick = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
             audioProcessor.getIRManager()->loadRandomIR(selectedIR);
-        };
+    };
 
     envelopeComponent.onEnvelopeChanged = [this](EnvelopeType type, float atk, float rel) {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
             audioProcessor.getIRManager()->setEnvelope(selectedIR, type, atk, rel);
-        };
-
-    // Swap controls
-    // TODO: Replace this with ParameterAttachment for RangeSlider
-    for (int i = 0; i < swapControls.size(); ++i) {
-        swapControls[i]->swapRangeSlider.control.onRangeChanged = [this, i](float swapMin, float swapMax /* normalized */) {
-            const float minTime = juce::jmap(swapMin, 0.0f, 1.0f, SWAP_INTERVAL_MIN, SWAP_INTERVAL_MAX); // seconds
-            const float maxTime = juce::jmap(swapMax, 0.0f, 1.0f, SWAP_INTERVAL_MIN, SWAP_INTERVAL_MAX);
-
-            // Set parameters
-            audioProcessor.apvts.getParameter(ParamID::irSwapMin(i))->setValueNotifyingHost(
-                audioProcessor.apvts.getParameter(ParamID::irSwapMin(i))->convertTo0to1(minTime));
-            audioProcessor.apvts.getParameter(ParamID::irSwapMax(i))->setValueNotifyingHost(
-                audioProcessor.apvts.getParameter(ParamID::irSwapMax(i))->convertTo0to1(maxTime));
-            };
-    }
+    };
 }
 
 void MareverbAudioProcessorEditor::initComponents() {
@@ -780,15 +761,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     addAndMakeVisible(envelopeComponent);
 
-    // Swap controls
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, animatorUpdater, i);
-        swapControls[i]->swapActiveToggle.control.setLookAndFeel(&buttonLookAndFeel);
-        addChildComponent(swapControls[i]->swapActiveToggle);
-        addChildComponent(swapControls[i]->swapRangeSlider);
-    }
-
-    /* Setup base controls */
+    // Setup base controls
     for (auto& control : controls) {
         control.applyLookAndFeel();
 
@@ -808,9 +781,23 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
         addAndMakeVisible(*control.component);
     }
 
-    for (int i = 0; i < MAX_IR_COUNT; ++i) audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
+    // Setup swap controls
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, animatorUpdater, i);
+        swapControls[i]->swapActiveToggle.control.setLookAndFeel(&buttonLookAndFeel);
+        addChildComponent(swapControls[i]->swapActiveToggle);
+        addChildComponent(swapControls[i]->swapRangeSlider);
 
-    // Setup components
+        if (auto* param = dynamic_cast<juce::RangedAudioParameter*>(audioProcessor.apvts.getParameter(ParamID::irSwapMin(i))))
+            swapControls[i]->swapRangeSlider.control.textFromValueFunction = [param, i](double value) {
+                return param->getText(static_cast<float>(value), 0);
+            };
+
+        audioProcessor.apvts.addParameterListener(ParamID::irSwapMin(i), this);
+        audioProcessor.apvts.addParameterListener(ParamID::irSwapMax(i), this);
+        audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
+    }
+
     initComponents();
 
     startTimerHz(REFRESH_RATE);
@@ -823,7 +810,11 @@ MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
 
     // Detach listeners
     for (auto& control : controls) audioProcessor.apvts.removeParameterListener(control.paramID, this);
-    for (int i = 0; i < MAX_IR_COUNT; ++i) audioProcessor.apvts.removeParameterListener(ParamID::irSwapActive(i), this);
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        audioProcessor.apvts.removeParameterListener(ParamID::irSwapMin(i), this);
+        audioProcessor.apvts.removeParameterListener(ParamID::irSwapMax(i), this);
+        audioProcessor.apvts.removeParameterListener(ParamID::irSwapActive(i), this);
+    }
 }
 
 // GUI

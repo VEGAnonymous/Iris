@@ -9,7 +9,9 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WindowOverlayComponent)
 
 protected:
-    void fireCallback() override;
+    void beginGesture() override;
+    void updateGesture() override;
+    void endGesture() override;
 
 public:
     std::function<void(float start, float length)> onWindowChanged;

@@ -46,14 +46,6 @@
                 file="Source/RotaryLookAndFeel.h"/>
           <FILE id="zNNZ6Y" name="Theme.h" compile="0" resource="0" file="Source/Theme.h"/>
         </GROUP>
-        <FILE id="zrFvt5" name="SettingsComponent.cpp" compile="1" resource="0"
-              file="Source/SettingsComponent.cpp"/>
-        <FILE id="xeOq7a" name="SettingsComponent.h" compile="0" resource="0"
-              file="Source/SettingsComponent.h"/>
-        <FILE id="tB1sTJ" name="WaveformComponent.cpp" compile="1" resource="0"
-              file="Source/WaveformComponent.cpp"/>
-        <FILE id="jrcQET" name="WaveformComponent.h" compile="0" resource="0"
-              file="Source/WaveformComponent.h"/>
         <FILE id="NLRTuz" name="GUIUtilities.h" compile="0" resource="0" file="Source/GUIUtilities.h"/>
         <FILE id="boNkS3" name="IRHeaderComponent.cpp" compile="1" resource="0"
               file="Source/IRHeaderComponent.cpp"/>
@@ -63,37 +55,50 @@
               file="Source/PolarMapComponent.cpp"/>
         <FILE id="VvHUrK" name="PolarMapComponent.h" compile="0" resource="0"
               file="Source/PolarMapComponent.h"/>
+        <FILE id="LqNTp3" name="RangeSliderAttachment.h" compile="0" resource="0"
+              file="Source/RangeSliderAttachment.h"/>
+        <FILE id="zrFvt5" name="SettingsComponent.cpp" compile="1" resource="0"
+              file="Source/SettingsComponent.cpp"/>
+        <FILE id="xeOq7a" name="SettingsComponent.h" compile="0" resource="0"
+              file="Source/SettingsComponent.h"/>
+        <FILE id="HSaqji" name="ValueTooltip.cpp" compile="1" resource="0"
+              file="Source/ValueTooltip.cpp"/>
+        <FILE id="e75FF9" name="ValueTooltip.h" compile="0" resource="0" file="Source/ValueTooltip.h"/>
+        <FILE id="tB1sTJ" name="WaveformComponent.cpp" compile="1" resource="0"
+              file="Source/WaveformComponent.cpp"/>
+        <FILE id="jrcQET" name="WaveformComponent.h" compile="0" resource="0"
+              file="Source/WaveformComponent.h"/>
         <GROUP id="{3F80DDB6-76F4-8F87-F86F-4F5FE9E7A606}" name="Controls">
-          <FILE id="lPr0Cq" name="HoverableToggleButton.h" compile="0" resource="0"
-                file="Source/HoverableToggleButton.h"/>
-          <FILE id="ITJiwL" name="RangeSlider.cpp" compile="1" resource="0" file="Source/RangeSlider.cpp"/>
-          <FILE id="YWBAAL" name="RangeSlider.h" compile="0" resource="0" file="Source/RangeSlider.h"/>
-          <FILE id="b4HF1I" name="RangeSelectorComponent.cpp" compile="1" resource="0"
-                file="Source/RangeSelectorComponent.cpp"/>
-          <FILE id="lvx5uc" name="RangeSelectorComponent.h" compile="0" resource="0"
-                file="Source/RangeSelectorComponent.h"/>
-          <FILE id="twFd95" name="WindowOverlayComponent.cpp" compile="1" resource="0"
-                file="Source/WindowOverlayComponent.cpp"/>
-          <FILE id="rHAUyc" name="WindowOverlayComponent.h" compile="0" resource="0"
-                file="Source/WindowOverlayComponent.h"/>
-          <FILE id="FDI7gT" name="EnvelopeComponent.cpp" compile="1" resource="0"
-                file="Source/EnvelopeComponent.cpp"/>
-          <FILE id="cMSQSF" name="EnvelopeComponent.h" compile="0" resource="0"
-                file="Source/EnvelopeComponent.h"/>
-          <FILE id="vGLhz4" name="LabelledControl.h" compile="0" resource="0"
-                file="Source/LabelledControl.h"/>
+          <FILE id="iE9yKo" name="AnimatedAlpha.h" compile="0" resource="0" file="Source/AnimatedAlpha.h"/>
           <FILE id="cJBn2d" name="ControlLabel.h" compile="0" resource="0" file="Source/ControlLabel.h"/>
-          <FILE id="XsKYik" name="HoverableTextButton.h" compile="0" resource="0"
-                file="Source/HoverableTextButton.h"/>
           <FILE id="kLrfAP" name="DirectoryManagerComponent.cpp" compile="1"
                 resource="0" file="Source/DirectoryManagerComponent.cpp"/>
           <FILE id="tFKTOZ" name="DirectoryManagerComponent.h" compile="0" resource="0"
                 file="Source/DirectoryManagerComponent.h"/>
-          <FILE id="iE9yKo" name="AnimatedAlpha.h" compile="0" resource="0" file="Source/AnimatedAlpha.h"/>
+          <FILE id="FDI7gT" name="EnvelopeComponent.cpp" compile="1" resource="0"
+                file="Source/EnvelopeComponent.cpp"/>
+          <FILE id="cMSQSF" name="EnvelopeComponent.h" compile="0" resource="0"
+                file="Source/EnvelopeComponent.h"/>
+          <FILE id="XsKYik" name="HoverableTextButton.h" compile="0" resource="0"
+                file="Source/HoverableTextButton.h"/>
+          <FILE id="lPr0Cq" name="HoverableToggleButton.h" compile="0" resource="0"
+                file="Source/HoverableToggleButton.h"/>
           <FILE id="JplaSJ" name="IRSlotButton.cpp" compile="1" resource="0"
                 file="Source/IRSlotButton.cpp"/>
           <FILE id="dxx4ij" name="IRSlotButton.h" compile="0" resource="0" file="Source/IRSlotButton.h"/>
+          <FILE id="vGLhz4" name="LabelledControl.h" compile="0" resource="0"
+                file="Source/LabelledControl.h"/>
+          <FILE id="b4HF1I" name="RangeSelectorComponent.cpp" compile="1" resource="0"
+                file="Source/RangeSelectorComponent.cpp"/>
+          <FILE id="lvx5uc" name="RangeSelectorComponent.h" compile="0" resource="0"
+                file="Source/RangeSelectorComponent.h"/>
+          <FILE id="ITJiwL" name="RangeSlider.cpp" compile="1" resource="0" file="Source/RangeSlider.cpp"/>
+          <FILE id="YWBAAL" name="RangeSlider.h" compile="0" resource="0" file="Source/RangeSlider.h"/>
           <FILE id="ks8tHp" name="Rotary.h" compile="0" resource="0" file="Source/Rotary.h"/>
+          <FILE id="twFd95" name="WindowOverlayComponent.cpp" compile="1" resource="0"
+                file="Source/WindowOverlayComponent.cpp"/>
+          <FILE id="rHAUyc" name="WindowOverlayComponent.h" compile="0" resource="0"
+                file="Source/WindowOverlayComponent.h"/>
         </GROUP>
       </GROUP>
       <GROUP id="{E15B03E3-A046-6FC1-8173-A3A3183E8AF2}" name="DSP">
@@ -114,25 +119,25 @@
                 resource="0" file="Source/ConvolutionReverbAudioProcessor.h"/>
           <FILE id="kpACVi" name="ConvolutionReverbAudioProcessor.cpp" compile="1"
                 resource="0" file="Source/ConvolutionReverbAudioProcessor.cpp"/>
-          <FILE id="KrVrpT" name="CutFilterAudioProcessor.h" compile="0" resource="0"
-                file="Source/CutFilterAudioProcessor.h"/>
           <FILE id="BGxNhP" name="ConvolutionReverb.cpp" compile="1" resource="0"
                 file="Source/ConvolutionReverb.cpp"/>
           <FILE id="KY1yGi" name="ConvolutionReverb.h" compile="0" resource="0"
                 file="Source/ConvolutionReverb.h"/>
           <FILE id="d8OpFf" name="CutFilterAudioProcessor.cpp" compile="1" resource="0"
                 file="Source/CutFilterAudioProcessor.cpp"/>
+          <FILE id="KrVrpT" name="CutFilterAudioProcessor.h" compile="0" resource="0"
+                file="Source/CutFilterAudioProcessor.h"/>
         </GROUP>
       </GROUP>
-      <FILE id="Nzbb5r" name="Utilities.h" compile="0" resource="0" file="Source/Utilities.h"/>
+      <FILE id="TYdiZh" name="Defines.h" compile="0" resource="0" file="Source/Defines.h"/>
       <FILE id="MqjYgj" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="mq7Q4X" name="PluginProcessor.h" compile="0" resource="0"
             file="Source/PluginProcessor.h"/>
       <FILE id="o4SEb9" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
-      <FILE id="TYdiZh" name="Defines.h" compile="0" resource="0" file="Source/Defines.h"/>
       <FILE id="W1Ealv" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+      <FILE id="Nzbb5r" name="Utilities.h" compile="0" resource="0" file="Source/Utilities.h"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>

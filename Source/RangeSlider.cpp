@@ -2,7 +2,9 @@
 
 /* PROTECTED */
 
-void RangeSlider::fireCallback() { /*DBG("Range slider callback fired with start: " << start << ", end: " << end); */ if (onRangeChanged) onRangeChanged(start, end); }
+void RangeSlider::beginGesture() { if (onDragStart) onDragStart(); }
+void RangeSlider::updateGesture() { if (onRangeChanged) onRangeChanged(start, end); }
+void RangeSlider::endGesture() { if (onDragEnd) onDragEnd(); }
 
 /* PUBLIC */
 

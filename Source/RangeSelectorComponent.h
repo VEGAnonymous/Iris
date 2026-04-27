@@ -7,7 +7,7 @@
 
 static constexpr float MIN_GAP = 0.01f;
 
-class RangeSelectorComponent : public juce::Component {
+class RangeSelectorComponent : public juce::Component, public juce::SettableTooltipClient {
 protected:
     float start = 0.0f, end = 1.0f;
     float maxLength = 1.0f; // norm
@@ -28,9 +28,13 @@ protected:
 
     DragTarget hitHandle(juce::Point<float> p) const;
 
-    virtual void fireCallback() = 0;
+    virtual void beginGesture() {}
+    virtual void updateGesture() {}
+    virtual void endGesture() {}
 
 public:
+    std::function<juce::String(double)> textFromValueFunction;
+
     RangeSelectorComponent(juce::AnimatorUpdater& updater, float hitRadius = 4.0f, bool shouldUpdateDuringDrag = false);
     ~RangeSelectorComponent() override = default;
 
@@ -40,6 +44,12 @@ public:
     void mouseUp(const juce::MouseEvent& e) override;
     void mouseExit(const juce::MouseEvent& e) override;
 
+    juce::String getTextFromValue(double value);
+    juce::String getTooltip() override;
+
     void setRange(float nStart, float nEnd);
     void setMaxLength(float norm);
+
+    float getStart() const;
+    float getEnd() const;
 };

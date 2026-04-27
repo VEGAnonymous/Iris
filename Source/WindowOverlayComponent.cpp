@@ -2,7 +2,9 @@
 
 /* PROTECTED */
 
-void WindowOverlayComponent::fireCallback() { if (onWindowChanged) onWindowChanged(start, end - start); }
+void WindowOverlayComponent::beginGesture() { }
+void WindowOverlayComponent::updateGesture() { }
+void WindowOverlayComponent::endGesture() { if (onWindowChanged) onWindowChanged(start, end - start); }
 
 /* PUBLIC */
 

@@ -1,4 +1,5 @@
 #include "RangeSelectorComponent.h"
+#include "Utilities.h"
 
 /* PROTECTED */
 
@@ -45,9 +46,11 @@ void RangeSelectorComponent::mouseDown(const juce::MouseEvent& e) {
     if (dragTarget != DragTarget::NONE) {
         if (dragTarget == DragTarget::START) hoverStart.setAlpha(0.0f);
         else hoverEnd.setAlpha(0.0f);
+        beginGesture();
     } else {
         selecting = true;
         dragStart = map(e.position.x);
+        beginGesture();
     }
 
     repaint();
@@ -64,11 +67,11 @@ void RangeSelectorComponent::mouseDrag(const juce::MouseEvent& e) {
             end = juce::jlimit(std::min(start + MIN_GAP, 1.0f), 1.0f, norm);
             if (end - start > maxLength) start = juce::jlimit(0.0f, end - MIN_GAP, end - maxLength);
         }
-        if (updateDuringDrag) fireCallback();
+        if (updateDuringDrag) updateGesture();
     } else if (selecting) {
         start = std::min(dragStart, norm);
         end = std::min(start + maxLength, std::max(dragStart, norm));
-        if (updateDuringDrag) fireCallback();
+        if (updateDuringDrag) updateGesture();
     }
 
     repaint();
@@ -76,7 +79,7 @@ void RangeSelectorComponent::mouseDrag(const juce::MouseEvent& e) {
 
 void RangeSelectorComponent::mouseUp(const juce::MouseEvent&) {
     if (dragTarget != DragTarget::NONE || selecting) {
-        fireCallback();
+        endGesture();
         if (dragTarget == DragTarget::START) hoverStart.setAlpha(1.0f);
         else if (dragTarget == DragTarget::END) hoverEnd.setAlpha(1.0f);
     }
@@ -96,6 +99,15 @@ void RangeSelectorComponent::mouseExit(const juce::MouseEvent&) {
     }
 }
 
+juce::String RangeSelectorComponent::getTextFromValue(double value) {
+    if (textFromValueFunction) return textFromValueFunction(value);
+    else return Format::dimensionless(static_cast<float>(value), 4);
+}
+
+juce::String RangeSelectorComponent::getTooltip() {
+    return "[" + getTextFromValue(start) + " - " + getTextFromValue(end) + "]";
+}
+
 void RangeSelectorComponent::setRange(float nStart, float nEnd) {
     start = juce::jlimit(0.0f, 1.0f, nStart);
     end = juce::jlimit(start, 1.0f, nEnd);
@@ -103,3 +115,6 @@ void RangeSelectorComponent::setRange(float nStart, float nEnd) {
 }
 
 void RangeSelectorComponent::setMaxLength(float norm) { maxLength = juce::jlimit(0.0f, 1.0f, norm); }
+
+float RangeSelectorComponent::getStart() const { return start; }
+float RangeSelectorComponent::getEnd() const { return end; }

@@ -14,6 +14,10 @@ inline bool validateSwapInterval(float minTime, float maxTime) { return minTime 
 
 namespace Format {
     // digits + 1 for the decimal point
+    inline juce::String dimensionless(float value, int digits = 4) {
+        return juce::String(value).substring(0, digits + 1);
+    }
+
     inline juce::String percent(float value, int digits = 4) {
         return juce::String(value * 100.0f).substring(0, digits + 1) + "%";
     }
