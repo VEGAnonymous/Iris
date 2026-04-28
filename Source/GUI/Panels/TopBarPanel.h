@@ -16,6 +16,8 @@ private:
 
     void prepare();
 
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopBarPanel)
+
 public:
     std::function<void()> onSettingsClicked;
 

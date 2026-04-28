@@ -1,4 +1,5 @@
 #include "TopBarPanel.h"
+#include "GUI/Theme/Theme.h"
 
 /* PRIVATE */
 

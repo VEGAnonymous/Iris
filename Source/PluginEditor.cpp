@@ -67,17 +67,16 @@ void MareverbAudioProcessorEditor::timerCallback() {
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
             const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
-            if (irSlotButtons[i]) {
-                irSlotButtons[i]->setOccupied(slot.occupied);
-                irSlotButtons[i]->setActive(slot.active);
-                irSlotButtons[i]->setWaveform(slot.occupied ? &slot.buffer : nullptr, audioProcessor.getSampleRate());
-            }
+            auto* slotButton = irSelectorPanel.getIRSlotButton(i);
+            slotButton->setOccupied(slot.occupied);
+            slotButton->setActive(slot.active);
+            slotButton->setWaveform(slot.occupied ? &slot.buffer : nullptr, audioProcessor.getSampleRate());
         }
 
         updateIRSlot(true);
     }
 
-    if (selectedIRChanged.exchange(false, std::memory_order_acquire))
+    if (audioProcessor.guiState.selectedIRChanged.exchange(false, std::memory_order_acquire))
         updateIRSlot(false);
 
     if (polarMapComponent.getIRSwitched().exchange(false, std::memory_order_acquire)) {
@@ -117,7 +116,8 @@ void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
         envelopeControl.setSlot(slot);
 
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
-            if (irSlotButtons[i]) irSlotButtons[i]->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
+            auto* irSlotButton = irSelectorPanel.getIRSlotButton(i);
+            irSlotButton->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
             if (swapControls[i]) {
                 swapControls[i]->swapActiveToggle.setVisible(i == selectedIR);
                 swapControls[i]->swapRangeSlider.setVisible(i == selectedIR);
@@ -344,66 +344,6 @@ void MareverbAudioProcessorEditor::initPositionFieldControls() {
         static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load()) + 1, juce::dontSendNotification);
 }
 
-void MareverbAudioProcessorEditor::initIRSlotButtons() {
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        irSlotButtons[i] = std::make_unique<IRSlotButton>(i, animatorUpdater);
-
-        auto* slotButton = irSlotButtons[i].get();
-        slotButton->setRadioGroupId(1);
-        slotButton->setClickingTogglesState(true);
-
-        slotButton->onActiveToggle = [this, i](bool active) {
-            audioProcessor.getIRManager()->setIRActive(i, active);
-            audioProcessor.guiState.updateField.store(true, std::memory_order_release);
-        };
-
-        auto switchSelectedIR = [this, i]() {
-            int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-            if (i != selectedIR) {
-                audioProcessor.apvts.state.setProperty(PropertyID::selectedIR, i, nullptr);
-                selectedIRChanged.store(true, std::memory_order_relaxed);
-                audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
-            }
-        };
-
-        slotButton->onClick = switchSelectedIR;
-
-        const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
-        slotButton->setOccupied(slot.occupied);
-        if (slot.occupied) slotButton->setWaveform(&slot.buffer, audioProcessor.getSampleRate());
-        addAndMakeVisible(*slotButton);
-
-        // Drag and drop callbacks
-        slotButton->dragHandler.onFileDropped = [this, i, switchSelectedIR](const juce::File& file) {
-            switchSelectedIR();
-            audioProcessor.getIRManager()->loadIR(i, file);
-        };
-
-        slotButton->dragHandler.fileFilter = [this](const juce::File& file) {
-            juce::String extension = file.getFileExtension();
-            juce::StringArray wildcards = juce::StringArray::fromTokens(audioProcessor.getIRManager()->getFormatManager()->getWildcardForAllFormats(), ";", "");
-
-            bool matched = false;
-            for (const auto& pattern : wildcards) {
-                if (extension.matchesWildcard(pattern, true)) {
-                    matched = true;
-                    break;
-                }
-            }
-            return matched;
-        };
-
-        slotButton->dragHandler.onHoverChanged = [this, slotButton](bool hovering) {
-            slotButton->dragHover.setAlpha(hovering ? 1.0f : 0.0f);
-            slotButton->setMouseCursor(hovering ? juce::MouseCursor::CopyingCursor : juce::MouseCursor::NormalCursor);
-        };
-    }
-
-    int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-    if (validateIRIndex(selectedIR))
-        irSlotButtons[selectedIR]->setToggleState(true, juce::dontSendNotification);
-}
-
 void MareverbAudioProcessorEditor::initSelectedIR() {
     // Selected IR header
     irHeaderComponent.onActiveToggle = [this](bool active) {
@@ -495,7 +435,6 @@ void MareverbAudioProcessorEditor::initComponents() {
     };
 
     initPositionFieldControls();
-    initIRSlotButtons();
     initSelectedIR();
 }
 
@@ -510,7 +449,7 @@ void MareverbAudioProcessorEditor::layoutLeftPanel(Bounds bounds) {
 
 void MareverbAudioProcessorEditor::layoutRightPanel(Bounds bounds) {
     topBarPanel.setBounds(bounds.removeFromTop(81));
-    layoutIRSelectorGrid(bounds.removeFromTop(160));
+    irSelectorPanel.setBounds(bounds.removeFromTop(160));
     layoutSelectedIR(bounds.removeFromTop(280));
     layoutInteractionControls(bounds.removeFromTop(100));
     layoutGlobalControls(bounds.removeFromTop(100));
@@ -581,15 +520,6 @@ void MareverbAudioProcessorEditor::layoutPositionFieldControls(Bounds bounds) {
     // Layout
     positionControlRow.performLayout(bounds);
     fieldControlRow.performLayout(bounds);
-}
-
-void MareverbAudioProcessorEditor::layoutIRSelectorGrid(Bounds bounds) {
-    juce::Grid irGrid; // 2x4
-    irGrid.templateRows =    { juce::Grid::Fr(1), juce::Grid::Fr(1) };
-    irGrid.templateColumns = { juce::Grid::Fr(1), juce::Grid::Fr(1), juce::Grid::Fr(1), juce::Grid::Fr(1) };
-
-    for (auto& slot : irSlotButtons) irGrid.items.add(juce::GridItem(*slot));
-    irGrid.performLayout(bounds);
 }
 
 void MareverbAudioProcessorEditor::layoutSelectedIR(Bounds bounds) {
@@ -739,7 +669,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     fieldModAControlAttachment(audioProcessor.apvts, ParamID::fieldModA, fieldModAControl.control),
     fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl.control),
 
-    topBarPanel(audioProcessor, animatorUpdater),
+    topBarPanel(audioProcessor, animatorUpdater), irSelectorPanel(audioProcessor, animatorUpdater),
 
     irHeaderComponent(animatorUpdater), irWaveformComponent(animatorUpdater), windowOverlayComponent(animatorUpdater) {
 
@@ -749,6 +679,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     // PANELS
     addAndMakeVisible(topBarPanel);
+    addAndMakeVisible(irSelectorPanel);
 
     // COMPONENTS
     addAndMakeVisible(polarMapComponent);
@@ -889,7 +820,7 @@ void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
 
     Bounds irGridBounds = rightPanel.removeFromTop(160);
     g.setColour(Theme::Colors::section);
-    g.fillRect(irGridBounds.reduced(2));
+    // g.fillRect(irGridBounds.reduced(2));
 
     Bounds irHeaderBounds = rightPanel.removeFromTop(40);
     g.fillRect(irHeaderBounds.reduced(2));

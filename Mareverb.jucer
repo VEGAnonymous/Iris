@@ -146,6 +146,10 @@
                 file="Source/GUI/Components/WindowOverlayComponent.h"/>
         </GROUP>
         <GROUP id="{3B620D98-897F-204F-F16E-C4BACF90C306}" name="Panels">
+          <FILE id="QCHDvC" name="IRSelectorPanel.cpp" compile="1" resource="0"
+                file="Source/GUI/Panels/IRSelectorPanel.cpp"/>
+          <FILE id="Kw1QDW" name="IRSelectorPanel.h" compile="0" resource="0"
+                file="Source/GUI/Panels/IRSelectorPanel.h"/>
           <FILE id="lpUHdO" name="TopBarPanel.cpp" compile="1" resource="0" file="Source/GUI/Panels/TopBarPanel.cpp"/>
           <FILE id="U3saHB" name="TopBarPanel.h" compile="0" resource="0" file="Source/GUI/Panels/TopBarPanel.h"/>
         </GROUP>

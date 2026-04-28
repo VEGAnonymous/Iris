@@ -23,4 +23,5 @@ struct GUIState {
     std::atomic<bool> syncingSwap { false }; // Guard
 
     std::atomic<bool> irChanged { false };
+    std::atomic<bool> selectedIRChanged { false };
 };

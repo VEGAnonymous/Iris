@@ -15,6 +15,7 @@
 #include "GUI/Components/Controls/RangeSliderAttachment.h"
 #include "GUI/Components/Controls/Rotary.h"
 #include "GUI/Panels/TopBarPanel.h"
+#include "GUI/Panels/IRSelectorPanel.h"
 #include "GUI/Theme/LookAndFeel/ButtonLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/ComboBoxLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/RotaryLookAndFeel.h"
@@ -47,7 +48,7 @@ private:
 
     // Listeners and callbacks
     std::atomic<bool> positionPathChanged { false };
-    std::atomic<bool> selectedIRChanged { false };
+    
 
     void parameterChanged (const juce::String& parameterID, float newValue) override;
     void timerCallback() override;
@@ -135,8 +136,6 @@ private:
 
     HoverableTextButton positionTabButton {animatorUpdater}, fieldTabButton {animatorUpdater};
 
-    std::array<std::unique_ptr<IRSlotButton>, MAX_IR_COUNT> irSlotButtons;
-
     HoverableTextButton loadIRButton {animatorUpdater}, clearIRButton {animatorUpdater}, randomIRButton {animatorUpdater};
 
     // ComboBoxes
@@ -145,6 +144,7 @@ private:
 
     // Panels
     TopBarPanel topBarPanel;
+    IRSelectorPanel irSelectorPanel;
 
     // Components
     PolarMapComponent polarMapComponent;
@@ -155,8 +155,7 @@ private:
 
     std::unique_ptr<SettingsComponent> settingsModal;
 
-    void initPositionFieldControls();
-    void initIRSlotButtons();
+    void initPositionFieldControls();;
     void initSelectedIR();
 
     void initComponents();
@@ -166,8 +165,6 @@ private:
     void layoutRightPanel(Bounds bounds);
 
     void layoutPositionFieldControls(Bounds bounds);
-
-    void layoutIRSelectorGrid(Bounds bounds);
     void layoutSelectedIR(Bounds bounds);
     void layoutIRControls(Bounds bounds);
     void layoutInteractionControls(Bounds bounds);
