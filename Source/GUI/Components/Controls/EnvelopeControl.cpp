@@ -1,20 +1,20 @@
 #include "Core/Defines.h"
-#include "GUI/Components/Controls/EnvelopeComponent.h"
+#include "GUI/Components/Controls/EnvelopeControl.h"
 
 /* PRIVATE */
 
-float EnvelopeComponent::map(float x) const {
+float EnvelopeControl::map(float x) const {
     const auto bounds = curveBounds.toFloat().reduced(2.0f);
     return juce::jlimit(0.0f, 1.0f, (x - bounds.getX()) / bounds.getWidth());
 }
 
-EnvelopeComponent::DragTarget EnvelopeComponent::hitSection(float x) const {
+EnvelopeControl::DragTarget EnvelopeControl::hitSection(float x) const {
     const bool isPerc = (envelope.type == EnvelopeType::PERC);
     const float arCutoff = isPerc ? juce::jlimit(0.05f, 1.0f, envelope.attack) : 0.5f;
     return (map(x) < arCutoff) ? DragTarget::ATTACK : DragTarget::RELEASE;
 }
 
-void EnvelopeComponent::drawCurve(juce::Graphics& g, juce::Rectangle<int> area) {
+void EnvelopeControl::drawCurve(juce::Graphics& g, juce::Rectangle<int> area) {
     auto bounds = area.toFloat().reduced(2.0f);
 
     // Background + border
@@ -59,13 +59,13 @@ void EnvelopeComponent::drawCurve(juce::Graphics& g, juce::Rectangle<int> area) 
     g.strokePath(outline, juce::PathStrokeType(1.5f));
 }
 
-void EnvelopeComponent::updateCurve() {
+void EnvelopeControl::updateCurve() {
     Envelope::computeEnvelopeCurve(previewCurve, ENVELOPE_PREVIEW_POINTS, envelope.type, envelope.attack, envelope.release);
 }
 
 /* PUBLIC */
 
-EnvelopeComponent::EnvelopeComponent() {
+EnvelopeControl::EnvelopeControl() {
     typeSelector.addItemList(envelopeTypes, 1);
     typeSelector.setLookAndFeel(&comboBoxLookAndFeel);
     typeSelector.onChange = [&]() {
@@ -81,11 +81,11 @@ EnvelopeComponent::EnvelopeComponent() {
     repaint();
 }
 
-EnvelopeComponent::~EnvelopeComponent() {
+EnvelopeControl::~EnvelopeControl() {
     typeSelector.setLookAndFeel(nullptr);
 }
 
-void EnvelopeComponent::setSlot(const IRSlot& slot) {
+void EnvelopeControl::setSlot(const IRSlot& slot) {
     updatingSlot = true; // Block callback while updating
 
     envelope = slot.window.envelope;
@@ -95,18 +95,18 @@ void EnvelopeComponent::setSlot(const IRSlot& slot) {
     repaint();
 }
 
-void EnvelopeComponent::paint(juce::Graphics& g) {
+void EnvelopeControl::paint(juce::Graphics& g) {
     updateCurve();
     drawCurve(g, curveBounds);
 }
 
-void EnvelopeComponent::resized() {
+void EnvelopeControl::resized() {
     auto bounds = getLocalBounds();
     curveBounds = bounds.removeFromTop(bounds.getHeight() - 20);
     typeSelector.setBounds(bounds.withSizeKeepingCentre(static_cast<int>(bounds.getWidth() * 0.7f), bounds.getHeight()));
 }
 
-void EnvelopeComponent::mouseMove(const juce::MouseEvent& e) {
+void EnvelopeControl::mouseMove(const juce::MouseEvent& e) {
     if (!curveBounds.toFloat().contains(e.position)) {
         setMouseCursor(juce::MouseCursor::NormalCursor);
         return;
@@ -118,7 +118,7 @@ void EnvelopeComponent::mouseMove(const juce::MouseEvent& e) {
     }
 }
 
-void EnvelopeComponent::mouseDown(const juce::MouseEvent& e) {
+void EnvelopeControl::mouseDown(const juce::MouseEvent& e) {
     if (!curveBounds.toFloat().contains(e.position)) return;
     const bool isPerc = (envelope.type == EnvelopeType::PERC);
 
@@ -132,7 +132,7 @@ void EnvelopeComponent::mouseDown(const juce::MouseEvent& e) {
     repaint();
 }
 
-void EnvelopeComponent::mouseDrag(const juce::MouseEvent& e) {
+void EnvelopeControl::mouseDrag(const juce::MouseEvent& e) {
     if (dragTarget == DragTarget::NONE || updatingSlot) return;
 
     const bool isPerc = (envelope.type == EnvelopeType::PERC);
@@ -150,7 +150,7 @@ void EnvelopeComponent::mouseDrag(const juce::MouseEvent& e) {
     repaint();
 }
 
-void EnvelopeComponent::mouseUp(const juce::MouseEvent& /*e*/) {
+void EnvelopeControl::mouseUp(const juce::MouseEvent& /*e*/) {
     if (dragTarget != DragTarget::NONE && !updatingSlot && onEnvelopeChanged)
         onEnvelopeChanged(static_cast<EnvelopeType>(typeSelector.getSelectedItemIndex()), envelope.attack, envelope.release);
 
@@ -158,18 +158,18 @@ void EnvelopeComponent::mouseUp(const juce::MouseEvent& /*e*/) {
     repaint();
 }
 
-void EnvelopeComponent::mouseEnter(const juce::MouseEvent& e) {
+void EnvelopeControl::mouseEnter(const juce::MouseEvent& e) {
     updateValueTooltipPosition(e.position);
 }
 
-void EnvelopeComponent::mouseExit(const juce::MouseEvent& /*e*/) {
+void EnvelopeControl::mouseExit(const juce::MouseEvent& /*e*/) {
     dragTarget = DragTarget::NONE;
     setMouseCursor(juce::MouseCursor::NormalCursor);
     hideValueTooltip();
     repaint();
 }
 
-void EnvelopeComponent::mouseDoubleClick(const juce::MouseEvent& e) {
+void EnvelopeControl::mouseDoubleClick(const juce::MouseEvent& e) {
     auto target = hitSection(e.position.x);
     if (target == DragTarget::ATTACK) envelope.attack = 0.0f;
     else if (target == DragTarget::RELEASE) envelope.release = 0.0f;
@@ -180,7 +180,7 @@ void EnvelopeComponent::mouseDoubleClick(const juce::MouseEvent& e) {
     repaint();
 }
 
-juce::String EnvelopeComponent::getValueTooltip() {
+juce::String EnvelopeControl::getValueTooltip() {
     float value = 0.0f;
     switch (dragTarget) {
         case DragTarget::ATTACK: {

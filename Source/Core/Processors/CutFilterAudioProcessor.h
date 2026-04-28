@@ -19,7 +19,7 @@ public:
 	~CutFilterAudioProcessor() override;
 
 	// Boilerplate
-	const juce::String getName() const override { return "Convolution Reverb"; }
+	const juce::String getName() const override { return "Cut Filter"; }
 	bool acceptsMidi() const override { return false; }
 	bool producesMidi() const override { return false; }
 	bool isMidiEffect() const override { return false; }

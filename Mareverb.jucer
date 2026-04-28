@@ -92,10 +92,10 @@
               <FILE id="lvx5uc" name="RangeSelectorComponent.h" compile="0" resource="0"
                     file="Source/GUI/Components/Controls/Base/RangeSelectorComponent.h"/>
             </GROUP>
-            <FILE id="FDI7gT" name="EnvelopeComponent.cpp" compile="1" resource="0"
-                  file="Source/GUI/Components/Controls/EnvelopeComponent.cpp"/>
-            <FILE id="cMSQSF" name="EnvelopeComponent.h" compile="0" resource="0"
-                  file="Source/GUI/Components/Controls/EnvelopeComponent.h"/>
+            <FILE id="FDI7gT" name="EnvelopeControl.cpp" compile="1" resource="0"
+                  file="Source/GUI/Components/Controls/EnvelopeControl.cpp"/>
+            <FILE id="cMSQSF" name="EnvelopeControl.h" compile="0" resource="0"
+                  file="Source/GUI/Components/Controls/EnvelopeControl.h"/>
             <FILE id="F6x5t8" name="HoverableTextButton.cpp" compile="1" resource="0"
                   file="Source/GUI/Components/Controls/HoverableTextButton.cpp"/>
             <FILE id="XsKYik" name="HoverableTextButton.h" compile="0" resource="0"

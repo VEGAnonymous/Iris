@@ -8,7 +8,7 @@
 
 #include <JuceHeader.h>
 
-class EnvelopeComponent : public juce::Component, public juce::SettableTooltipClient, public ValueTooltipClient {
+class EnvelopeControl : public juce::Component, public juce::SettableTooltipClient, public ValueTooltipClient {
 private:
     Envelope envelope;
     Bounds curveBounds;
@@ -30,13 +30,13 @@ private:
     void drawCurve(juce::Graphics& g, juce::Rectangle<int> area);
     void updateCurve();
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EnvelopeComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EnvelopeControl)
 
 public:
     std::function<void(EnvelopeType, float attackNorm, float releaseNorm)> onEnvelopeChanged;
 
-    EnvelopeComponent();
-    ~EnvelopeComponent() override;
+    EnvelopeControl();
+    ~EnvelopeControl() override;
 
     void setSlot(const IRSlot& slot);
 

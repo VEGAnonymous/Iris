@@ -6,7 +6,7 @@
 #include "GUI/Components/SettingsComponent.h"
 #include "GUI/Components/WindowOverlayComponent.h"
 #include "GUI/Components/Base/WaveformComponent.h"
-#include "GUI/Components/Controls/EnvelopeComponent.h"
+#include "GUI/Components/Controls/EnvelopeControl.h"
 #include "GUI/Components/Controls/HoverableTextButton.h"
 #include "GUI/Components/Controls/HoverableToggleButton.h"
 #include "GUI/Components/Controls/IRSlotButton.h"
@@ -136,7 +136,7 @@ private:
     IRHeaderComponent irHeaderComponent;
     WaveformComponent irWaveformComponent;
     WindowOverlayComponent windowOverlayComponent;
-    EnvelopeComponent envelopeComponent;
+    EnvelopeControl envelopeControl;
 
     std::unique_ptr<SettingsComponent> settingsModal;
 

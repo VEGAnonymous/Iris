@@ -112,7 +112,7 @@ void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
         windowOverlayComponent.setMaxLength(slot.getMaxWindowLength());
         windowOverlayComponent.setWindow(slot.window.start, slot.window.start + slot.window.length);
 
-        envelopeComponent.setSlot(slot);
+        envelopeControl.setSlot(slot);
 
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
             if (irSlotButtons[i]) irSlotButtons[i]->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
@@ -487,7 +487,7 @@ void MareverbAudioProcessorEditor::initSelectedIR() {
             audioProcessor.getIRManager()->loadRandomIR(selectedIR);
     };
 
-    envelopeComponent.onEnvelopeChanged = [this](EnvelopeType type, float atk, float rel) {
+    envelopeControl.onEnvelopeChanged = [this](EnvelopeType type, float atk, float rel) {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         if (validateIRIndex(selectedIR))
             audioProcessor.getIRManager()->setEnvelope(selectedIR, type, atk, rel);
@@ -666,7 +666,7 @@ void MareverbAudioProcessorEditor::layoutIRControls(Bounds bounds) {
         .withHeight(h * 0.75f)
         .withMargin(22.5f));
 
-    irControlRow.items.add(juce::FlexItem(envelopeComponent) // Window envelope
+    irControlRow.items.add(juce::FlexItem(envelopeControl) // Window envelope
         .withFlex(1.0f)
         .withWidth(w * 0.25f)
         .withHeight(h * 0.8f)
@@ -810,7 +810,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     addAndMakeVisible(clearIRButton);
     addAndMakeVisible(randomIRButton);
 
-    addAndMakeVisible(envelopeComponent);
+    addAndMakeVisible(envelopeControl);
 
     auto bindValueTooltipCallbacks = [this](juce::Component& component) {
         if (auto* valueTooltipClient = dynamic_cast<ValueTooltipClient*>(&component)) {
@@ -856,14 +856,14 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     }
 
     // Setup envelope component
-    envelopeComponent.formatTextFromValueFunction = [this](double value) {
+    envelopeControl.formatTextFromValueFunction = [this](double value) {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
         double windowDur = (slot.window.length * slot.buffer.getNumSamples()) / audioProcessor.getSampleRate();
         double valueDur = juce::jmap(value, 0.0, windowDur);
         return Format::seconds(static_cast<float>(valueDur), 4);
     };
-    bindValueTooltipCallbacks(envelopeComponent);
+    bindValueTooltipCallbacks(envelopeControl);
 
     // Setup swap controls
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
