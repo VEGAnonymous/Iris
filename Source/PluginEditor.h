@@ -14,13 +14,24 @@
 #include "GUI/Components/Controls/RangeSlider.h"
 #include "GUI/Components/Controls/RangeSliderAttachment.h"
 #include "GUI/Components/Controls/Rotary.h"
+#include "GUI/Panels/TopBarPanel.h"
 #include "GUI/Theme/LookAndFeel/ButtonLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/ComboBoxLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/RotaryLookAndFeel.h"
 
+#include "GUI/Theme/LookAndFeel/MareverbLookAndFeel.h"
+
 #include "PluginProcessor.h"
 
 #include <JuceHeader.h>
+
+struct ControlDef {
+    juce::String paramID = "";
+    juce::Component* component;
+    ControlGroup group;
+
+    juce::Slider* slider = nullptr;
+};
 
 class MareverbAudioProcessorEditor  : public juce::AudioProcessorEditor,
     juce::AudioProcessorValueTreeState::Listener, juce::Timer {
@@ -28,11 +39,11 @@ private:
     MareverbAudioProcessor& audioProcessor;
 
     // Theme
-    juce::AnimatorUpdater animatorUpdater;
+    MareverbLookAndFeel mainLookAndFeel;
 
-    ButtonLookAndFeel buttonLookAndFeel;
-    ComboBoxLookAndFeel comboBoxLookAndFeel;
-    RotaryLookAndFeel rotaryLookAndFeel;
+    // API
+    juce::AnimatorUpdater animatorUpdater;
+    ValueTooltipWindow valueTooltip;
 
     // Listeners and callbacks
     std::atomic<bool> positionPathChanged { false };
@@ -48,22 +59,22 @@ private:
 
     // Controls
     std::vector<ControlDef> controls { { 
-       // ParamID                   Component                ControlGroup               Slider (opt)                  applyLookAndFeel 
-        { ParamID::globalMix,       &globalMixControl,       ControlGroup::GLOBAL,      &globalMixControl.control,    [&]() { globalMixControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { ParamID::decay,           &decayControl,           ControlGroup::GLOBAL,      &decayControl.control,        [&]() { decayControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { ParamID::lowCut,          &lowCutControl,          ControlGroup::GLOBAL,      &lowCutControl .control,      [&]() { lowCutControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { ParamID::highCut,         &highCutControl,         ControlGroup::GLOBAL,      &highCutControl.control,      [&]() { highCutControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { ParamID::weightingMode,   &weightingModeControl,   ControlGroup::INTERACTION, nullptr,                      [&]() { weightingModeControl.control.setLookAndFeel(&buttonLookAndFeel); } },
-        { ParamID::strength,        &strengthControl,        ControlGroup::INTERACTION, &strengthControl.control,     [&]() { strengthControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { ParamID::spread,          &spreadControl,          ControlGroup::INTERACTION, &spreadControl.control,       [&]() { spreadControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { ParamID::positionPattern, &positionPatternControl, ControlGroup::POSITION,    nullptr,                      [&]() { positionPatternControl.setLookAndFeel(&comboBoxLookAndFeel); } },
-        { ParamID::positionRate,    &positionRateControl,    ControlGroup::POSITION,    &positionRateControl.control, [&]() { positionRateControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { ParamID::positionModA,    &positionModAControl,    ControlGroup::POSITION,    &positionModAControl.control, [&]() { positionModAControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { ParamID::positionModB,    &positionModBControl,    ControlGroup::POSITION,    &positionModBControl.control, [&]() { positionModBControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { ParamID::fieldPattern,    &fieldPatternControl,    ControlGroup::FIELD,       nullptr,                      [&]() { fieldPatternControl.setLookAndFeel(&comboBoxLookAndFeel); } },
-        { ParamID::fieldRate,       &fieldRateControl,       ControlGroup::FIELD,       &fieldRateControl.control,    [&]() { fieldRateControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { ParamID::fieldModA,       &fieldModAControl,       ControlGroup::FIELD,       &fieldModAControl.control,    [&]() { fieldModAControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
-        { ParamID::fieldModB,       &fieldModBControl,       ControlGroup::FIELD,       &fieldModBControl.control,    [&]() { fieldModBControl.control.setLookAndFeel(&rotaryLookAndFeel); } },
+       // ParamID                   Component                ControlGroup               Slider (opt)                  
+        { ParamID::globalMix,       &globalMixControl,       ControlGroup::GLOBAL,      &globalMixControl.control    },
+        { ParamID::decay,           &decayControl,           ControlGroup::GLOBAL,      &decayControl.control        },
+        { ParamID::lowCut,          &lowCutControl,          ControlGroup::GLOBAL,      &lowCutControl .control      },
+        { ParamID::highCut,         &highCutControl,         ControlGroup::GLOBAL,      &highCutControl.control      },
+        { ParamID::weightingMode,   &weightingModeControl,   ControlGroup::INTERACTION, nullptr                      },
+        { ParamID::strength,        &strengthControl,        ControlGroup::INTERACTION, &strengthControl.control     },
+        { ParamID::spread,          &spreadControl,          ControlGroup::INTERACTION, &spreadControl.control       },
+        { ParamID::positionPattern, &positionPatternControl, ControlGroup::POSITION,    nullptr                      },
+        { ParamID::positionRate,    &positionRateControl,    ControlGroup::POSITION,    &positionRateControl.control },
+        { ParamID::positionModA,    &positionModAControl,    ControlGroup::POSITION,    &positionModAControl.control },
+        { ParamID::positionModB,    &positionModBControl,    ControlGroup::POSITION,    &positionModBControl.control },
+        { ParamID::fieldPattern,    &fieldPatternControl,    ControlGroup::FIELD,       nullptr                      },
+        { ParamID::fieldRate,       &fieldRateControl,       ControlGroup::FIELD,       &fieldRateControl.control    },
+        { ParamID::fieldModA,       &fieldModAControl,       ControlGroup::FIELD,       &fieldModAControl.control    },
+        { ParamID::fieldModB,       &fieldModBControl,       ControlGroup::FIELD,       &fieldModBControl.control    },
     } };
 
     inline juce::String getParameterName(juce::AudioProcessorValueTreeState& apvts, const juce::String& paramID) {
@@ -87,10 +98,18 @@ private:
         fieldModBControl    { getParameterName(audioProcessor.apvts, ParamID::fieldModB),    animatorUpdater };
 
     SliderAttachment
-        globalMixControlAttachment, decayControlAttachment, lowCutControlAttachment, highCutControlAttachment,
-        strengthControlAttachment, spreadControlAttachment,
-        positionRateControlAttachment, positionModAControlAttachment, positionModBControlAttachment,
-        fieldRateControlAttachment, fieldModAControlAttachment, fieldModBControlAttachment;
+        globalMixControlAttachment, 
+        decayControlAttachment, 
+        lowCutControlAttachment,
+        highCutControlAttachment,
+        strengthControlAttachment, 
+        spreadControlAttachment,
+        positionRateControlAttachment, 
+        positionModAControlAttachment, 
+        positionModBControlAttachment,
+        fieldRateControlAttachment, 
+        fieldModAControlAttachment, 
+        fieldModBControlAttachment;
 
     // Swap controls
     struct SwapControl {
@@ -116,20 +135,16 @@ private:
 
     HoverableTextButton positionTabButton {animatorUpdater}, fieldTabButton {animatorUpdater};
 
-    HoverableTextButton clearAllButton {animatorUpdater}, randomAllButton {animatorUpdater};
-
     std::array<std::unique_ptr<IRSlotButton>, MAX_IR_COUNT> irSlotButtons;
 
     HoverableTextButton loadIRButton {animatorUpdater}, clearIRButton {animatorUpdater}, randomIRButton {animatorUpdater};
-
-    HoverableTextButton settingsButton {animatorUpdater};
 
     // ComboBoxes
     juce::ComboBox positionPatternControl, fieldPatternControl;
     juce::AudioProcessorValueTreeState::ComboBoxAttachment positionPatternControlAttachment, fieldPatternControlAttachment;
 
-    // Tooltips
-    ValueTooltipWindow valueTooltip;
+    // Panels
+    TopBarPanel topBarPanel;
 
     // Components
     PolarMapComponent polarMapComponent;
@@ -141,7 +156,6 @@ private:
     std::unique_ptr<SettingsComponent> settingsModal;
 
     void initPositionFieldControls();
-    void initTopBar();
     void initIRSlotButtons();
     void initSelectedIR();
 
@@ -153,7 +167,6 @@ private:
 
     void layoutPositionFieldControls(Bounds bounds);
 
-    void layoutTopBar(Bounds bounds);
     void layoutIRSelectorGrid(Bounds bounds);
     void layoutSelectedIR(Bounds bounds);
     void layoutIRControls(Bounds bounds);

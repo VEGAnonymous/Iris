@@ -91,8 +91,10 @@ void MareverbAudioProcessorEditor::timerCallback() {
     if (audioProcessor.guiState.syncingField.load(std::memory_order_acquire))
         syncField();
 
-    if (audioProcessor.getIRManager()->getDirectoryChanged().exchange(false, std::memory_order_acquire))
+    if (audioProcessor.getIRManager()->getDirectoryChanged().exchange(false, std::memory_order_acquire)) {
         if (settingsModal) settingsModal->refreshDirectories();
+    }
+        
 }
 
 // GUI state
@@ -342,29 +344,6 @@ void MareverbAudioProcessorEditor::initPositionFieldControls() {
         static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load()) + 1, juce::dontSendNotification);
 }
 
-void MareverbAudioProcessorEditor::initTopBar() {
-    // Randomize / clear all buttons
-    randomAllButton.setButtonText("RANDOM ALL");
-    randomAllButton.onClick = [this]() { audioProcessor.getIRManager()->loadRandomIRs(); };
-
-    clearAllButton.setButtonText("CLEAR ALL");
-    clearAllButton.onClick = [this]() { audioProcessor.getIRManager()->clearIRs(); };
-
-    // Settings modal
-    settingsButton.setButtonText("S");
-    settingsButton.onClick = [this]() {
-        if (settingsModal) {
-            settingsModal.reset();
-        } else {
-            settingsModal = std::make_unique<SettingsComponent>(audioProcessor.getIRManager(), animatorUpdater);
-            settingsModal->onCloseRequested = [this]() { juce::MessageManager::callAsync([this]() { settingsModal.reset(); }); };
-            settingsModal->setLookAndFeel(&buttonLookAndFeel);
-            settingsModal->setBounds(getLocalBounds().withSizeKeepingCentre(462, 361));
-            addAndMakeVisible(*settingsModal);
-        }
-    };
-}
-
 void MareverbAudioProcessorEditor::initIRSlotButtons() {
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         irSlotButtons[i] = std::make_unique<IRSlotButton>(i, animatorUpdater);
@@ -504,8 +483,18 @@ void MareverbAudioProcessorEditor::initComponents() {
     updateWeightingModeText();
     weightingModeControl.control.onStateChange = updateWeightingModeText;
 
+    topBarPanel.onSettingsClicked = [this]() {
+        if (settingsModal) {
+            settingsModal.reset();
+        } else {
+            settingsModal = std::make_unique<SettingsComponent>(audioProcessor.getIRManager(), animatorUpdater);
+            settingsModal->onCloseRequested = [this]() { juce::MessageManager::callAsync([this]() { settingsModal.reset(); }); };
+            settingsModal->setBounds(getLocalBounds().withSizeKeepingCentre(462, 361));
+            addAndMakeVisible(*settingsModal);
+        }
+    };
+
     initPositionFieldControls();
-    initTopBar();
     initIRSlotButtons();
     initSelectedIR();
 }
@@ -520,7 +509,7 @@ void MareverbAudioProcessorEditor::layoutLeftPanel(Bounds bounds) {
 }
 
 void MareverbAudioProcessorEditor::layoutRightPanel(Bounds bounds) {
-    layoutTopBar(bounds.removeFromTop(81));
+    topBarPanel.setBounds(bounds.removeFromTop(81));
     layoutIRSelectorGrid(bounds.removeFromTop(160));
     layoutSelectedIR(bounds.removeFromTop(280));
     layoutInteractionControls(bounds.removeFromTop(100));
@@ -592,34 +581,6 @@ void MareverbAudioProcessorEditor::layoutPositionFieldControls(Bounds bounds) {
     // Layout
     positionControlRow.performLayout(bounds);
     fieldControlRow.performLayout(bounds);
-}
-
-void MareverbAudioProcessorEditor::layoutTopBar(Bounds bounds) {
-    const auto w = bounds.getWidth(), 
-               h = bounds.getHeight();
-
-    juce::FlexBox topBarRow(juce::FlexBox::JustifyContent::flexStart);
-    topBarRow.alignItems = juce::FlexBox::AlignItems::center;
-
-    juce::FlexBox globalIROperations(juce::FlexBox::JustifyContent::center);
-    globalIROperations.flexDirection = juce::FlexBox::Direction::column;
-
-    globalIROperations.items.add(juce::FlexItem(randomAllButton).withFlex(1.0f)); // 'Random All' button
-    globalIROperations.items.add(juce::FlexItem(clearAllButton).withFlex(1.0f));  // 'Clear All' button
-
-    // Layout
-    topBarRow.items.add(juce::FlexItem(globalIROperations)
-        .withFlex(0.0f)
-        .withWidth(w * 0.15f)
-        .withHeight(h * 0.8f)
-        .withMargin(22.5f));
-
-    topBarRow.items.add(juce::FlexItem(settingsButton) // Settings modal button
-        .withFlex(0.0f)
-        .withWidth(w * 0.075f)
-        .withHeight(h * 0.6f));
-
-    topBarRow.performLayout(bounds.removeFromLeft(static_cast<int>(w * 0.4f)));
 }
 
 void MareverbAudioProcessorEditor::layoutIRSelectorGrid(Bounds bounds) {
@@ -778,34 +739,27 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     fieldModAControlAttachment(audioProcessor.apvts, ParamID::fieldModA, fieldModAControl.control),
     fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl.control),
 
+    topBarPanel(audioProcessor, animatorUpdater),
+
     irHeaderComponent(animatorUpdater), irWaveformComponent(animatorUpdater), windowOverlayComponent(animatorUpdater) {
 
-    // Add components
+    setLookAndFeel(&mainLookAndFeel);
+
     addChildComponent(valueTooltip);
 
-    addAndMakeVisible(polarMapComponent);
+    // PANELS
+    addAndMakeVisible(topBarPanel);
 
-    positionTabButton.setLookAndFeel(&buttonLookAndFeel);
-    fieldTabButton.setLookAndFeel(&buttonLookAndFeel);
+    // COMPONENTS
+    addAndMakeVisible(polarMapComponent);
     addAndMakeVisible(positionTabButton);
     addAndMakeVisible(fieldTabButton);
-
-    randomAllButton.setLookAndFeel(&buttonLookAndFeel);
-    clearAllButton.setLookAndFeel(&buttonLookAndFeel);
-    addAndMakeVisible(randomAllButton);
-    addAndMakeVisible(clearAllButton);
-
-    settingsButton.setLookAndFeel(&buttonLookAndFeel);
-    addAndMakeVisible(settingsButton);
 
     addAndMakeVisible(irHeaderComponent);
     
     addAndMakeVisible(irWaveformComponent);
     addAndMakeVisible(windowOverlayComponent);
 
-    loadIRButton.setLookAndFeel(&buttonLookAndFeel);
-    clearIRButton.setLookAndFeel(&buttonLookAndFeel);
-    randomIRButton.setLookAndFeel(&buttonLookAndFeel);
     addAndMakeVisible(loadIRButton);
     addAndMakeVisible(clearIRButton);
     addAndMakeVisible(randomIRButton);
@@ -834,7 +788,6 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     // Setup base controls
     for (auto& control : controls) {
-        control.applyLookAndFeel();
         addAndMakeVisible(*control.component);
 
         audioProcessor.apvts.addParameterListener(control.paramID, this);
@@ -868,7 +821,6 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     // Setup swap controls
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, animatorUpdater, i);
-        swapControls[i]->swapActiveToggle.control.setLookAndFeel(&buttonLookAndFeel);
         addChildComponent(swapControls[i]->swapActiveToggle);
         addChildComponent(swapControls[i]->swapRangeSlider);
 
@@ -894,7 +846,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
 MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
     // Detach look and feel
-    for (auto& control : getControls()) control.component->setLookAndFeel(nullptr);
+    setLookAndFeel(nullptr);
 
     // Detach listeners
     for (auto& control : controls) audioProcessor.apvts.removeParameterListener(control.paramID, this);
@@ -933,7 +885,7 @@ void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
     g.fillRect(rightPanel);
 
     Bounds topBarBounds = rightPanel.removeFromTop(81);
-    g.fillRect(topBarBounds.reduced(2));
+    // g.fillRect(topBarBounds.reduced(2));
 
     Bounds irGridBounds = rightPanel.removeFromTop(160);
     g.setColour(Theme::Colors::section);
