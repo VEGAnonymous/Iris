@@ -5,6 +5,7 @@
 #include "MotionController.h"
 #include "Theme.h"
 #include "Utilities.h"
+#include "ValueTooltipClient.h"
 
 /* PRIVATE */
 
@@ -726,6 +727,8 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     irHeaderComponent(animatorUpdater), irWaveformComponent(animatorUpdater), windowOverlayComponent(animatorUpdater) {
 
     // Add components
+    addChildComponent(valueTooltip);
+
     addAndMakeVisible(polarMapComponent);
 
     positionTabButton.setLookAndFeel(&buttonLookAndFeel);
@@ -751,7 +754,6 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     addAndMakeVisible(irWaveformComponent);
     addAndMakeVisible(windowOverlayComponent);
 
-    // Selected IR controls
     loadIRButton.setLookAndFeel(&buttonLookAndFeel);
     clearIRButton.setLookAndFeel(&buttonLookAndFeel);
     randomIRButton.setLookAndFeel(&buttonLookAndFeel);
@@ -761,25 +763,59 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     addAndMakeVisible(envelopeComponent);
 
+    auto bindValueTooltipCallbacks = [this](juce::Component& component) {
+        if (auto* valueTooltipClient = dynamic_cast<ValueTooltipClient*>(&component)) {
+            juce::Component* componentPtr = &component;
+
+            valueTooltipClient->onShowValueTooltip = [this]() {
+                valueTooltip.setVisible(true);
+            };
+            valueTooltipClient->onUpdateValueTooltipText = [this](const juce::String tooltip) {
+                valueTooltip.setText(tooltip);
+            };
+            valueTooltipClient->onUpdateValueTooltipPosition = [this, componentPtr, valueTooltipClient](juce::Point<float> position) {
+                auto localPoint = getLocalPoint(componentPtr, position.roundToInt());
+                valueTooltip.updatePosition(valueTooltipClient->getValueTooltip(), localPoint, getLocalBounds());
+            };
+            valueTooltipClient->onHideValueTooltip = [this]() {
+                valueTooltip.setVisible(false);
+            };
+        }
+    };
+
     // Setup base controls
     for (auto& control : controls) {
         control.applyLookAndFeel();
+        addAndMakeVisible(*control.component);
 
-        // Bind control formatting to apvts parameter formatting
+        audioProcessor.apvts.addParameterListener(control.paramID, this);
+
         if (control.slider && control.paramID.isNotEmpty()) {
+            // Bind control formatting to apvts parameter formatting
             if (auto* param = dynamic_cast<juce::RangedAudioParameter*>(audioProcessor.apvts.getParameter(control.paramID))) {
                 control.slider->textFromValueFunction = [param](double value) {
-                    return param->getText(param->convertTo0to1(static_cast<float>(value)), 0); 
+                    return param->getText(param->convertTo0to1(static_cast<float>(value)), 0);
                 };
                 control.slider->valueFromTextFunction = [param](const juce::String& text) {
                     return static_cast<double>(param->convertFrom0to1(param->getValueForText(text)));
                 };
             }
-        }
 
-        audioProcessor.apvts.addParameterListener(control.paramID, this);
-        addAndMakeVisible(*control.component);
+            // Setup value tooltip callbacks
+            bindValueTooltipCallbacks(*control.slider);
+        }
     }
+
+    // Setup envelope component
+    envelopeComponent.formatTextFromValueFunction = [this](double value) {
+        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
+        double windowDur = (slot.window.length * slot.buffer.getNumSamples()) / audioProcessor.getSampleRate();
+        double valueDur = juce::jmap(value, 0.0, windowDur);
+        DBG(Format::seconds(static_cast<float>(valueDur), 4));
+        return Format::seconds(static_cast<float>(valueDur), 4);
+    };
+    bindValueTooltipCallbacks(envelopeComponent);
 
     // Setup swap controls
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
@@ -788,14 +824,18 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
         addChildComponent(swapControls[i]->swapActiveToggle);
         addChildComponent(swapControls[i]->swapRangeSlider);
 
-        if (auto* param = dynamic_cast<juce::RangedAudioParameter*>(audioProcessor.apvts.getParameter(ParamID::irSwapMin(i))))
-            swapControls[i]->swapRangeSlider.control.textFromValueFunction = [param, i](double value) {
-                return param->getText(static_cast<float>(value), 0);
-            };
-
         audioProcessor.apvts.addParameterListener(ParamID::irSwapMin(i), this);
         audioProcessor.apvts.addParameterListener(ParamID::irSwapMax(i), this);
         audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
+
+        // Bind control formatting to apvts parameter formatting
+        if (auto* param = dynamic_cast<juce::RangedAudioParameter*>(audioProcessor.apvts.getParameter(ParamID::irSwapMin(i)))) {
+            swapControls[i]->swapRangeSlider.control.formatTextFromValueFunction = [param, i](double value) {
+                return param->getText(static_cast<float>(value), 0);
+            };
+        }
+
+        bindValueTooltipCallbacks(swapControls[i]->swapRangeSlider.control);
     }
 
     initComponents();

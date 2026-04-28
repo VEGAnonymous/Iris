@@ -47,10 +47,14 @@ void RangeSelectorComponent::mouseDown(const juce::MouseEvent& e) {
         if (dragTarget == DragTarget::START) hoverStart.setAlpha(0.0f);
         else hoverEnd.setAlpha(0.0f);
         beginGesture();
+        updateValueTooltipText();
+        showValueTooltip();
     } else {
         selecting = true;
         dragStart = map(e.position.x);
         beginGesture();
+        updateValueTooltipText();
+        showValueTooltip();
     }
 
     repaint();
@@ -59,6 +63,7 @@ void RangeSelectorComponent::mouseDown(const juce::MouseEvent& e) {
 void RangeSelectorComponent::mouseDrag(const juce::MouseEvent& e) {
     const float norm = map(e.position.x);
     if (dragTarget != DragTarget::NONE) {
+
         if (dragTarget == DragTarget::START) {
             start = juce::jlimit(0.0f, std::max(end - MIN_GAP, 0.0f), norm);
             // Push other handle if window exceeds max length
@@ -67,17 +72,29 @@ void RangeSelectorComponent::mouseDrag(const juce::MouseEvent& e) {
             end = juce::jlimit(std::min(start + MIN_GAP, 1.0f), 1.0f, norm);
             if (end - start > maxLength) start = juce::jlimit(0.0f, end - MIN_GAP, end - maxLength);
         }
-        if (updateDuringDrag) updateGesture();
+
+        if (updateDuringDrag) {
+            updateGesture();
+            updateValueTooltipText();
+        }
+
     } else if (selecting) {
         start = std::min(dragStart, norm);
         end = std::min(start + maxLength, std::max(dragStart, norm));
-        if (updateDuringDrag) updateGesture();
+        if (updateDuringDrag) {
+            updateGesture();
+            updateValueTooltipText();
+        }
     }
 
     repaint();
 }
 
-void RangeSelectorComponent::mouseUp(const juce::MouseEvent&) {
+void RangeSelectorComponent::mouseEnter(const juce::MouseEvent& e) {
+    updateValueTooltipPosition(e.position);
+}
+
+void RangeSelectorComponent::mouseUp(const juce::MouseEvent& /*e*/) {
     if (dragTarget != DragTarget::NONE || selecting) {
         endGesture();
         if (dragTarget == DragTarget::START) hoverStart.setAlpha(1.0f);
@@ -95,17 +112,28 @@ void RangeSelectorComponent::mouseExit(const juce::MouseEvent&) {
         hoverStart.setAlpha(0.0f);
         hoverEnd.setAlpha(0.0f);
         setMouseCursor(juce::MouseCursor::NormalCursor);
+        hideValueTooltip();
         repaint();
     }
 }
 
-juce::String RangeSelectorComponent::getTextFromValue(double value) {
-    if (textFromValueFunction) return textFromValueFunction(value);
-    else return Format::dimensionless(static_cast<float>(value), 4);
+void RangeSelectorComponent::mouseDoubleClick(const juce::MouseEvent& e) {
+    auto target = hitHandle(e.position);
+    if (target != DragTarget::NONE) {
+        beginGesture();
+        start = 0.0f;
+        end = 1.0f;
+        if (end - start > maxLength) end = juce::jlimit(start + MIN_GAP, 1.0f, start + maxLength);
+        updateGesture();
+
+        endGesture();
+        updateValueTooltipText();
+        repaint();
+    }
 }
 
-juce::String RangeSelectorComponent::getTooltip() {
-    return "[" + getTextFromValue(start) + " - " + getTextFromValue(end) + "]";
+juce::String RangeSelectorComponent::getValueTooltip() {
+    return "[" + textFromValue(start) + " - " + textFromValue(end) + "]";
 }
 
 void RangeSelectorComponent::setRange(float nStart, float nEnd) {

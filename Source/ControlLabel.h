@@ -10,19 +10,8 @@ private:
 	const juce::Font labelFont = Theme::Fonts::getEquestriaNeueFont(juce::FontOptions().withHeight(12));
 
 public:
-	ControlLabel(const juce::String& name) {
-		setText(name, juce::dontSendNotification);
-		setJustificationType(juce::Justification::centred);
-		setMinimumHorizontalScale(0.0f);
-	}
+	ControlLabel(const juce::String& name = "");
+	~ControlLabel() override = default;
 
-	void paint(juce::Graphics& g) override {
-		auto bounds = getLocalBounds();
-		g.setColour(Theme::Colors::background);
-		g.fillRoundedRectangle(bounds.toFloat(), 4.0f);
-
-		g.setFont(labelFont);
-		g.setColour(Theme::Colors::textLight);
-		g.drawFittedText(getText(), bounds.reduced(1), getJustificationType(), 1, getMinimumHorizontalScale());
-	}
+	void paint(juce::Graphics& g) override;
 };

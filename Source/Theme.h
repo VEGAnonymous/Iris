@@ -14,6 +14,7 @@ namespace Theme {
             outlineHover = juce::Colour::fromRGB(68, 82, 96),
             highlight = juce::Colour::fromRGB(147, 255, 219),
             highlightHover = juce::Colour::fromRGB(156, 255, 255),
+            shadow = juce::Colour::fromRGB(16, 25, 32),
             disabled = juce::Colour::fromRGB(82, 94, 100),
             textLight = juce::Colour::fromRGB(196, 196, 196),
             textDark = juce::Colour::fromRGB(52, 64, 76);

@@ -6,10 +6,11 @@
 #include "Rotary.h"
 #include "RotaryLookAndFeel.h"
 #include "Theme.h"
+#include "ValueTooltipClient.h"
 
 #include <JuceHeader.h>
 
-class EnvelopeComponent : public juce::Component {
+class EnvelopeComponent : public juce::Component, public juce::SettableTooltipClient, public ValueTooltipClient {
 private:
     Envelope envelope;
     Bounds curveBounds;
@@ -25,6 +26,8 @@ private:
     bool updatingSlot = false;
 
     float map(float x) const;
+
+    DragTarget hitSection(float x) const;
 
     void drawCurve(juce::Graphics& g, juce::Rectangle<int> area);
     void updateCurve();
@@ -46,5 +49,9 @@ public:
     void mouseDown(const juce::MouseEvent& e) override;
     void mouseDrag(const juce::MouseEvent& e) override;
     void mouseUp(const juce::MouseEvent& e) override;
+    void mouseEnter(const juce::MouseEvent& e) override;
     void mouseExit(const juce::MouseEvent& e) override;
+    void mouseDoubleClick(const juce::MouseEvent& e) override;
+
+    juce::String getValueTooltip() override;
 };

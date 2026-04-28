@@ -55,21 +55,28 @@
               file="Source/PolarMapComponent.cpp"/>
         <FILE id="VvHUrK" name="PolarMapComponent.h" compile="0" resource="0"
               file="Source/PolarMapComponent.h"/>
-        <FILE id="LqNTp3" name="RangeSliderAttachment.h" compile="0" resource="0"
-              file="Source/RangeSliderAttachment.h"/>
         <FILE id="zrFvt5" name="SettingsComponent.cpp" compile="1" resource="0"
               file="Source/SettingsComponent.cpp"/>
         <FILE id="xeOq7a" name="SettingsComponent.h" compile="0" resource="0"
               file="Source/SettingsComponent.h"/>
-        <FILE id="HSaqji" name="ValueTooltip.cpp" compile="1" resource="0"
-              file="Source/ValueTooltip.cpp"/>
-        <FILE id="e75FF9" name="ValueTooltip.h" compile="0" resource="0" file="Source/ValueTooltip.h"/>
+        <FILE id="OWOm1H" name="ValueTooltipClient.cpp" compile="1" resource="0"
+              file="Source/ValueTooltipClient.cpp"/>
+        <FILE id="SeWkLT" name="ValueTooltipClient.h" compile="0" resource="0"
+              file="Source/ValueTooltipClient.h"/>
+        <FILE id="HSaqji" name="ValueTooltipWindow.cpp" compile="1" resource="0"
+              file="Source/ValueTooltipWindow.cpp"/>
+        <FILE id="e75FF9" name="ValueTooltipWindow.h" compile="0" resource="0"
+              file="Source/ValueTooltipWindow.h"/>
         <FILE id="tB1sTJ" name="WaveformComponent.cpp" compile="1" resource="0"
               file="Source/WaveformComponent.cpp"/>
         <FILE id="jrcQET" name="WaveformComponent.h" compile="0" resource="0"
               file="Source/WaveformComponent.h"/>
         <GROUP id="{3F80DDB6-76F4-8F87-F86F-4F5FE9E7A606}" name="Controls">
+          <FILE id="W7m2vP" name="AnimatedAlpha.cpp" compile="1" resource="0"
+                file="Source/AnimatedAlpha.cpp"/>
           <FILE id="iE9yKo" name="AnimatedAlpha.h" compile="0" resource="0" file="Source/AnimatedAlpha.h"/>
+          <FILE id="kV5JRn" name="ControlLabel.cpp" compile="1" resource="0"
+                file="Source/ControlLabel.cpp"/>
           <FILE id="cJBn2d" name="ControlLabel.h" compile="0" resource="0" file="Source/ControlLabel.h"/>
           <FILE id="kLrfAP" name="DirectoryManagerComponent.cpp" compile="1"
                 resource="0" file="Source/DirectoryManagerComponent.cpp"/>
@@ -79,8 +86,12 @@
                 file="Source/EnvelopeComponent.cpp"/>
           <FILE id="cMSQSF" name="EnvelopeComponent.h" compile="0" resource="0"
                 file="Source/EnvelopeComponent.h"/>
+          <FILE id="F6x5t8" name="HoverableTextButton.cpp" compile="1" resource="0"
+                file="Source/HoverableTextButton.cpp"/>
           <FILE id="XsKYik" name="HoverableTextButton.h" compile="0" resource="0"
                 file="Source/HoverableTextButton.h"/>
+          <FILE id="KBiYA8" name="HoverableToggleButton.cpp" compile="1" resource="0"
+                file="Source/HoverableToggleButton.cpp"/>
           <FILE id="lPr0Cq" name="HoverableToggleButton.h" compile="0" resource="0"
                 file="Source/HoverableToggleButton.h"/>
           <FILE id="JplaSJ" name="IRSlotButton.cpp" compile="1" resource="0"
@@ -94,6 +105,11 @@
                 file="Source/RangeSelectorComponent.h"/>
           <FILE id="ITJiwL" name="RangeSlider.cpp" compile="1" resource="0" file="Source/RangeSlider.cpp"/>
           <FILE id="YWBAAL" name="RangeSlider.h" compile="0" resource="0" file="Source/RangeSlider.h"/>
+          <FILE id="r7MKER" name="RangeSliderAttachment.cpp" compile="1" resource="0"
+                file="Source/RangeSliderAttachment.cpp"/>
+          <FILE id="LqNTp3" name="RangeSliderAttachment.h" compile="0" resource="0"
+                file="Source/RangeSliderAttachment.h"/>
+          <FILE id="xbtyZK" name="Rotary.cpp" compile="1" resource="0" file="Source/Rotary.cpp"/>
           <FILE id="ks8tHp" name="Rotary.h" compile="0" resource="0" file="Source/Rotary.h"/>
           <FILE id="twFd95" name="WindowOverlayComponent.cpp" compile="1" resource="0"
                 file="Source/WindowOverlayComponent.cpp"/>

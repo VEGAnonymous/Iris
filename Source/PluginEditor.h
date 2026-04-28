@@ -17,6 +17,7 @@
 #include "SettingsComponent.h"
 #include "WaveformComponent.h"
 #include "WindowOverlayComponent.h"
+#include "ValueTooltipWindow.h"
 
 #include <JuceHeader.h>
 
@@ -126,6 +127,9 @@ private:
     juce::ComboBox positionPatternControl, fieldPatternControl;
     juce::AudioProcessorValueTreeState::ComboBoxAttachment positionPatternControlAttachment, fieldPatternControlAttachment;
 
+    // Tooltips
+    ValueTooltipWindow valueTooltip;
+
     // Components
     PolarMapComponent polarMapComponent;
     IRHeaderComponent irHeaderComponent;
@@ -134,8 +138,6 @@ private:
     EnvelopeComponent envelopeComponent;
 
     std::unique_ptr<SettingsComponent> settingsModal;
-
-    juce::TooltipWindow tooltipWindow;
 
     void initPositionFieldControls();
     void initTopBar();

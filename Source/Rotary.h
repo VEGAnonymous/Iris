@@ -1,45 +1,32 @@
 #pragma once
 
 #include "AnimatedAlpha.h"
+#include "ValueTooltipClient.h"
 
 #include <JuceHeader.h>
 
-class Rotary : public juce::Slider {
+class Rotary : public juce::Slider, public ValueTooltipClient {
 private:
     AnimatedAlpha hoverAnim;
     bool bipolar = false;
 
 public:
-    Rotary(juce::AnimatorUpdater& updater, bool isBipolar = false) : juce::Slider(
-        juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, 
-        juce::Slider::TextEntryBoxPosition::NoTextBox),
-        hoverAnim(*this, updater),
-        bipolar(isBipolar) {}
-
+    Rotary(juce::AnimatorUpdater& updater, bool isBipolar = false);
     ~Rotary() override = default;
 
-    void mouseEnter(const juce::MouseEvent&) override { hoverAnim.setAlpha(1.0f); }
-    void mouseExit(const juce::MouseEvent&) override { hoverAnim.setAlpha(0.0f); }
+    void mouseEnter(const juce::MouseEvent& e) override;
+    void mouseExit(const juce::MouseEvent& e) override;
+    void mouseDown(const juce::MouseEvent& e);
+    void mouseDrag(const juce::MouseEvent& e);
+    void mouseDoubleClick(const juce::MouseEvent& e);
 
-    bool hitTest(int x, int y) override {
-        // Constrain mouse event region to the knob area
-        const float centerX = juce::Component::getWidth() * 0.5f;
-        const float centerY = juce::Component::getHeight() * 0.5f;
-        const float radius = (static_cast<float>(juce::jmin(juce::Component::getWidth(), juce::Component::getHeight())) * 0.5f) - 2.0f;
-        return juce::Point<float>(static_cast<float>(x), static_cast<float>(y)).getDistanceFrom({ centerX, centerY }) <= radius;
-    }
+    bool hitTest(int x, int y) override;
 
-    juce::String getTextFromValue(double value) override {
-        if (textFromValueFunction) return textFromValueFunction(value);
-        else return juce::String(value);
-    }
+    juce::String textFromValue(double value) override;
+    juce::String getValueTooltip() override;
 
-    juce::String getTooltip() override {
-        return getTextFromValue(getValue());
-    }
+    void setBipolar(bool nBipolar);
+    bool isBipolar() const;
 
-    void setBipolar(bool nBipolar) { bipolar = nBipolar; }
-    bool isBipolar() const { return bipolar; }
-
-    float getHoverAlpha() const { return hoverAnim.getAlpha(); }
+    float getHoverAlpha() const;
 };

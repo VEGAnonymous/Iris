@@ -8,6 +8,12 @@ float EnvelopeComponent::map(float x) const {
     return juce::jlimit(0.0f, 1.0f, (x - bounds.getX()) / bounds.getWidth());
 }
 
+EnvelopeComponent::DragTarget EnvelopeComponent::hitSection(float x) const {
+    const bool isPerc = (envelope.type == EnvelopeType::PERC);
+    const float arCutoff = isPerc ? juce::jlimit(0.05f, 1.0f, envelope.attack) : 0.5f;
+    return (map(x) < arCutoff) ? DragTarget::ATTACK : DragTarget::RELEASE;
+}
+
 void EnvelopeComponent::drawCurve(juce::Graphics& g, juce::Rectangle<int> area) {
     auto bounds = area.toFloat().reduced(2.0f);
 
@@ -115,11 +121,14 @@ void EnvelopeComponent::mouseMove(const juce::MouseEvent& e) {
 void EnvelopeComponent::mouseDown(const juce::MouseEvent& e) {
     if (!curveBounds.toFloat().contains(e.position)) return;
     const bool isPerc = (envelope.type == EnvelopeType::PERC);
-    const float arCutoff = isPerc ? juce::jlimit(0.05f, 1.0f, envelope.attack) : 0.5f;
-    dragTarget = (map(e.position.x) < arCutoff) ? DragTarget::ATTACK : DragTarget::RELEASE;
+
+    dragTarget = hitSection(e.position.x);
     dragStartValue = dragTarget == DragTarget::ATTACK
         ? (isPerc ? envelope.attack : std::sqrt(envelope.attack * 0.5f))
         : (isPerc ? envelope.release : std::sqrt(envelope.release * 0.5f));
+
+    updateValueTooltipText();
+    showValueTooltip();
     repaint();
 }
 
@@ -137,17 +146,56 @@ void EnvelopeComponent::mouseDrag(const juce::MouseEvent& e) {
         envelope.release = isPerc ? releaseLin : ((releaseLin * 2.0f) * (releaseLin * 2.0f) * 0.5f);
     }
 
+    updateValueTooltipText();
     repaint();
 }
 
-void EnvelopeComponent::mouseUp(const juce::MouseEvent&) {
+void EnvelopeComponent::mouseUp(const juce::MouseEvent& /*e*/) {
     if (dragTarget != DragTarget::NONE && !updatingSlot && onEnvelopeChanged)
         onEnvelopeChanged(static_cast<EnvelopeType>(typeSelector.getSelectedItemIndex()), envelope.attack, envelope.release);
+
     dragTarget = DragTarget::NONE;
     repaint();
 }
-void EnvelopeComponent::mouseExit(const juce::MouseEvent&) {
+
+void EnvelopeComponent::mouseEnter(const juce::MouseEvent& e) {
+    updateValueTooltipPosition(e.position);
+}
+
+void EnvelopeComponent::mouseExit(const juce::MouseEvent& /*e*/) {
     dragTarget = DragTarget::NONE;
     setMouseCursor(juce::MouseCursor::NormalCursor);
+    hideValueTooltip();
     repaint();
+}
+
+void EnvelopeComponent::mouseDoubleClick(const juce::MouseEvent& e) {
+    auto target = hitSection(e.position.x);
+    if (target == DragTarget::ATTACK) envelope.attack = 0.0f;
+    else if (target == DragTarget::RELEASE) envelope.release = 0.0f;
+
+    onEnvelopeChanged(static_cast<EnvelopeType>(typeSelector.getSelectedItemIndex()), envelope.attack, envelope.release);
+
+    updateValueTooltipText();
+    repaint();
+}
+
+juce::String EnvelopeComponent::getValueTooltip() {
+    float value = 0.0f;
+    switch (dragTarget) {
+        case DragTarget::ATTACK: {
+            value = envelope.attack;
+            break;
+        }
+        case DragTarget::RELEASE: {
+            value = envelope.release;
+            break;
+        }
+        case DragTarget::NONE:
+        default: {
+            value = 0.0f; // Shouldn't ever happen
+            break;
+        }
+    }
+    return textFromValue(static_cast<double>(value));
 }

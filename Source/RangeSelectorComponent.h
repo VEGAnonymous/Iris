@@ -2,12 +2,13 @@
 
 #include "AnimatedAlpha.h"
 #include "Theme.h"
+#include "ValueTooltipClient.h"
 
 #include <JuceHeader.h>
 
 static constexpr float MIN_GAP = 0.01f;
 
-class RangeSelectorComponent : public juce::Component, public juce::SettableTooltipClient {
+class RangeSelectorComponent : public juce::Component, public juce::SettableTooltipClient, public ValueTooltipClient {
 protected:
     float start = 0.0f, end = 1.0f;
     float maxLength = 1.0f; // norm
@@ -33,8 +34,6 @@ protected:
     virtual void endGesture() {}
 
 public:
-    std::function<juce::String(double)> textFromValueFunction;
-
     RangeSelectorComponent(juce::AnimatorUpdater& updater, float hitRadius = 4.0f, bool shouldUpdateDuringDrag = false);
     ~RangeSelectorComponent() override = default;
 
@@ -42,10 +41,11 @@ public:
     void mouseDown(const juce::MouseEvent& e) override;
     void mouseDrag(const juce::MouseEvent& e) override;
     void mouseUp(const juce::MouseEvent& e) override;
+    void mouseEnter(const juce::MouseEvent& e) override;
     void mouseExit(const juce::MouseEvent& e) override;
+    void mouseDoubleClick(const juce::MouseEvent& e) override;
 
-    juce::String getTextFromValue(double value);
-    juce::String getTooltip() override;
+    juce::String getValueTooltip();
 
     void setRange(float nStart, float nEnd);
     void setMaxLength(float norm);
