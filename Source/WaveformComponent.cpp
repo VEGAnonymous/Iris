@@ -51,6 +51,7 @@ void WaveformComponent::paint(juce::Graphics& g) {
 
 WaveformComponent::WaveformComponent(juce::AnimatorUpdater& updater) : activeAnim(*this, updater, ACTIVE_ANIMATION_TIME_MS) {
     formatManager.registerBasicFormats(); // .wav, .aiff, .flac, .opus, .mp3
+    setInterceptsMouseClicks(false, false);
     setBufferedToImage(true);
 }
 

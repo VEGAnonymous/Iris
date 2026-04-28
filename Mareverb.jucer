@@ -82,6 +82,14 @@
                 resource="0" file="Source/DirectoryManagerComponent.cpp"/>
           <FILE id="tFKTOZ" name="DirectoryManagerComponent.h" compile="0" resource="0"
                 file="Source/DirectoryManagerComponent.h"/>
+          <FILE id="ssHWtL" name="DragAndDropHandler.cpp" compile="1" resource="0"
+                file="Source/DragAndDropHandler.cpp"/>
+          <FILE id="EibL31" name="DragAndDropHandler.h" compile="0" resource="0"
+                file="Source/DragAndDropHandler.h"/>
+          <FILE id="moKzQp" name="DragAndDropMixin.cpp" compile="1" resource="0"
+                file="Source/DragAndDropMixin.cpp"/>
+          <FILE id="oUkCMX" name="DragAndDropMixin.h" compile="0" resource="0"
+                file="Source/DragAndDropMixin.h"/>
           <FILE id="FDI7gT" name="EnvelopeComponent.cpp" compile="1" resource="0"
                 file="Source/EnvelopeComponent.cpp"/>
           <FILE id="cMSQSF" name="EnvelopeComponent.h" compile="0" resource="0"

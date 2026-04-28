@@ -1,3 +1,4 @@
+#include "GUIUtilities.h"
 #include "WindowOverlayComponent.h"
 
 /* PROTECTED */
@@ -8,7 +9,11 @@ void WindowOverlayComponent::endGesture() { if (onWindowChanged) onWindowChanged
 
 /* PUBLIC */
 
-WindowOverlayComponent::WindowOverlayComponent(juce::AnimatorUpdater& updater) : RangeSelectorComponent(updater, 4.0f, false) {}
+WindowOverlayComponent::WindowOverlayComponent(juce::AnimatorUpdater& updater) 
+    : RangeSelectorComponent(updater, 4.0f, false), dragHover(*this, updater) {
+    dragHandler.typeAccepted = DragAndDropHandler::DragAndDropType::FILES;
+    dragHandler.acceptsMultiple = false;
+}
 
 void WindowOverlayComponent::paint(juce::Graphics& g) {
     const auto bounds = getLocalBounds().toFloat();
@@ -43,6 +48,10 @@ void WindowOverlayComponent::paint(juce::Graphics& g) {
     g.setColour(Theme::Colors::highlight.withAlpha(juce::jmap(endAlpha, 0.7f, 1.0f)));
     g.fillEllipse(endX - dotRadius, dotY - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
     */
+
+    // Drag and drop indication
+    const float dragAlpha = dragHover.getAlpha();
+    Paint::dragAndDropHover(g, getLocalBounds().toFloat(), dragAlpha, (Theme::Colors::highlight).withAlpha(0.5f));
 }
 
 void WindowOverlayComponent::setWindow(float nStart, float nEnd) { setRange(nStart, nEnd); }

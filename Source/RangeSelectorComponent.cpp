@@ -121,9 +121,15 @@ void RangeSelectorComponent::mouseDoubleClick(const juce::MouseEvent& e) {
     auto target = hitHandle(e.position);
     if (target != DragTarget::NONE) {
         beginGesture();
-        start = 0.0f;
-        end = 1.0f;
-        if (end - start > maxLength) end = juce::jlimit(start + MIN_GAP, 1.0f, start + maxLength);
+        if (target == DragTarget::START) {
+            start = 0.0f;
+            if (end - start > maxLength) end = juce::jlimit(start + MIN_GAP, 1.0f, start + maxLength);
+        } 
+        if (target == DragTarget::END) {
+            end = 1.0f;
+            if (end - start > maxLength) start = juce::jlimit(0.0f, end - MIN_GAP, end - maxLength);
+        }
+
         updateGesture();
 
         endGesture();

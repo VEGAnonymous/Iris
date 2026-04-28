@@ -294,3 +294,5 @@ const IRSlot& IRManager::getIRSlot(int index) const {
 }
 
 const std::vector<IRDirectory> IRManager::getIRDirectories() const { return irDirectories; };
+
+const juce::AudioFormatManager& IRManager::getFormatManager() const { return formatManager; }

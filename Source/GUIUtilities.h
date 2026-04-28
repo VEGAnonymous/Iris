@@ -32,4 +32,11 @@ namespace Paint {
         g.setColour(color.withAlpha(alpha));
         g.fillEllipse(center.x - radius, center.y - radius, radius * 2.0f, radius * 2.0f);
     }
+
+    inline void dragAndDropHover(juce::Graphics& g, BoundsF bounds,
+        float alpha = -1.0f, juce::Colour color = Theme::Colors::highlight.withAlpha(0.5f)) {
+        alpha = (alpha >= 0.0f) ? alpha : 1.0f;
+        g.setColour(color.withMultipliedAlpha(alpha));
+        g.drawRoundedRectangle(bounds, 4.0f, 3.0f);
+    }
 }

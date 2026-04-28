@@ -753,6 +753,27 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     
     addAndMakeVisible(irWaveformComponent);
     addAndMakeVisible(windowOverlayComponent);
+    windowOverlayComponent.dragHandler.onFileDropped = [this](const juce::File& file) {
+        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        audioProcessor.getIRManager()->loadIR(selectedIR, file);
+    };
+    windowOverlayComponent.dragHandler.fileFilter = [this](const juce::File& file) {
+        juce::String extension = file.getFileExtension();
+        juce::StringArray wildcards = juce::StringArray::fromTokens(audioProcessor.getIRManager()->getFormatManager().getWildcardForAllFormats(), ";", "");
+
+        bool matched = false;
+        for (const auto& pattern : wildcards) {
+            if (extension.matchesWildcard(pattern, true)) {
+                matched = true;
+                break;
+            }
+        }
+        return matched;
+    };
+    windowOverlayComponent.dragHandler.onHoverChanged = [this](bool hovering) {
+        windowOverlayComponent.dragHover.setAlpha(hovering ? 1.0f : 0.0f);
+        windowOverlayComponent.setMouseCursor(hovering ? juce::MouseCursor::CopyingCursor : juce::MouseCursor::NormalCursor);
+    };
 
     loadIRButton.setLookAndFeel(&buttonLookAndFeel);
     clearIRButton.setLookAndFeel(&buttonLookAndFeel);
@@ -812,7 +833,6 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
         double windowDur = (slot.window.length * slot.buffer.getNumSamples()) / audioProcessor.getSampleRate();
         double valueDur = juce::jmap(value, 0.0, windowDur);
-        DBG(Format::seconds(static_cast<float>(valueDur), 4));
         return Format::seconds(static_cast<float>(valueDur), 4);
     };
     bindValueTooltipCallbacks(envelopeComponent);
