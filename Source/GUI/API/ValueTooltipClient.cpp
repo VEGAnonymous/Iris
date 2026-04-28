@@ -37,3 +37,28 @@ juce::String ValueTooltipClient::getValueTooltip(double nValue, bool setInternal
 		return tooltip;
 	} else return textFromValue(nValue);
 }
+
+void ValueTooltipClient::bindValueTooltipCallbacks(ValueTooltipWindow& valueTooltip, juce::Component& parentComponent) {
+    if (auto* component = dynamic_cast<juce::Component*>(this)) {
+        juce::Component* parentComponentPtr = &parentComponent;
+
+        onShowValueTooltip = [&valueTooltip]() {
+            DBG("Showing tooltip");
+            valueTooltip.setVisible(true);
+        };
+        onUpdateValueTooltipText = [&valueTooltip](const juce::String tooltip) {
+            DBG(tooltip);
+            valueTooltip.setText(tooltip);
+        };
+        onUpdateValueTooltipPosition =
+            [this, &valueTooltip, parentComponentPtr, component](juce::Point<float> position) {
+            auto localPoint = parentComponentPtr->getLocalPoint(component, position.roundToInt());
+            DBG("Local point: " << localPoint.x << ", " << localPoint.y);
+            valueTooltip.updatePosition(getValueTooltip(), localPoint, parentComponentPtr->getLocalBounds());
+        };
+        onHideValueTooltip = [&valueTooltip]() {
+            DBG("Hid tooltip");
+            valueTooltip.setVisible(false);
+        };
+    }
+}

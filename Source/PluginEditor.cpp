@@ -25,12 +25,6 @@ void MareverbAudioProcessorEditor::parameterChanged(const juce::String& paramete
         if (parameterID == ParamID::fieldPattern)
             audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
     }
-
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        if (parameterID == ParamID::irSwapActive(i) /*|| parameterID == ParamID::irSwapMin(i) || parameterID == ParamID::irSwapMax(i)*/) {
-            audioProcessor.guiState.swapChanged.store(true, std::memory_order_release);
-        }
-    }
 }
 
 void MareverbAudioProcessorEditor::timerCallback() {
@@ -50,18 +44,6 @@ void MareverbAudioProcessorEditor::timerCallback() {
         }
         polarMapComponent.notifyFieldChanged(std::move(coordinates));
         // DBG("Passed coordinates to map");
-    }
-
-    if (audioProcessor.guiState.swapChanged.exchange(false, std::memory_order_acquire)) {
-        audioProcessor.guiState.syncingSwap.store(true, std::memory_order_release);
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        bool swapActive = swapControls[selectedIR]->swapActiveToggle.control.getToggleState();
-
-        swapControls[selectedIR]->swapRangeSlider.setEnabled(swapActive);
-        swapControls[selectedIR]->swapRangeSlider.repaint();
-        audioProcessor.getIRManager()->setSwapActive(selectedIR, swapActive);
-        audioProcessor.guiState.syncingSwap.store(false, std::memory_order_release);
-        // DBG("Swap changed");
     }
 
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
@@ -100,30 +82,14 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
 void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
     int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+
     // DBG("Selected IR " << selectedIR);
-    if (validateIRIndex(selectedIR)) {
-        const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
-        irHeaderComponent.setActive(slot.active, animate);
-        irHeaderComponent.setSlot(selectedIR, slot);
-
-        irWaveformComponent.setNumPoints(WAVEFORM_POINTS);
-        irWaveformComponent.setWaveform(&slot.buffer, audioProcessor.getSampleRate());
-        irWaveformComponent.setActive(slot.active, animate);
-
-        windowOverlayComponent.setMaxLength(slot.getMaxWindowLength());
-        windowOverlayComponent.setWindow(slot.window.start, slot.window.start + slot.window.length);
-
-        envelopeControl.setSlot(slot);
-
-        for (int i = 0; i < MAX_IR_COUNT; ++i) {
-            auto* irSlotButton = irSelectorPanel.getIRSlotButton(i);
-            irSlotButton->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
-            if (swapControls[i]) {
-                swapControls[i]->swapActiveToggle.setVisible(i == selectedIR);
-                swapControls[i]->swapRangeSlider.setVisible(i == selectedIR);
-            }
-        }
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        auto* irSlotButton = irSelectorPanel.getIRSlotButton(i);
+        irSlotButton->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
     }
+
+    selectedIRPanel.updateIRSlot(selectedIR, animate);
 };
 
 void MareverbAudioProcessorEditor::syncPosition() {
@@ -344,75 +310,6 @@ void MareverbAudioProcessorEditor::initPositionFieldControls() {
         static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load()) + 1, juce::dontSendNotification);
 }
 
-void MareverbAudioProcessorEditor::initSelectedIR() {
-    // Selected IR header
-    irHeaderComponent.onActiveToggle = [this](bool active) {
-        audioProcessor.getIRManager()->setIRActive(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), active);
-        audioProcessor.guiState.updateField.store(true, std::memory_order_release);
-    };
-
-    // Selected IR waveform
-    irWaveformComponent.setDimensions(16.0f, 0.0f, -16.0f, 0.9f);
-    irWaveformComponent.setColor(Theme::Colors::highlight);
-
-    windowOverlayComponent.onWindowChanged = [this](float start, float length) {
-        audioProcessor.getIRManager()->setWindow(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), start, length);
-    };
-
-    // Drag and drop callbacks
-    windowOverlayComponent.dragHandler.onFileDropped = [this](const juce::File& file) {
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        audioProcessor.getIRManager()->loadIR(selectedIR, file);
-    };
-
-    windowOverlayComponent.dragHandler.fileFilter = [this](const juce::File& file) {
-        juce::String extension = file.getFileExtension();
-        juce::StringArray wildcards = juce::StringArray::fromTokens(audioProcessor.getIRManager()->getFormatManager()->getWildcardForAllFormats(), ";", "");
-
-        bool matched = false;
-        for (const auto& pattern : wildcards) {
-            if (extension.matchesWildcard(pattern, true)) {
-                matched = true;
-                break;
-            }
-        }
-        return matched;
-    };
-
-    windowOverlayComponent.dragHandler.onHoverChanged = [this](bool hovering) {
-        windowOverlayComponent.dragHover.setAlpha(hovering ? 1.0f : 0.0f);
-        windowOverlayComponent.setMouseCursor(hovering ? juce::MouseCursor::CopyingCursor : juce::MouseCursor::NormalCursor);
-    };
-
-    // Selected IR controls
-    loadIRButton.setButtonText("LOAD");
-    loadIRButton.onClick = [this]() {
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        if (validateIRIndex(selectedIR))
-            audioProcessor.getIRManager()->chooseIR(selectedIR);
-    };
-
-    clearIRButton.setButtonText("CLEAR");
-    clearIRButton.onClick = [this]() {
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        if (validateIRIndex(selectedIR))
-            audioProcessor.getIRManager()->clearIR(selectedIR);
-    };
-
-    randomIRButton.setButtonText("RANDOM");
-    randomIRButton.onClick = [this]() {
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        if (validateIRIndex(selectedIR))
-            audioProcessor.getIRManager()->loadRandomIR(selectedIR);
-    };
-
-    envelopeControl.onEnvelopeChanged = [this](EnvelopeType type, float atk, float rel) {
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        if (validateIRIndex(selectedIR))
-            audioProcessor.getIRManager()->setEnvelope(selectedIR, type, atk, rel);
-    };
-}
-
 void MareverbAudioProcessorEditor::initComponents() {
     // Weighting mode toggle switch
     // TODO: Change from TextButton to ToggleSwitch-esque component
@@ -435,7 +332,6 @@ void MareverbAudioProcessorEditor::initComponents() {
     };
 
     initPositionFieldControls();
-    initSelectedIR();
 }
 
 // Layout
@@ -450,7 +346,7 @@ void MareverbAudioProcessorEditor::layoutLeftPanel(Bounds bounds) {
 void MareverbAudioProcessorEditor::layoutRightPanel(Bounds bounds) {
     topBarPanel.setBounds(bounds.removeFromTop(81));
     irSelectorPanel.setBounds(bounds.removeFromTop(160));
-    layoutSelectedIR(bounds.removeFromTop(280));
+    selectedIRPanel.setBounds(bounds.removeFromTop(280));
     layoutInteractionControls(bounds.removeFromTop(100));
     layoutGlobalControls(bounds.removeFromTop(100));
 }
@@ -520,73 +416,6 @@ void MareverbAudioProcessorEditor::layoutPositionFieldControls(Bounds bounds) {
     // Layout
     positionControlRow.performLayout(bounds);
     fieldControlRow.performLayout(bounds);
-}
-
-void MareverbAudioProcessorEditor::layoutSelectedIR(Bounds bounds) {
-    irHeaderComponent.setBounds(bounds.removeFromTop(40));
-
-    irWaveformComponent.setBounds(bounds.removeFromTop(140));
-    windowOverlayComponent.setBounds(irWaveformComponent.getBounds().withTrimmedLeft(16).withTrimmedRight(16));
-
-    layoutIRControls(bounds.removeFromTop(100));
-}
-
-void MareverbAudioProcessorEditor::layoutIRControls(Bounds bounds) {
-    const auto w = bounds.getWidth(), 
-               h = bounds.getHeight();
-
-    juce::FlexBox irControlRow(juce::FlexBox::JustifyContent::flexStart);
-    irControlRow.alignItems = juce::FlexBox::AlignItems::center;
-
-    // 'Random' / 'Clear' button
-    juce::FlexBox irControlColumn(juce::FlexBox::JustifyContent::center);
-    irControlColumn.flexDirection = juce::FlexBox::Direction::column;
-
-    irControlColumn.items.add(juce::FlexItem(randomIRButton)
-        .withFlex(1.0f)
-        .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 3.0f, 0.0f)));
-
-    irControlColumn.items.add(juce::FlexItem(clearIRButton)
-        .withFlex(1.0f)
-        .withMargin(juce::FlexItem::Margin(3.0f, 0.0f, 0.0f, 0.0f)));
-
-    // Layout
-    irControlRow.items.add(juce::FlexItem(irControlColumn)
-        .withFlex(0.0f)
-        .withWidth(w * 0.15f)
-        .withHeight(h * 0.75f)
-        .withMargin(22.5f));
-
-    irControlRow.items.add(juce::FlexItem(envelopeControl) // Window envelope
-        .withFlex(1.0f)
-        .withWidth(w * 0.25f)
-        .withHeight(h * 0.8f)
-        .withMargin(10.0f));
-
-    irControlRow.performLayout(bounds.removeFromLeft(static_cast<int>(w * 0.6f)));
-
-    // Swap controls
-    Bounds swapToggleBounds = bounds.removeFromTop(30);
-    Bounds swapSliderBounds = bounds;
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        auto& activeToggle = swapControls[i]->swapActiveToggle;
-        auto& rangeSlider = swapControls[i]->swapRangeSlider;
-
-        activeToggle.setBounds(swapToggleBounds.reduced(4));
-        activeToggle.setLabelPosition(LabelledControl<HoverableToggleButton>::LabelPosition::LEFT);
-        activeToggle.setLabelDimensions(66.0f, 14.0f);
-        activeToggle.setControlDimensions(12.0f, 12.0f);
-        activeToggle.setLabelMargin(juce::FlexItem::Margin(15.0f, 0.0f, 5.0f, 0.0f));
-        activeToggle.setControlMargin(juce::FlexItem::Margin(15.0f, 5.0f, 5.0f, 8.0f));
-        activeToggle.resized();
-
-        rangeSlider.setBounds(swapSliderBounds.reduced(4));
-        rangeSlider.setLabelDimensions(92.0f, 14.0f);
-        rangeSlider.setControlDimensions(130.0f, 30.0f);
-        rangeSlider.setLabelMargin(juce::FlexItem::Margin(0.0f, 0.0f, 2.0f, 0.0f));
-        rangeSlider.setControlMargin(juce::FlexItem::Margin(5.0f, 0.0f, 5.0f, 0.0f));
-        rangeSlider.resized();
-    }
 }
 
 void MareverbAudioProcessorEditor::layoutInteractionControls(Bounds bounds) {
@@ -669,9 +498,9 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     fieldModAControlAttachment(audioProcessor.apvts, ParamID::fieldModA, fieldModAControl.control),
     fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl.control),
 
-    topBarPanel(audioProcessor, animatorUpdater), irSelectorPanel(audioProcessor, animatorUpdater),
-
-    irHeaderComponent(animatorUpdater), irWaveformComponent(animatorUpdater), windowOverlayComponent(animatorUpdater) {
+    topBarPanel(audioProcessor, animatorUpdater), 
+    irSelectorPanel(audioProcessor, animatorUpdater), 
+    selectedIRPanel(audioProcessor, animatorUpdater) {
 
     setLookAndFeel(&mainLookAndFeel);
 
@@ -680,42 +509,13 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     // PANELS
     addAndMakeVisible(topBarPanel);
     addAndMakeVisible(irSelectorPanel);
+    addAndMakeVisible(selectedIRPanel);
 
     // COMPONENTS
+    // TODO: Put these into MareMapPanel component class
     addAndMakeVisible(polarMapComponent);
     addAndMakeVisible(positionTabButton);
     addAndMakeVisible(fieldTabButton);
-
-    addAndMakeVisible(irHeaderComponent);
-    
-    addAndMakeVisible(irWaveformComponent);
-    addAndMakeVisible(windowOverlayComponent);
-
-    addAndMakeVisible(loadIRButton);
-    addAndMakeVisible(clearIRButton);
-    addAndMakeVisible(randomIRButton);
-
-    addAndMakeVisible(envelopeControl);
-
-    auto bindValueTooltipCallbacks = [this](juce::Component& component) {
-        if (auto* valueTooltipClient = dynamic_cast<ValueTooltipClient*>(&component)) {
-            juce::Component* componentPtr = &component;
-
-            valueTooltipClient->onShowValueTooltip = [this]() {
-                valueTooltip.setVisible(true);
-            };
-            valueTooltipClient->onUpdateValueTooltipText = [this](const juce::String tooltip) {
-                valueTooltip.setText(tooltip);
-            };
-            valueTooltipClient->onUpdateValueTooltipPosition = [this, componentPtr, valueTooltipClient](juce::Point<float> position) {
-                auto localPoint = getLocalPoint(componentPtr, position.roundToInt());
-                valueTooltip.updatePosition(valueTooltipClient->getValueTooltip(), localPoint, getLocalBounds());
-            };
-            valueTooltipClient->onHideValueTooltip = [this]() {
-                valueTooltip.setVisible(false);
-            };
-        }
-    };
 
     // Setup base controls
     for (auto& control : controls) {
@@ -734,39 +534,9 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
                 };
             }
 
-            // Setup value tooltip callbacks
-            bindValueTooltipCallbacks(*control.slider);
+            if (auto* valueTooltipClientSlider = dynamic_cast<ValueTooltipClient*>(control.slider))
+                valueTooltipClientSlider->bindValueTooltipCallbacks(valueTooltip, *this);
         }
-    }
-
-    // Setup envelope component
-    envelopeControl.formatTextFromValueFunction = [this](double value) {
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
-        double windowDur = (slot.window.length * slot.buffer.getNumSamples()) / audioProcessor.getSampleRate();
-        double valueDur = juce::jmap(value, 0.0, windowDur);
-        return Format::seconds(static_cast<float>(valueDur), 4);
-    };
-    bindValueTooltipCallbacks(envelopeControl);
-
-    // Setup swap controls
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, animatorUpdater, i);
-        addChildComponent(swapControls[i]->swapActiveToggle);
-        addChildComponent(swapControls[i]->swapRangeSlider);
-
-        audioProcessor.apvts.addParameterListener(ParamID::irSwapMin(i), this);
-        audioProcessor.apvts.addParameterListener(ParamID::irSwapMax(i), this);
-        audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
-
-        // Bind control formatting to apvts parameter formatting
-        if (auto* param = dynamic_cast<juce::RangedAudioParameter*>(audioProcessor.apvts.getParameter(ParamID::irSwapMin(i)))) {
-            swapControls[i]->swapRangeSlider.control.formatTextFromValueFunction = [param, i](double value) {
-                return param->getText(static_cast<float>(value), 0);
-            };
-        }
-
-        bindValueTooltipCallbacks(swapControls[i]->swapRangeSlider.control);
     }
 
     initComponents();
@@ -781,11 +551,6 @@ MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
 
     // Detach listeners
     for (auto& control : controls) audioProcessor.apvts.removeParameterListener(control.paramID, this);
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        audioProcessor.apvts.removeParameterListener(ParamID::irSwapMin(i), this);
-        audioProcessor.apvts.removeParameterListener(ParamID::irSwapMax(i), this);
-        audioProcessor.apvts.removeParameterListener(ParamID::irSwapActive(i), this);
-    }
 }
 
 // GUI
@@ -823,17 +588,17 @@ void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
     // g.fillRect(irGridBounds.reduced(2));
 
     Bounds irHeaderBounds = rightPanel.removeFromTop(40);
-    g.fillRect(irHeaderBounds.reduced(2));
+    // g.fillRect(irHeaderBounds.reduced(2));
     
     Bounds irWaveformBounds = rightPanel.removeFromTop(140);
-    g.setColour(Theme::Colors::background);
-    g.fillRect(irWaveformBounds.reduced(2));
-    g.setColour(juce::Colours::floralwhite.withAlpha(0.4f));
-    g.drawRoundedRectangle(irWaveformBounds.reduced(1).toFloat(), 4.0f, 0.8f);
+    // g.setColour(Theme::Colors::background);
+    // g.fillRect(irWaveformBounds.reduced(2));
+    // g.setColour(juce::Colours::floralwhite.withAlpha(0.4f));
+    // g.drawRoundedRectangle(irWaveformBounds.reduced(1).toFloat(), 4.0f, 0.8f);
 
     Bounds irControlsBounds = rightPanel.removeFromTop(100);
-    g.setColour(Theme::Colors::section);
-    g.fillRect(irControlsBounds.reduced(2));
+    // g.setColour(Theme::Colors::section);
+    // g.fillRect(irControlsBounds.reduced(2));
 
     Bounds interactionControlsBounds = rightPanel.removeFromTop(100);
     g.fillRect(interactionControlsBounds.reduced(2));

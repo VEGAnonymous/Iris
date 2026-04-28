@@ -6,16 +6,15 @@
 #include "GUI/Components/SettingsComponent.h"
 #include "GUI/Components/WindowOverlayComponent.h"
 #include "GUI/Components/Base/WaveformComponent.h"
-#include "GUI/Components/Controls/EnvelopeControl.h"
 #include "GUI/Components/Controls/HoverableTextButton.h"
 #include "GUI/Components/Controls/HoverableToggleButton.h"
-#include "GUI/Components/Controls/IRSlotButton.h"
 #include "GUI/Components/Controls/LabelledControl.h"
 #include "GUI/Components/Controls/RangeSlider.h"
 #include "GUI/Components/Controls/RangeSliderAttachment.h"
 #include "GUI/Components/Controls/Rotary.h"
 #include "GUI/Panels/TopBarPanel.h"
 #include "GUI/Panels/IRSelectorPanel.h"
+#include "GUI/Panels/SelectedIRPanel.h"
 #include "GUI/Theme/LookAndFeel/ButtonLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/ComboBoxLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/RotaryLookAndFeel.h"
@@ -48,7 +47,6 @@ private:
 
     // Listeners and callbacks
     std::atomic<bool> positionPathChanged { false };
-    
 
     void parameterChanged (const juce::String& parameterID, float newValue) override;
     void timerCallback() override;
@@ -112,31 +110,12 @@ private:
         fieldModAControlAttachment, 
         fieldModBControlAttachment;
 
-    // Swap controls
-    struct SwapControl {
-        LabelledControl<RangeSlider> swapRangeSlider;
-        RangeSliderAttachment swapRangeAttachment;
-
-        LabelledControl<HoverableToggleButton> swapActiveToggle;
-        juce::AudioProcessorValueTreeState::ButtonAttachment swapActiveToggleAttachment;
-
-        SwapControl(juce::AudioProcessorValueTreeState& apvts, juce::AnimatorUpdater& updater, int i)
-            : swapRangeSlider("Auto Swap Time", updater, 2.0f),
-              swapRangeAttachment(apvts, ParamID::irSwapMin(i), ParamID::irSwapMax(i), swapRangeSlider.control),
-              swapActiveToggle("Auto Swap", updater),
-              swapActiveToggleAttachment(apvts, ParamID::irSwapActive(i), swapActiveToggle.control) {}
-    };
-
-    std::array<std::unique_ptr<SwapControl>, MAX_IR_COUNT> swapControls;
-
     // Buttons
     // TODO: Replace with toggle switch
     LabelledControl<HoverableTextButton> weightingModeControl { getParameterName(audioProcessor.apvts, ParamID::weightingMode), animatorUpdater };
     juce::AudioProcessorValueTreeState::ButtonAttachment weightingModeControlAttachment;
 
     HoverableTextButton positionTabButton {animatorUpdater}, fieldTabButton {animatorUpdater};
-
-    HoverableTextButton loadIRButton {animatorUpdater}, clearIRButton {animatorUpdater}, randomIRButton {animatorUpdater};
 
     // ComboBoxes
     juce::ComboBox positionPatternControl, fieldPatternControl;
@@ -145,19 +124,14 @@ private:
     // Panels
     TopBarPanel topBarPanel;
     IRSelectorPanel irSelectorPanel;
+    SelectedIRPanel selectedIRPanel;
 
     // Components
     PolarMapComponent polarMapComponent;
-    IRHeaderComponent irHeaderComponent;
-    WaveformComponent irWaveformComponent;
-    WindowOverlayComponent windowOverlayComponent;
-    EnvelopeControl envelopeControl;
 
     std::unique_ptr<SettingsComponent> settingsModal;
 
     void initPositionFieldControls();;
-    void initSelectedIR();
-
     void initComponents();
 
     // Layout
@@ -165,8 +139,6 @@ private:
     void layoutRightPanel(Bounds bounds);
 
     void layoutPositionFieldControls(Bounds bounds);
-    void layoutSelectedIR(Bounds bounds);
-    void layoutIRControls(Bounds bounds);
     void layoutInteractionControls(Bounds bounds);
     void layoutGlobalControls(Bounds bounds);
 

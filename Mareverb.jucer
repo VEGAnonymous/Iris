@@ -128,6 +128,14 @@
                 resource="0" file="Source/GUI/Components/DirectoryManagerComponent.cpp"/>
           <FILE id="tFKTOZ" name="DirectoryManagerComponent.h" compile="0" resource="0"
                 file="Source/GUI/Components/DirectoryManagerComponent.h"/>
+          <FILE id="TMWdjS" name="IRControlsComponent.cpp" compile="1" resource="0"
+                file="Source/GUI/Components/IRControlsComponent.cpp"/>
+          <FILE id="LJPqNN" name="IRControlsComponent.h" compile="0" resource="0"
+                file="Source/GUI/Components/IRControlsComponent.h"/>
+          <FILE id="irVp2g" name="IRDisplayComponent.cpp" compile="1" resource="0"
+                file="Source/GUI/Components/IRDisplayComponent.cpp"/>
+          <FILE id="OUfjfh" name="IRDisplayComponent.h" compile="0" resource="0"
+                file="Source/GUI/Components/IRDisplayComponent.h"/>
           <FILE id="boNkS3" name="IRHeaderComponent.cpp" compile="1" resource="0"
                 file="Source/GUI/Components/IRHeaderComponent.cpp"/>
           <FILE id="eTHMNT" name="IRHeaderComponent.h" compile="0" resource="0"
@@ -150,6 +158,10 @@
                 file="Source/GUI/Panels/IRSelectorPanel.cpp"/>
           <FILE id="Kw1QDW" name="IRSelectorPanel.h" compile="0" resource="0"
                 file="Source/GUI/Panels/IRSelectorPanel.h"/>
+          <FILE id="bGDMeP" name="SelectedIRPanel.cpp" compile="1" resource="0"
+                file="Source/GUI/Panels/SelectedIRPanel.cpp"/>
+          <FILE id="oMrGMU" name="SelectedIRPanel.h" compile="0" resource="0"
+                file="Source/GUI/Panels/SelectedIRPanel.h"/>
           <FILE id="lpUHdO" name="TopBarPanel.cpp" compile="1" resource="0" file="Source/GUI/Panels/TopBarPanel.cpp"/>
           <FILE id="U3saHB" name="TopBarPanel.h" compile="0" resource="0" file="Source/GUI/Panels/TopBarPanel.h"/>
         </GROUP>

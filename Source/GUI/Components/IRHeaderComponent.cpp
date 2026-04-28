@@ -11,14 +11,16 @@ BoundsF IRHeaderComponent::getIndicatorBounds(Bounds bounds, const float radius)
 
 void IRHeaderComponent::mouseDown(const juce::MouseEvent& e) {
     auto indicatorBounds = getIndicatorBounds(getLocalBounds(), indicatorRadius);
-    if (indicatorBounds.contains(e.position)) 
-        if (onActiveToggle) onActiveToggle(!currentIR.active);
+    if (indicatorBounds.contains(e.position)) {
+        audioProcessor.getIRManager()->setIRActive(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), !currentIR.active);
+        audioProcessor.guiState.updateField.store(true, std::memory_order_release);
+    }
 }
 
 /* PUBLIC */
 
-IRHeaderComponent::IRHeaderComponent(juce::AnimatorUpdater& updater) 
-    : indicatorActiveAnim(*this, updater, ACTIVE_ANIMATION_TIME_MS) {
+IRHeaderComponent::IRHeaderComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater) 
+    : audioProcessor(processor), indicatorActiveAnim(*this, updater, ACTIVE_ANIMATION_TIME_MS) {
     setBufferedToImage(true);
 }
 
@@ -43,6 +45,8 @@ void IRHeaderComponent::setActive(bool nActive, bool animate) {
 
 void IRHeaderComponent::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
+    g.setColour(Theme::Colors::section);
+    g.fillRect(bounds.reduced(2));
 
     // Indicator
     const float indicatorX = bounds.getX() + 14.0f;

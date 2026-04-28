@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Utilities.h"
+#include "GUI/API/ValueTooltipWindow.h"
 
 #include <JuceHeader.h>
 
@@ -27,4 +28,6 @@ public:
 	virtual void setValueTooltip(double nValue);
 	virtual juce::String getValueTooltip();
 	juce::String getValueTooltip(double nValue, bool setInternal = true);
+
+	void bindValueTooltipCallbacks(ValueTooltipWindow& valueTooltip, juce::Component& parentComponent);
 };
