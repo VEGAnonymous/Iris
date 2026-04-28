@@ -28,7 +28,6 @@
 struct ControlDef {
     juce::String paramID = "";
     juce::Component* component;
-    ControlGroup group;
 
     juce::Slider* slider = nullptr;
 };
@@ -58,22 +57,22 @@ private:
 
     // Controls
     std::vector<ControlDef> controls { { 
-       // ParamID                   Component                ControlGroup               Slider (opt)                  
-        { ParamID::globalMix,       &globalMixControl,       ControlGroup::GLOBAL,      &globalMixControl.control    },
-        { ParamID::decay,           &decayControl,           ControlGroup::GLOBAL,      &decayControl.control        },
-        { ParamID::lowCut,          &lowCutControl,          ControlGroup::GLOBAL,      &lowCutControl .control      },
-        { ParamID::highCut,         &highCutControl,         ControlGroup::GLOBAL,      &highCutControl.control      },
-        { ParamID::weightingMode,   &weightingModeControl,   ControlGroup::INTERACTION, nullptr                      },
-        { ParamID::strength,        &strengthControl,        ControlGroup::INTERACTION, &strengthControl.control     },
-        { ParamID::spread,          &spreadControl,          ControlGroup::INTERACTION, &spreadControl.control       },
-        { ParamID::positionPattern, &positionPatternControl, ControlGroup::POSITION,    nullptr                      },
-        { ParamID::positionRate,    &positionRateControl,    ControlGroup::POSITION,    &positionRateControl.control },
-        { ParamID::positionModA,    &positionModAControl,    ControlGroup::POSITION,    &positionModAControl.control },
-        { ParamID::positionModB,    &positionModBControl,    ControlGroup::POSITION,    &positionModBControl.control },
-        { ParamID::fieldPattern,    &fieldPatternControl,    ControlGroup::FIELD,       nullptr                      },
-        { ParamID::fieldRate,       &fieldRateControl,       ControlGroup::FIELD,       &fieldRateControl.control    },
-        { ParamID::fieldModA,       &fieldModAControl,       ControlGroup::FIELD,       &fieldModAControl.control    },
-        { ParamID::fieldModB,       &fieldModBControl,       ControlGroup::FIELD,       &fieldModBControl.control    },
+       // ParamID                   Component                Slider (opt)                  
+        { ParamID::globalMix,       &globalMixControl,       &globalMixControl.control    },
+        { ParamID::decay,           &decayControl,           &decayControl.control        },
+        { ParamID::lowCut,          &lowCutControl,          &lowCutControl .control      },
+        { ParamID::highCut,         &highCutControl,         &highCutControl.control      },
+        { ParamID::weightingMode,   &weightingModeControl,   nullptr                      },
+        { ParamID::strength,        &strengthControl,        &strengthControl.control     },
+        { ParamID::spread,          &spreadControl,          &spreadControl.control       },
+        { ParamID::positionPattern, &positionPatternControl, nullptr                      },
+        { ParamID::positionRate,    &positionRateControl,    &positionRateControl.control },
+        { ParamID::positionModA,    &positionModAControl,    &positionModAControl.control },
+        { ParamID::positionModB,    &positionModBControl,    &positionModBControl.control },
+        { ParamID::fieldPattern,    &fieldPatternControl,    nullptr                      },
+        { ParamID::fieldRate,       &fieldRateControl,       &fieldRateControl.control    },
+        { ParamID::fieldModA,       &fieldModAControl,       &fieldModAControl.control    },
+        { ParamID::fieldModB,       &fieldModBControl,       &fieldModBControl.control    },
     } };
 
     inline juce::String getParameterName(juce::AudioProcessorValueTreeState& apvts, const juce::String& paramID) {
@@ -152,5 +151,4 @@ public:
     void resized() override;
 
     std::vector<ControlDef> getControls();
-    std::vector<ControlDef> getControlsGroup(ControlGroup group);
 };

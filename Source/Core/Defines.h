@@ -155,8 +155,6 @@ enum class Axis { X_AXIS, Y_AXIS }; // Polar coordinate reference axis
 enum class PositionPattern { MANUAL, EYES, ORBIT, SPIRAL, LISSAJOUS, FLORAL, RANDOM_DISCRETE, RANDOM_WALK };
 enum class FieldPattern { MANUAL, RING, ORBITS, RANDOM_DISCRETE, RANDOM_WALK };
 
-enum class ControlGroup { GLOBAL, INTERACTION, POSITION, FIELD };
-
 // Structs
 
 struct CartesianCoordinate { 

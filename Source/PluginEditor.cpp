@@ -82,8 +82,8 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
 void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
     int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-
     // DBG("Selected IR " << selectedIR);
+
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         auto* irSlotButton = irSelectorPanel.getIRSlotButton(i);
         irSlotButton->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
@@ -271,22 +271,22 @@ void MareverbAudioProcessorEditor::syncField() {
 // Components
 
 void MareverbAudioProcessorEditor::initPositionFieldControls() {
-    auto positionControls = getControlsGroup(ControlGroup::POSITION);
-    auto fieldControls = getControlsGroup(ControlGroup::FIELD);
+    std::vector<juce::Component*> positionControls = { &positionPatternControl, &positionRateControl, &positionModAControl, &positionModBControl};
+    std::vector<juce::Component*> fieldControls = { &fieldPatternControl, &fieldModAControl, &fieldModBControl };
 
     auto selectPositionTab = [this, positionControls, fieldControls] {
         positionTabButton.setToggleState(true, juce::dontSendNotification);
         fieldTabButton.setToggleState(false, juce::dontSendNotification);
-        for (auto& positionControl : positionControls) positionControl.component->setVisible(true);
-        for (auto& fieldControl : fieldControls) fieldControl.component->setVisible(false);
+        for (auto* positionControl : positionControls) positionControl->setVisible(true);
+        for (auto* fieldControl : fieldControls) fieldControl->setVisible(false);
         audioProcessor.guiState.syncingPosition.store(true);
     };
 
     auto selectFieldTab = [this, positionControls, fieldControls] {
         positionTabButton.setToggleState(false, juce::dontSendNotification);
         fieldTabButton.setToggleState(true, juce::dontSendNotification);
-        for (auto& positionControl : positionControls) positionControl.component->setVisible(false);
-        for (auto& fieldControl : fieldControls) fieldControl.component->setVisible(true);
+        for (auto* positionControl : positionControls) positionControl->setVisible(false);
+        for (auto* fieldControl : fieldControls) fieldControl->setVisible(true);
         audioProcessor.guiState.syncingField.store(true);
     };
 
@@ -614,11 +614,3 @@ void MareverbAudioProcessorEditor::resized() {
 }
 
 std::vector<ControlDef> MareverbAudioProcessorEditor::getControls() { return controls; }
-
-std::vector<ControlDef> MareverbAudioProcessorEditor::getControlsGroup(ControlGroup group) {
-    std::vector<ControlDef> groupControls;
-    for (const auto& control : controls)
-        if (control.group == group)
-            groupControls.push_back(control);
-    return groupControls;
-}
