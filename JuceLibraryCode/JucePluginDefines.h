@@ -110,7 +110,7 @@
  #define JucePlugin_AUManufacturerCode     JucePlugin_ManufacturerCode
 #endif
 #ifndef  JucePlugin_CFBundleIdentifier
- #define JucePlugin_CFBundleIdentifier     lol.pony.Mareverb
+ #define JucePlugin_CFBundleIdentifier     lyra.mare.Mareverb
 #endif
 #ifndef  JucePlugin_AAXIdentifier
  #define JucePlugin_AAXIdentifier          com.EponymousDSP.Mareverb

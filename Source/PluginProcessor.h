@@ -1,14 +1,14 @@
 #pragma once
 
-#include "ControlThread.h"
-#include "ConvolutionReverbAudioProcessor.h"
-#include "CutFilterAudioProcessor.h"
-#include "Defines.h"
-#include "GUIState.h"
-#include "IRManager.h"
-#include "PatternState.h"
-#include "ParameterSettings.h"
-#include "Utilities.h"
+#include "Core/Defines.h"
+#include "Core/Utilities.h"
+#include "Core/Processors/ConvolutionReverbAudioProcessor.h"
+#include "Core/Processors/CutFilterAudioProcessor.h"
+#include "Core/Control/ControlThread.h"
+#include "Core/Control/IRManager.h"
+#include "Core/Control/State/GUIState.h"
+#include "Core/Control/State/PatternState.h"
+#include "Core/Control/State/ParameterSettings.h"
 
 #include <JuceHeader.h>
 #include <array>

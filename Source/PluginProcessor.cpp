@@ -1,6 +1,6 @@
+#include "Core/Utilities.h"
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "Utilities.h"
 
 /* PRIVATE */
 

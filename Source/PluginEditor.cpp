@@ -1,11 +1,11 @@
-#include "GUIUtilities.h"
-#include "LabelledControl.h"
+#include "Core/Utilities.h"
+#include "Core/Control/MotionController.h"
+#include "GUI/GUIUtilities.h"
+#include "GUI/Components/Controls/LabelledControl.h"
+#include "GUI/Theme/Theme.h"
+#include "GUI/API/ValueTooltipClient.h"
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "MotionController.h"
-#include "Theme.h"
-#include "Utilities.h"
-#include "ValueTooltipClient.h"
 
 /* PRIVATE */
 
