@@ -368,15 +368,17 @@ void MareverbAudioProcessorEditor::initTopBar() {
 void MareverbAudioProcessorEditor::initIRSlotButtons() {
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         irSlotButtons[i] = std::make_unique<IRSlotButton>(i, animatorUpdater);
-        irSlotButtons[i]->setRadioGroupId(1);
-        irSlotButtons[i]->setClickingTogglesState(true);
 
-        irSlotButtons[i]->onActiveToggle = [this, i](bool active) {
+        auto* slotButton = irSlotButtons[i].get();
+        slotButton->setRadioGroupId(1);
+        slotButton->setClickingTogglesState(true);
+
+        slotButton->onActiveToggle = [this, i](bool active) {
             audioProcessor.getIRManager()->setIRActive(i, active);
             audioProcessor.guiState.updateField.store(true, std::memory_order_release);
         };
 
-        irSlotButtons[i]->onClick = [this, i]() {
+        auto switchSelectedIR = [this, i]() {
             int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
             if (i != selectedIR) {
                 audioProcessor.apvts.state.setProperty(PropertyID::selectedIR, i, nullptr);
@@ -385,10 +387,37 @@ void MareverbAudioProcessorEditor::initIRSlotButtons() {
             }
         };
 
+        slotButton->onClick = switchSelectedIR;
+
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
-        irSlotButtons[i]->setOccupied(slot.occupied);
-        if (slot.occupied) irSlotButtons[i]->setWaveform(&slot.buffer, audioProcessor.getSampleRate());
-        addAndMakeVisible(*irSlotButtons[i]);
+        slotButton->setOccupied(slot.occupied);
+        if (slot.occupied) slotButton->setWaveform(&slot.buffer, audioProcessor.getSampleRate());
+        addAndMakeVisible(*slotButton);
+
+        // Drag and drop callbacks
+        slotButton->dragHandler.onFileDropped = [this, i, switchSelectedIR](const juce::File& file) {
+            switchSelectedIR();
+            audioProcessor.getIRManager()->loadIR(i, file);
+        };
+
+        slotButton->dragHandler.fileFilter = [this](const juce::File& file) {
+            juce::String extension = file.getFileExtension();
+            juce::StringArray wildcards = juce::StringArray::fromTokens(audioProcessor.getIRManager()->getFormatManager()->getWildcardForAllFormats(), ";", "");
+
+            bool matched = false;
+            for (const auto& pattern : wildcards) {
+                if (extension.matchesWildcard(pattern, true)) {
+                    matched = true;
+                    break;
+                }
+            }
+            return matched;
+        };
+
+        slotButton->dragHandler.onHoverChanged = [this, slotButton](bool hovering) {
+            slotButton->dragHover.setAlpha(hovering ? 1.0f : 0.0f);
+            slotButton->setMouseCursor(hovering ? juce::MouseCursor::CopyingCursor : juce::MouseCursor::NormalCursor);
+        };
     }
 
     int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
@@ -409,6 +438,31 @@ void MareverbAudioProcessorEditor::initSelectedIR() {
 
     windowOverlayComponent.onWindowChanged = [this](float start, float length) {
         audioProcessor.getIRManager()->setWindow(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), start, length);
+    };
+
+    // Drag and drop callbacks
+    windowOverlayComponent.dragHandler.onFileDropped = [this](const juce::File& file) {
+        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        audioProcessor.getIRManager()->loadIR(selectedIR, file);
+    };
+
+    windowOverlayComponent.dragHandler.fileFilter = [this](const juce::File& file) {
+        juce::String extension = file.getFileExtension();
+        juce::StringArray wildcards = juce::StringArray::fromTokens(audioProcessor.getIRManager()->getFormatManager()->getWildcardForAllFormats(), ";", "");
+
+        bool matched = false;
+        for (const auto& pattern : wildcards) {
+            if (extension.matchesWildcard(pattern, true)) {
+                matched = true;
+                break;
+            }
+        }
+        return matched;
+    };
+
+    windowOverlayComponent.dragHandler.onHoverChanged = [this](bool hovering) {
+        windowOverlayComponent.dragHover.setAlpha(hovering ? 1.0f : 0.0f);
+        windowOverlayComponent.setMouseCursor(hovering ? juce::MouseCursor::CopyingCursor : juce::MouseCursor::NormalCursor);
     };
 
     // Selected IR controls
@@ -744,36 +798,10 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
     settingsButton.setLookAndFeel(&buttonLookAndFeel);
     addAndMakeVisible(settingsButton);
 
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        irSlotButtons[i] = std::make_unique<IRSlotButton>(i, animatorUpdater);
-        addAndMakeVisible(*irSlotButtons[i]);
-    }
-
     addAndMakeVisible(irHeaderComponent);
     
     addAndMakeVisible(irWaveformComponent);
     addAndMakeVisible(windowOverlayComponent);
-    windowOverlayComponent.dragHandler.onFileDropped = [this](const juce::File& file) {
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        audioProcessor.getIRManager()->loadIR(selectedIR, file);
-    };
-    windowOverlayComponent.dragHandler.fileFilter = [this](const juce::File& file) {
-        juce::String extension = file.getFileExtension();
-        juce::StringArray wildcards = juce::StringArray::fromTokens(audioProcessor.getIRManager()->getFormatManager().getWildcardForAllFormats(), ";", "");
-
-        bool matched = false;
-        for (const auto& pattern : wildcards) {
-            if (extension.matchesWildcard(pattern, true)) {
-                matched = true;
-                break;
-            }
-        }
-        return matched;
-    };
-    windowOverlayComponent.dragHandler.onHoverChanged = [this](bool hovering) {
-        windowOverlayComponent.dragHover.setAlpha(hovering ? 1.0f : 0.0f);
-        windowOverlayComponent.setMouseCursor(hovering ? juce::MouseCursor::CopyingCursor : juce::MouseCursor::NormalCursor);
-    };
 
     loadIRButton.setLookAndFeel(&buttonLookAndFeel);
     clearIRButton.setLookAndFeel(&buttonLookAndFeel);

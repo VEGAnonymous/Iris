@@ -29,6 +29,10 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
     float indicatorAlpha = juce::jmap(activeAlpha, occupied ? 0.35f : 0.1f, occupied ? 1.0f : 0.2f);
 
     Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius, irIndex, occupied, active, indicatorAlpha);
+
+    // Drag and drop indication
+    const float dragAlpha = dragHover.getAlpha();
+    Paint::dragAndDropHover(g, getLocalBounds().toFloat(), dragAlpha, (Theme::Colors::highlight).withAlpha(0.5f));
 }
 
 void IRSlotButton::resized() {
@@ -56,13 +60,17 @@ BoundsF IRSlotButton::getIndicatorBounds(Bounds bounds, const float radius) cons
 
 IRSlotButton::IRSlotButton(int index, juce::AnimatorUpdater& updater) : 
     hoverAnim(*this, updater), indicatorActiveAnim(*this, updater, ACTIVE_ANIMATION_TIME_MS),
-    waveformPreview(updater),
+    dragHover(*this, updater), waveformPreview(updater),
     juce::Button("IR " + juce::String(index)), irIndex(index) {
-    waveformPreview.setDimensions(8.0f, 8.0f, -8.0f, 0.4f);
+    waveformPreview.setDimensions(8.0f, 8.0f, -8.0f, 0.25f);
     waveformPreview.setColor(Theme::Colors::highlight);
     waveformPreview.setActive(active);
     waveformPreview.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(waveformPreview, 0);
+
+    dragHandler.typeAccepted = DragAndDropHandler::DragAndDropType::FILES;
+    dragHandler.acceptsMultiple = false;
+
     setBufferedToImage(true);
 }
 

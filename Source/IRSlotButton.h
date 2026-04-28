@@ -2,11 +2,12 @@
 
 #include "Defines.h"
 #include "AnimatedAlpha.h"
+#include "DragAndDropMixin.h"
 #include "WaveformComponent.h"
 
 #include <JuceHeader.h>
 
-class IRSlotButton : public juce::Button {
+class IRSlotButton : public juce::Button, public DragAndDropMixin {
 private:
     const float indicatorRadius = 3.0f;
     int irIndex;
@@ -28,6 +29,8 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(IRSlotButton)
 
 public:
+    AnimatedAlpha dragHover;
+
     std::function<void(bool)> onActiveToggle;
 
     IRSlotButton(int index, juce::AnimatorUpdater& updater);

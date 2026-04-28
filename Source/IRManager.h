@@ -121,5 +121,5 @@ public:
     const IRSlot& getIRSlot(int index) const;
     const std::vector<IRDirectory> getIRDirectories() const;
 
-    const juce::AudioFormatManager& getFormatManager() const;
+    juce::AudioFormatManager* getFormatManager();
 };
