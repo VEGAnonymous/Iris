@@ -21,9 +21,9 @@ void SettingsComponent::paint(juce::Graphics& g) {
 }
 
 void SettingsComponent::resized() {
-    auto bounds = getLocalBounds().reduced(16);
-    closeButton.setBounds(bounds.removeFromTop(24).removeFromRight(24));
-    directoryManager.setBounds(bounds.reduced(8));
+    auto bounds = getLocalBounds().reduced(SETTINGS_INSET);
+    // closeButton.setBounds(bounds.removeFromTop(24).removeFromRight(24)); // TEMP: Likely don't need this
+    directoryManager.setBounds(bounds.withTrimmedLeft(8).withTrimmedTop(8).withTrimmedBottom(8));
 }
 
 void SettingsComponent::refreshDirectories() { directoryManager.refresh(); }

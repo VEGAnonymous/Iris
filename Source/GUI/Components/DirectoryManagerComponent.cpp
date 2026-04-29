@@ -8,7 +8,7 @@ DirectoryManagerComponent::DirectoryManagerComponent(IRManager* manager, juce::A
 
     title.setText("IR Directories", juce::NotificationType::dontSendNotification);
     title.setColour(juce::Label::ColourIds::textColourId, Theme::Colors::textLight);
-    title.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions(14.0f)));
+    title.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions(18.0f).withKerningFactor(0.05f)));
     title.setJustificationType(juce::Justification::centredTop);
     title.setMinimumHorizontalScale(1.0f);
     addAndMakeVisible(title);
@@ -22,7 +22,7 @@ DirectoryManagerComponent::DirectoryManagerComponent(IRManager* manager, juce::A
     addAndMakeVisible(addButton);
     addAndMakeVisible(removeButton);
 
-    directoryList.setRowHeight(28);
+    directoryList.setRowHeight(DIRECTORY_ROW_HEIGHT);
 
     addButton.onClick = [this] {
         this->irManager->chooseIRDirectory();
@@ -35,44 +35,50 @@ DirectoryManagerComponent::DirectoryManagerComponent(IRManager* manager, juce::A
             directoryList.deselectAllRows();
         }
     };
+
+    setColour(juce::ScrollBar::ColourIds::thumbColourId, Theme::Colors::highlight);
 }
 
 void DirectoryManagerComponent::paint(juce::Graphics& g) {
     g.setColour(Theme::Colors::section);
-    g.fillRoundedRectangle(getLocalBounds().withTrimmedTop(30).withTrimmedRight(40).toFloat(), 12.0f);
+    g.fillRoundedRectangle(getLocalBounds()
+        .withTrimmedTop(TITLE_ROW_HEIGHT)
+        .withTrimmedRight(BUTTON_COLUMN_WIDTH + BUTTON_COLUMN_PADDING)
+        .toFloat(), 12.0f);
 }
 
 void DirectoryManagerComponent::resized() {
     auto bounds = getLocalBounds();
-    auto titleBounds = bounds.removeFromTop(16).withTrimmedRight(40);
+    const int titleLabelHeight = 16;
+    auto titleBounds = bounds.removeFromTop(titleLabelHeight);
     title.setBounds(titleBounds);
 
-    bounds.removeFromTop(14);
-    auto buttonBounds = bounds.removeFromRight(40);
-    const float buttonSize = 36, buttonMargin = 2.0f;
-
-    directoryList.setBounds(bounds);
+    bounds.removeFromTop(TITLE_ROW_HEIGHT - titleLabelHeight);
+    auto buttonBounds = bounds.removeFromRight(BUTTON_COLUMN_WIDTH);
+    const float buttonHeight = 70, buttonMargin = 2.0f;
 
     juce::FlexBox buttonColumn(juce::FlexBox::JustifyContent::center);
     buttonColumn.flexDirection = juce::FlexBox::Direction::column;
     buttonColumn.alignItems = juce::FlexBox::AlignItems::center;
 
     buttonColumn.items.add(juce::FlexItem(addButton)
-        .withWidth(buttonSize)
-        .withHeight(buttonSize + 10.0f)
+        .withWidth(BUTTON_COLUMN_WIDTH - buttonMargin)
+        .withHeight(buttonHeight)
         .withMargin(buttonMargin));
     buttonColumn.items.add(juce::FlexItem(removeButton)
-        .withWidth(buttonSize)
-        .withHeight(buttonSize + 10.0f)
+        .withWidth(BUTTON_COLUMN_WIDTH - buttonMargin)
+        .withHeight(buttonHeight)
         .withMargin(buttonMargin));
 
     buttonColumn.performLayout(buttonBounds);
+
+    directoryList.setBounds(bounds.withTrimmedRight(BUTTON_COLUMN_PADDING));
 }
 
 int DirectoryManagerComponent::getNumRows() { return static_cast<int>(irManager->getIRDirectories().size()); }
 
 void DirectoryManagerComponent::paintListBoxItem(int /*rowNumber*/, juce::Graphics& g, int width, int height, bool rowIsSelected) {
-    g.setColour(rowIsSelected ? Theme::Colors::highlight.withAlpha(0.05f) : Theme::Colors::section);
+    g.setColour(rowIsSelected ? Theme::Colors::highlight.withAlpha(0.1f) : Theme::Colors::section);
     g.fillRoundedRectangle(Bounds(0, 0, width, height).toFloat(), 12.0f);
 }
 
@@ -101,7 +107,6 @@ juce::Component* DirectoryManagerComponent::refreshComponentForRow(int rowNumber
 
     return directoryRow;
 }
-
 
 void DirectoryManagerComponent::refresh() {
     directoryList.updateContent();

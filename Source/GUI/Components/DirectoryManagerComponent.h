@@ -10,6 +10,11 @@
 
 class DirectoryManagerComponent : public juce::Component, public juce::ListBoxModel {
 private:
+    static constexpr auto TITLE_ROW_HEIGHT = 36,
+                          BUTTON_COLUMN_WIDTH = 20,
+                          BUTTON_COLUMN_PADDING = 12,
+                          DIRECTORY_ROW_HEIGHT = 28;
+
     IRManager* irManager;
     juce::AnimatorUpdater& animatorUpdater;
 
@@ -34,7 +39,7 @@ public:
             addAndMakeVisible(activeToggle);
             addAndMakeVisible(pathLabel);
             pathLabel.setMinimumHorizontalScale(1.0f);
-            pathLabel.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions(13.0f)));
+            pathLabel.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions(13.0f).withKerningFactor(0.01f)));
 
             this->setInterceptsMouseClicks(false, true);
             pathLabel.setInterceptsMouseClicks(false, false);

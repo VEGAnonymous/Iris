@@ -16,7 +16,7 @@ GlobalControlsPanel::GlobalControlsPanel(GlobalRow controls) : globalControls(co
 
 void GlobalControlsPanel::paint(juce::Graphics& g) {
 	g.setColour(Theme::Colors::section);
-	g.fillRect(getLocalBounds().reduced(2));
+	g.fillRoundedRectangle(getLocalBounds().toFloat(), PANEL_CORNER_SIZE);
 }
 
 void GlobalControlsPanel::resized() {

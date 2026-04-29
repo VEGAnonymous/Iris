@@ -443,12 +443,12 @@ void MareverbAudioProcessorEditor::resized() {
     // Left panel
     Bounds mapBounds = leftBounds.removeFromTop(621);
     polarMapPanel.setBounds(mapBounds.reduced(static_cast<int>(mapBounds.getWidth() * 0.05f)));
-    positionFieldControlsPanel.setBounds(leftBounds);
+    positionFieldControlsPanel.setBounds(leftBounds.reduced(PANEL_INSET));
 
     // Right panel
     topBarPanel.setBounds(rightBounds.removeFromTop(81));
-    irSelectorPanel.setBounds(rightBounds.removeFromTop(160));
+    irSelectorPanel.setBounds(rightBounds.removeFromTop(160).reduced(PANEL_INSET));
     selectedIRPanel.setBounds(rightBounds.removeFromTop(280));
-    interactionControlsPanel.setBounds(rightBounds.removeFromTop(100));
-    globalControlsPanel.setBounds(rightBounds.removeFromTop(100));
+    interactionControlsPanel.setBounds(rightBounds.removeFromTop(100).reduced(PANEL_INSET));
+    globalControlsPanel.setBounds(rightBounds.removeFromTop(100).reduced(PANEL_INSET));
 }

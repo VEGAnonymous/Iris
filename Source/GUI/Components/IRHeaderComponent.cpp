@@ -46,7 +46,7 @@ void IRHeaderComponent::setActive(bool nActive, bool animate) {
 void IRHeaderComponent::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
     g.setColour(Theme::Colors::section);
-    g.fillRect(bounds.reduced(2));
+    g.fillRoundedRectangle(bounds, PANEL_CORNER_SIZE);
 
     // Indicator
     const float indicatorX = bounds.getX() + 14.0f;
@@ -61,7 +61,7 @@ void IRHeaderComponent::paint(juce::Graphics& g) {
     const float labelX = (indicatorX + indicatorRadius) + 12.0f;
     const float labelWidth = 36.0f;
     g.setColour(juce::Colours::white);
-    g.setFont(Theme::Fonts::getEquestriaBoldFont(juce::FontOptions().withHeight(14.0f)));
+    g.setFont(Theme::Fonts::getEquestriaBoldFont(juce::FontOptions().withHeight(14.0f).withKerningFactor(0.1f)));
     g.drawText("IR " + juce::String(currentIndex), 
         BoundsF(labelX, 0, labelWidth, bounds.getHeight()), juce::Justification::centredLeft);
 
@@ -69,7 +69,7 @@ void IRHeaderComponent::paint(juce::Graphics& g) {
     const float pathX = (labelX + labelWidth) + 16.0f;
     const float pathWidth = bounds.getWidth() - pathX - 10.0f;
     g.setColour(juce::Colours::lightgrey);
-    g.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions().withHeight(12.0f)));
+    g.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions().withHeight(12.0f).withKerningFactor(0.01f)));
     g.drawFittedText(currentPath, 
         BoundsF(pathX, 0, pathWidth, bounds.getHeight()).toNearestInt(), juce::Justification::centredLeft, 1, 1.0f);
 }

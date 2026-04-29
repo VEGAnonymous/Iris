@@ -3,6 +3,7 @@
 #include "GUI/Theme/LookAndFeel/ButtonLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/ComboBoxLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/RotaryLookAndFeel.h"
+#include "GUI/Theme/LookAndFeel/ScrollBarLookAndFeel.h"
 
 #include <JuceHeader.h>
 
@@ -12,6 +13,7 @@ private:
 	ButtonLookAndFeel buttonLookAndFeel;
 	ComboBoxLookAndFeel comboBoxLookAndFeel;
 	RotaryLookAndFeel rotaryLookAndFeel;
+	ScrollBarLookAndFeel scrollBarLookAndFeel;
 
 public:
 	MareverbLookAndFeel();
@@ -46,4 +48,8 @@ public:
 	// Rotary
 	void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
 		float sliderPosProportional, float rotaryStartAngle, float rotaryEndAngle, juce::Slider& slider) override;
+
+	// Scrollbar
+	void drawScrollbar(juce::Graphics& g, juce::ScrollBar& scrollbar, int x, int y, int width, int height,
+		bool isScrollbarVertical, int thumbStartPosition, int thumbSize, bool isMouseOver, bool isMouseDown) override;
 };

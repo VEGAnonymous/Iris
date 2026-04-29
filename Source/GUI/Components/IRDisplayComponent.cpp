@@ -49,7 +49,7 @@ IRDisplayComponent::IRDisplayComponent(MareverbAudioProcessor& processor, juce::
 void IRDisplayComponent::paint(juce::Graphics& g) {
     Bounds bounds = getLocalBounds();
     g.setColour(Theme::Colors::background);
-    g.fillRect(bounds.reduced(2));
+    g.fillRoundedRectangle(bounds.toFloat(), PANEL_CORNER_SIZE);
     g.setColour(juce::Colours::floralwhite.withAlpha(0.4f));
     g.drawRoundedRectangle(bounds.reduced(1).toFloat(), 4.0f, 0.8f);
 }

@@ -17,7 +17,7 @@ InteractionControlsPanel::InteractionControlsPanel(InteractionRow controls) : in
 
 void InteractionControlsPanel::paint(juce::Graphics& g) {
     g.setColour(Theme::Colors::section);
-    g.fillRect(getLocalBounds().reduced(2));
+    g.fillRoundedRectangle(getLocalBounds().toFloat(), PANEL_CORNER_SIZE);
 }
 
 void InteractionControlsPanel::resized() {
@@ -34,7 +34,7 @@ void InteractionControlsPanel::resized() {
     // TEMP: This is currently a LabelledControl<HoverableTextButton> but will later be a toggle switch-like component
     weightingControl->setLabelDimensions(68.0f, 12.0f);
     weightingControl->setControlDimensions(70.0f, 40.0f);
-    weightingControl->setControlMargin(juce::FlexItem::Margin(0.0f, 0.0f, 12.5f, 0.0f));
+    weightingControl->setControlMargin(juce::FlexItem::Margin(0.0f, 0.0f, 15.0f, 0.0f));
     weightingControl->flex.justifyContent = juce::FlexBox::JustifyContent::flexEnd;
     interactionControlRow.items.add(juce::FlexItem(*weightingControl)
         .withFlex(0.0f)

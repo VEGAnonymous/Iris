@@ -2,10 +2,13 @@
 
 #include <JuceHeader.h>
 
-// Defines
+/* DEFINES */
+
+// Constants
 static constexpr auto EPSILON = 1e-3f,
                       sqrt2_2 = juce::MathConstants<float>::sqrt2 / 2.0f;       
 
+// Convolution
 static constexpr auto L = 512,
                       PARTITION_SIZE = 2 * L,
                       FFT_SIZE = 4 * L, // 2048
@@ -13,17 +16,24 @@ static constexpr auto L = 512,
                       HOP_SIZE = FFT_SIZE / 4, // L
                       OUTPUT_SIZE = 4 * L;
 
+// Meta
 static constexpr auto N_CHANNELS = 2,
                       MAX_IR_COUNT = 8,
                       MAX_IR_PARTITIONS = 512,
                       MAX_IR_SAMPLES = MAX_IR_PARTITIONS * 512, // ~6s @ 44.1k
                       MAX_IR_FILE_SAMPLES = MAX_IR_SAMPLES * 10; // ~60s @ 44.1k
 
-static constexpr auto REFRESH_RATE = 30;
-static constexpr auto CONTROL_RATE = 40.0f;
-
 static constexpr auto SWAP_INTERVAL_MIN = 5.0f,
                       SWAP_INTERVAL_MAX = 60.0f;
+
+// Control
+static constexpr auto CONTROL_RATE = 40.0f;
+
+// GUI
+static constexpr auto REFRESH_RATE = 30;
+
+static constexpr auto PANEL_INSET = 1;
+static constexpr auto PANEL_CORNER_SIZE = 4.0f;
 
 static constexpr auto WAVEFORM_PREVIEW_POINTS = 126,
                       WAVEFORM_POINTS = 216,

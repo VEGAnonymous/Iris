@@ -1,4 +1,4 @@
-#include "WaveformComponent.h"
+#include "GUI/Components/Base/WaveformComponent.h"
 
 /* PRIVATE */
 
@@ -40,8 +40,8 @@ void WaveformComponent::paint(juce::Graphics& g) {
 
         waveform.closeSubPath();
 
-        float waveformAlpha = juce::jmap(activeAnim.getAlpha(), 0.25f, 1.0f);
-        const float channelAlphaOffset = (channel == 0) ? 0.0f : 0.3f;
+        float waveformAlpha = juce::jmap(activeAnim.getAlpha(), 0.3f, 1.0f);
+        const float channelAlphaOffset = (channel == 0) ? 0.0f : 0.2f;
         waveformAlpha = juce::jmax(0.0f, waveformAlpha - channelAlphaOffset);
         g.setColour(color.withAlpha(waveformAlpha));
         g.fillPath(waveform);

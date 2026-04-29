@@ -61,7 +61,7 @@ IRControlsComponent::IRControlsComponent(MareverbAudioProcessor& processor, juce
 
 void IRControlsComponent::paint(juce::Graphics& g) {
 	g.setColour(Theme::Colors::section);
-	g.fillRect(getLocalBounds().reduced(2));
+	g.fillRoundedRectangle(getLocalBounds().toFloat(), PANEL_CORNER_SIZE);
 }
 
 void IRControlsComponent::resized() {
@@ -77,12 +77,16 @@ void IRControlsComponent::resized() {
     irControlColumn.flexDirection = juce::FlexBox::Direction::column;
 
     irControlColumn.items.add(juce::FlexItem(randomIRButton)
-        .withFlex(1.0f)
-        .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 3.0f, 0.0f)));
+        .withFlex(0.0f)
+        .withWidth(w * 0.15f)
+        .withHeight(h * 0.3f)
+        .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 4.0f, 0.0f)));
 
     irControlColumn.items.add(juce::FlexItem(clearIRButton)
-        .withFlex(1.0f)
-        .withMargin(juce::FlexItem::Margin(3.0f, 0.0f, 0.0f, 0.0f)));
+        .withFlex(0.0f)
+        .withWidth(w * 0.15f)
+        .withHeight(h * 0.3f)
+        .withMargin(juce::FlexItem::Margin(4.0f, 0.0f, 0.0f, 0.0f)));
 
     // Layout
     irControlRow.items.add(juce::FlexItem(irControlColumn)

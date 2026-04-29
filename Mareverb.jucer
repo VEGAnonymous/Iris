@@ -194,6 +194,10 @@
                   file="Source/GUI/Theme/LookAndFeel/RotaryLookAndFeel.cpp"/>
             <FILE id="NNq7Lm" name="RotaryLookAndFeel.h" compile="0" resource="0"
                   file="Source/GUI/Theme/LookAndFeel/RotaryLookAndFeel.h"/>
+            <FILE id="muTr1F" name="ScrollBarLookAndFeel.cpp" compile="1" resource="0"
+                  file="Source/GUI/Theme/LookAndFeel/ScrollBarLookAndFeel.cpp"/>
+            <FILE id="NXshJl" name="ScrollBarLookAndFeel.h" compile="0" resource="0"
+                  file="Source/GUI/Theme/LookAndFeel/ScrollBarLookAndFeel.h"/>
           </GROUP>
           <FILE id="sSBKWk" name="MareverbFonts.cpp" compile="1" resource="0"
                 file="Source/GUI/Theme/MareverbFonts.cpp"/>

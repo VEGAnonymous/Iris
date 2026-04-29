@@ -68,3 +68,12 @@ void MareverbLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int 
 	rotaryLookAndFeel.drawRotarySlider(g, x, y, width, height,
 		sliderPosProportional, rotaryStartAngle, rotaryEndAngle, slider);
 }
+
+// Scrollbar
+
+void MareverbLookAndFeel::drawScrollbar(juce::Graphics& g, juce::ScrollBar& scrollbar, int x, int y, int width, int height,
+	bool isScrollbarVertical, int thumbStartPosition, int thumbSize, bool isMouseOver, bool isMouseDown) {
+
+	scrollBarLookAndFeel.drawScrollbar(g, scrollbar, x, y, width, height,
+		isScrollbarVertical, thumbStartPosition, thumbSize, isMouseOver, isMouseDown);
+}

@@ -1,4 +1,5 @@
-#include "SelectedIRPanel.h"
+#include "GUI/GUIUtilities.h"
+#include "GUI/Panels/SelectedIRPanel.h"
 
 /* PRIVATE */
 
@@ -20,9 +21,9 @@ SelectedIRPanel::SelectedIRPanel(MareverbAudioProcessor& processor, juce::Animat
 
 void SelectedIRPanel::resized() {
     Bounds bounds = getLocalBounds();
-    irHeaderComponent.setBounds(bounds.removeFromTop(40));
-    irDisplayComponent.setBounds(bounds.removeFromTop(140));
-    irControlsComponent.setBounds(bounds.removeFromTop(100));
+    irHeaderComponent.setBounds(bounds.removeFromTop(40).reduced(PANEL_INSET));
+    irDisplayComponent.setBounds(bounds.removeFromTop(140).reduced(PANEL_INSET));
+    irControlsComponent.setBounds(bounds.removeFromTop(100).reduced(PANEL_INSET));
 }
 
 void SelectedIRPanel::updateIRSlot(int selectedIR, bool animate) {

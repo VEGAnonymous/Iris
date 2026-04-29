@@ -91,29 +91,31 @@ void IRManager::chooseIR(int irIndex) {
 
 void IRManager::chooseIRDirectory() {
     irDirectoryChooser = std::make_unique<juce::FileChooser>(
-        "Choose a directory...", juce::File{});
+        "Choose IR directories...", juce::File{});
     irDirectoryChooser->launchAsync(
-        juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+        juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories | juce::FileBrowserComponent::canSelectMultipleItems,
         [this](const juce::FileChooser& fileChooser) {
             if (fileChooser.getResults().isEmpty()) return;
 
-            auto dir = fileChooser.getResult();
-            if (dir.isRoot() || !dir.hasReadAccess()) {
-                // TODO: Apply look and feel to alert window
-                // juce::AlertWindow whoops("Oops...My bad!", "I just don't know what went wrong!", juce::MessageBoxIconType::WarningIcon);
-                // whoops.showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Oops...My bad!", "I just don't know what went wrong!", "Muffin?");
-                return;
+            auto dirs = fileChooser.getResults();
+            for (juce::File& dir : dirs) {
+                if (dir.isRoot() || !dir.hasReadAccess()) {
+                    // TODO: Apply look and feel to alert window
+                    // juce::AlertWindow whoops("Oops...My bad!", "I just don't know what went wrong!", juce::MessageBoxIconType::WarningIcon);
+                    // whoops.showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Oops...My bad!", "I just don't know what went wrong!", "Muffin?");
+                    return;
+                }
+
+                for (auto& irDir : irDirectories) {
+                    if (dir == irDir.irDirectory) return;
+                    if (dir.isAChildOf(irDir.irDirectory)) return;
+                }
+
+                addIRDirectory(dir);
+
+                for (int i = static_cast<int>(irDirectories.size()) - 1; i >= 0; --i) // Iterate backwards since removal shifts indices
+                    if (irDirectories[i].irDirectory.isAChildOf(dir)) removeIRDirectory(i);
             }
-
-            for (auto& irDir : irDirectories) {
-                if (dir == irDir.irDirectory) return;
-                if (dir.isAChildOf(irDir.irDirectory)) return;
-            }
-
-            addIRDirectory(dir);
-
-            for (int i = static_cast<int>(irDirectories.size()) - 1; i >= 0; --i) // Iterate backwards since removal shifts indices
-                if (irDirectories[i].irDirectory.isAChildOf(dir)) removeIRDirectory(i);
         });
 }
 

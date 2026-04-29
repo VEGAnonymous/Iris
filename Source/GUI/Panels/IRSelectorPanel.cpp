@@ -82,7 +82,7 @@ void IRSelectorPanel::resized() {
 
 void IRSelectorPanel::paint(juce::Graphics& g) {
     g.setColour(Theme::Colors::section);
-    g.fillRect(getLocalBounds().reduced(2));
+    g.fillRect(getLocalBounds());
 }
 
 IRSlotButton* IRSelectorPanel::getIRSlotButton(int irIndex) {

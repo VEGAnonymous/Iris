@@ -66,7 +66,7 @@ PositionFieldControlsPanel::PositionFieldControlsPanel(MareverbAudioProcessor& p
 
 void PositionFieldControlsPanel::paint(juce::Graphics& g) {
     g.setColour(Theme::Colors::section);
-    g.fillRect(getLocalBounds().reduced(2));
+    g.fillRoundedRectangle(getLocalBounds().toFloat(), PANEL_CORNER_SIZE);
 }
 
 void PositionFieldControlsPanel::resized() {

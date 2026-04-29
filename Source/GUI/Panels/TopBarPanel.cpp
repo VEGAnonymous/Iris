@@ -56,5 +56,5 @@ void TopBarPanel::resized() {
 
 void TopBarPanel::paint(juce::Graphics& g) {
     g.setColour(Theme::Colors::background);
-    g.fillRect(getLocalBounds().reduced(2));
+    g.fillRect(getLocalBounds());
 }

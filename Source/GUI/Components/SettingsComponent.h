@@ -10,6 +10,8 @@ private:
     HoverableTextButton closeButton;
     DirectoryManagerComponent directoryManager;
 
+    static constexpr auto SETTINGS_INSET = 16;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SettingsComponent)
 
 public:
