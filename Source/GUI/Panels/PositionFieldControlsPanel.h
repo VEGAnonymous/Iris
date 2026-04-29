@@ -11,7 +11,7 @@
 class PositionFieldControlsPanel : public juce::Component {
 public:
 	struct ControlTab {
-		juce::ComboBox* pattern = nullptr;
+		LabelledControl<juce::ComboBox>* pattern = nullptr;
 		std::vector<LabelledControl<Rotary>*> rotaries {};
 	};
 

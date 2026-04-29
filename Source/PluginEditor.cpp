@@ -351,12 +351,12 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor(MareverbAudioProcesso
     strengthControlAttachment(audioProcessor.apvts, ParamID::strength, strengthControl.control),
     spreadControlAttachment(audioProcessor.apvts, ParamID::spread, spreadControl.control),
 
-    positionPatternControlAttachment(audioProcessor.apvts, ParamID::positionPattern, positionPatternControl),
+    positionPatternControlAttachment(audioProcessor.apvts, ParamID::positionPattern, positionPatternControl.control),
     positionRateControlAttachment(audioProcessor.apvts, ParamID::positionRate, positionRateControl.control),
     positionModAControlAttachment(audioProcessor.apvts, ParamID::positionModA, positionModAControl.control),
     positionModBControlAttachment(audioProcessor.apvts, ParamID::positionModB, positionModBControl.control),
 
-    fieldPatternControlAttachment(audioProcessor.apvts, ParamID::fieldPattern, fieldPatternControl),
+    fieldPatternControlAttachment(audioProcessor.apvts, ParamID::fieldPattern, fieldPatternControl.control),
     fieldRateControlAttachment(audioProcessor.apvts, ParamID::fieldRate, fieldRateControl.control),
     fieldModAControlAttachment(audioProcessor.apvts, ParamID::fieldModA, fieldModAControl.control),
     fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl.control),

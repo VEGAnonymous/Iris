@@ -97,7 +97,9 @@ private:
     juce::AudioProcessorValueTreeState::ButtonAttachment weightingModeControlAttachment;
 
     // ComboBoxes
-    juce::ComboBox positionPatternControl, fieldPatternControl;
+    LabelledControl<juce::ComboBox> 
+        positionPatternControl { getParameterName(audioProcessor.apvts, ParamID::positionPattern) },
+        fieldPatternControl    { getParameterName(audioProcessor.apvts, ParamID::fieldPattern) };
     juce::AudioProcessorValueTreeState::ComboBoxAttachment positionPatternControlAttachment, fieldPatternControlAttachment;
 
     // Panels
