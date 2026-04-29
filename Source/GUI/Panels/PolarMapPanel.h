@@ -8,7 +8,7 @@
 
 class MareverbAudioProcessor;
 
-class PolarMapComponent : public juce::Component {
+class PolarMapPanel : public juce::Component {
 private:
     MareverbAudioProcessor& audioProcessor;
 
@@ -43,11 +43,11 @@ private:
 
     std::atomic<bool> switchedIR { false };
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PolarMapComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PolarMapPanel)
 
 public:
-    PolarMapComponent(MareverbAudioProcessor& processor);
-    ~PolarMapComponent() override = default;
+    PolarMapPanel(MareverbAudioProcessor& processor);
+    ~PolarMapPanel() override = default;
 
     void paint(juce::Graphics& g) override;
 

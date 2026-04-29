@@ -1,23 +1,15 @@
 #pragma once
 
 #include "GUI/API/ValueTooltipWindow.h"
-#include "GUI/Components/IRHeaderComponent.h"
-#include "GUI/Components/PolarMapComponent.h"
 #include "GUI/Components/SettingsComponent.h"
-#include "GUI/Components/WindowOverlayComponent.h"
-#include "GUI/Components/Base/WaveformComponent.h"
-#include "GUI/Components/Controls/HoverableTextButton.h"
-#include "GUI/Components/Controls/HoverableToggleButton.h"
-#include "GUI/Components/Controls/LabelledControl.h"
-#include "GUI/Components/Controls/RangeSlider.h"
-#include "GUI/Components/Controls/RangeSliderAttachment.h"
-#include "GUI/Components/Controls/Rotary.h"
+
+#include "GUI/Panels/GlobalControlsPanel.h"
+#include "GUI/Panels/InteractionControlsPanel.h"
+#include "GUI/Panels/PolarMapPanel.h"
+#include "GUI/Panels/PositionFieldControlsPanel.h"
 #include "GUI/Panels/TopBarPanel.h"
 #include "GUI/Panels/IRSelectorPanel.h"
 #include "GUI/Panels/SelectedIRPanel.h"
-#include "GUI/Theme/LookAndFeel/ButtonLookAndFeel.h"
-#include "GUI/Theme/LookAndFeel/ComboBoxLookAndFeel.h"
-#include "GUI/Theme/LookAndFeel/RotaryLookAndFeel.h"
 
 #include "GUI/Theme/LookAndFeel/MareverbLookAndFeel.h"
 
@@ -44,18 +36,7 @@ private:
     juce::AnimatorUpdater animatorUpdater;
     ValueTooltipWindow valueTooltip;
 
-    // Listeners and callbacks
-    std::atomic<bool> positionPathChanged { false };
-
-    void parameterChanged (const juce::String& parameterID, float newValue) override;
-    void timerCallback() override;
-
-    // GUI state
-    void updateIRSlot(bool animate = false);
-    void syncPosition();
-    void syncField();
-
-    // Controls
+    // ControlDefs
     std::vector<ControlDef> controls { { 
        // ParamID                   Component                Slider (opt)                  
         { ParamID::globalMix,       &globalMixControl,       &globalMixControl.control    },
@@ -111,35 +92,37 @@ private:
 
     // Buttons
     // TODO: Replace with toggle switch
-    LabelledControl<HoverableTextButton> weightingModeControl { getParameterName(audioProcessor.apvts, ParamID::weightingMode), animatorUpdater };
+    LabelledControl<HoverableTextButton> weightingModeControl { 
+        getParameterName(audioProcessor.apvts, ParamID::weightingMode), animatorUpdater };
     juce::AudioProcessorValueTreeState::ButtonAttachment weightingModeControlAttachment;
-
-    HoverableTextButton positionTabButton {animatorUpdater}, fieldTabButton {animatorUpdater};
 
     // ComboBoxes
     juce::ComboBox positionPatternControl, fieldPatternControl;
     juce::AudioProcessorValueTreeState::ComboBoxAttachment positionPatternControlAttachment, fieldPatternControlAttachment;
 
     // Panels
+    PolarMapPanel polarMapPanel;
+    PositionFieldControlsPanel positionFieldControlsPanel;
+
     TopBarPanel topBarPanel;
     IRSelectorPanel irSelectorPanel;
     SelectedIRPanel selectedIRPanel;
-
-    // Components
-    PolarMapComponent polarMapComponent;
+    InteractionControlsPanel interactionControlsPanel;
+    GlobalControlsPanel globalControlsPanel;
 
     std::unique_ptr<SettingsComponent> settingsModal;
 
-    void initPositionFieldControls();;
-    void initComponents();
+    // Listeners and callbacks
+    void parameterChanged(const juce::String& parameterID, float newValue) override;
+    void timerCallback() override;
 
-    // Layout
-    void layoutLeftPanel(Bounds bounds);
-    void layoutRightPanel(Bounds bounds);
+    // GUI state
+    void updateIRSlot(bool animate = false);
+    void syncPosition();
+    void syncField();
 
-    void layoutPositionFieldControls(Bounds bounds);
-    void layoutInteractionControls(Bounds bounds);
-    void layoutGlobalControls(Bounds bounds);
+    // Initialization
+    void prepare();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MareverbAudioProcessorEditor)
 
@@ -149,6 +132,4 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
-
-    std::vector<ControlDef> getControls();
 };

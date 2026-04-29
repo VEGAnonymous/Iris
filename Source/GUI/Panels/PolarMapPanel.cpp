@@ -1,10 +1,10 @@
 #include "GUI/GUIUtilities.h"
-#include "GUI/Components/PolarMapComponent.h"
+#include "GUI/Panels/PolarMapPanel.h"
 #include "PluginProcessor.h"
 
 /* PRIVATE */
 
-CartesianCoordinate PolarMapComponent::map(CartesianCoordinate p) const { // [-1, 1] -> pixel coordinates
+CartesianCoordinate PolarMapPanel::map(CartesianCoordinate p) const { // [-1, 1] -> pixel coordinates
     auto b = getLocalBounds().toFloat();
     return {
         juce::jmap(p.x, -1.0f, 1.0f, b.getX(), b.getRight()),
@@ -12,7 +12,7 @@ CartesianCoordinate PolarMapComponent::map(CartesianCoordinate p) const { // [-1
     };
 }
 
-CartesianCoordinate PolarMapComponent::inverseMap(CartesianCoordinate p) const {
+CartesianCoordinate PolarMapPanel::inverseMap(CartesianCoordinate p) const {
     auto b = getLocalBounds().toFloat();
     return {
         juce::jmap(p.x, b.getX(), b.getRight(),  -1.0f, 1.0f),
@@ -20,12 +20,12 @@ CartesianCoordinate PolarMapComponent::inverseMap(CartesianCoordinate p) const {
     };
 }
 
-juce::Rectangle<float> PolarMapComponent::toBounds(PolarCoordinate p, float radius) const { // Coordinate -> fillEllipse() bounds
+juce::Rectangle<float> PolarMapPanel::toBounds(PolarCoordinate p, float radius) const { // Coordinate -> fillEllipse() bounds
     CartesianCoordinate c = map(polarToCartesian(p));
     return { c.x - radius, c.y - radius, radius * 2.0f, radius * 2.0f };
 }
 
-void PolarMapComponent::repaintPath() {
+void PolarMapPanel::repaintPath() {
     parametricPath.clear();
 
     ParameterSettings settings = getParameterSettings(audioProcessor.apvts);
@@ -66,12 +66,12 @@ void PolarMapComponent::repaintPath() {
     pathChanged = false;
 }
 
-bool PolarMapComponent::hitPosition(juce::Point<float> p) const {
+bool PolarMapPanel::hitPosition(juce::Point<float> p) const {
     auto center = toBounds(currentPosition, positionRadius).getCentre();
     return p.getDistanceFrom(center) <= positionRadius + hitRadius;
 }
 
-int PolarMapComponent::hitField(juce::Point<float> p) const {
+int PolarMapPanel::hitField(juce::Point<float> p) const {
     for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
         auto center = toBounds(fieldCoordinates[ir], coordinateRadius).getCentre();
         if (p.getDistanceFrom(center) <= coordinateRadius + hitRadius) return ir;
@@ -81,12 +81,12 @@ int PolarMapComponent::hitField(juce::Point<float> p) const {
 
 /* PUBLIC */
 
-PolarMapComponent::PolarMapComponent(MareverbAudioProcessor& p) : audioProcessor(p) { 
+PolarMapPanel::PolarMapPanel(MareverbAudioProcessor& p) : audioProcessor(p) { 
     setMouseCursor(juce::MouseCursor::NormalCursor);
     setBufferedToImage(true); 
 }
 
-void PolarMapComponent::paint(juce::Graphics& g) {
+void PolarMapPanel::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
 
     // Background + border
@@ -120,7 +120,7 @@ void PolarMapComponent::paint(juce::Graphics& g) {
     }
 }
 
-void PolarMapComponent::mouseMove(const juce::MouseEvent& e) {
+void PolarMapPanel::mouseMove(const juce::MouseEvent& e) {
     auto p = e.position;
     auto positionPattern = static_cast<PositionPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
     if (positionPattern == PositionPattern::MANUAL && hitPosition(p)) {
@@ -140,7 +140,7 @@ void PolarMapComponent::mouseMove(const juce::MouseEvent& e) {
     setMouseCursor(juce::MouseCursor::NormalCursor);
 }
 
-void PolarMapComponent::mouseDown(const juce::MouseEvent& e) {
+void PolarMapPanel::mouseDown(const juce::MouseEvent& e) {
     auto p = e.position;
     auto positionPattern = static_cast<PositionPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
     if (positionPattern == PositionPattern::MANUAL && hitPosition(p)) {
@@ -167,7 +167,7 @@ void PolarMapComponent::mouseDown(const juce::MouseEvent& e) {
     dragTarget = DragTarget::NONE;
 }
 
-void PolarMapComponent::mouseDrag(const juce::MouseEvent& e) {
+void PolarMapPanel::mouseDrag(const juce::MouseEvent& e) {
     if (dragTarget == DragTarget::NONE) return;
 
     PolarCoordinate p = cartesianToPolar(inverseMap({ e.position.x, e.position.y }));
@@ -188,22 +188,22 @@ void PolarMapComponent::mouseDrag(const juce::MouseEvent& e) {
     }
 }
 
-void PolarMapComponent::mouseUp(const juce::MouseEvent&) {
+void PolarMapPanel::mouseUp(const juce::MouseEvent&) {
     dragTarget = DragTarget::NONE;
     fieldIndex = -1;
 }
 
-std::atomic<bool>& PolarMapComponent::getIRSwitched() { return switchedIR; }
+std::atomic<bool>& PolarMapPanel::getIRSwitched() { return switchedIR; }
 
-void PolarMapComponent::notifyPathChanged() { pathChanged = true; repaint(); }
+void PolarMapPanel::notifyPathChanged() { pathChanged = true; repaint(); }
 
-void PolarMapComponent::notifyPositionChanged(PolarCoordinate nPosition) {
+void PolarMapPanel::notifyPositionChanged(PolarCoordinate nPosition) {
     currentPosition = nPosition;
     repaint(positionBounds.toNearestInt().expanded(1)); // Clear old bounds
     repaint(toBounds(nPosition, positionRadius).toNearestInt().expanded(1)); // Repaint at new bounds
 }
 
-void PolarMapComponent::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates) {
+void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates) {
     // Clear old bounds
     for (const auto& coord : fieldCoordinates) {
         auto oBounds = toBounds(coord, coordinateRadius);

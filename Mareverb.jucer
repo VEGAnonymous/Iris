@@ -140,10 +140,6 @@
                 file="Source/GUI/Components/IRHeaderComponent.cpp"/>
           <FILE id="eTHMNT" name="IRHeaderComponent.h" compile="0" resource="0"
                 file="Source/GUI/Components/IRHeaderComponent.h"/>
-          <FILE id="eJDfPp" name="PolarMapComponent.cpp" compile="1" resource="0"
-                file="Source/GUI/Components/PolarMapComponent.cpp"/>
-          <FILE id="VvHUrK" name="PolarMapComponent.h" compile="0" resource="0"
-                file="Source/GUI/Components/PolarMapComponent.h"/>
           <FILE id="zrFvt5" name="SettingsComponent.cpp" compile="1" resource="0"
                 file="Source/GUI/Components/SettingsComponent.cpp"/>
           <FILE id="xeOq7a" name="SettingsComponent.h" compile="0" resource="0"
@@ -154,10 +150,25 @@
                 file="Source/GUI/Components/WindowOverlayComponent.h"/>
         </GROUP>
         <GROUP id="{3B620D98-897F-204F-F16E-C4BACF90C306}" name="Panels">
+          <FILE id="xXQR6M" name="GlobalControlsPanel.cpp" compile="1" resource="0"
+                file="Source/GUI/Panels/GlobalControlsPanel.cpp"/>
+          <FILE id="F7IbFO" name="GlobalControlsPanel.h" compile="0" resource="0"
+                file="Source/GUI/Panels/GlobalControlsPanel.h"/>
+          <FILE id="duG7xr" name="InteractionControlsPanel.cpp" compile="1" resource="0"
+                file="Source/GUI/Panels/InteractionControlsPanel.cpp"/>
+          <FILE id="bzXnQi" name="InteractionControlsPanel.h" compile="0" resource="0"
+                file="Source/GUI/Panels/InteractionControlsPanel.h"/>
           <FILE id="QCHDvC" name="IRSelectorPanel.cpp" compile="1" resource="0"
                 file="Source/GUI/Panels/IRSelectorPanel.cpp"/>
           <FILE id="Kw1QDW" name="IRSelectorPanel.h" compile="0" resource="0"
                 file="Source/GUI/Panels/IRSelectorPanel.h"/>
+          <FILE id="eJDfPp" name="PolarMapPanel.cpp" compile="1" resource="0"
+                file="Source/GUI/Panels/PolarMapPanel.cpp"/>
+          <FILE id="VvHUrK" name="PolarMapPanel.h" compile="0" resource="0" file="Source/GUI/Panels/PolarMapPanel.h"/>
+          <FILE id="uqKsah" name="PositionFieldControlsPanel.cpp" compile="1"
+                resource="0" file="Source/GUI/Panels/PositionFieldControlsPanel.cpp"/>
+          <FILE id="Hyqop1" name="PositionFieldControlsPanel.h" compile="0" resource="0"
+                file="Source/GUI/Panels/PositionFieldControlsPanel.h"/>
           <FILE id="bGDMeP" name="SelectedIRPanel.cpp" compile="1" resource="0"
                 file="Source/GUI/Panels/SelectedIRPanel.cpp"/>
           <FILE id="oMrGMU" name="SelectedIRPanel.h" compile="0" resource="0"

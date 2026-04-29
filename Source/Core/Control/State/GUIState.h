@@ -9,6 +9,7 @@
 struct GUIState {
     std::atomic<PolarCoordinate> position { {0.0f, 0.0f} };
     juce::SpinLock positionLock;
+    std::atomic<bool> positionPathChanged { false };
     std::atomic<bool> positionChanged { false };
     std::atomic<bool> updatePosition { false }; // Editor forced update
     std::atomic<bool> syncingPosition { false }; // Guard
