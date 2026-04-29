@@ -13,7 +13,7 @@
 #include <JuceHeader.h>
 #include <array>
 
-class IRControlsComponent : public juce::Component, juce::AudioProcessorValueTreeState::Listener, juce::Timer {
+class IRControlsComponent : public juce::Component {
 private:
     struct SwapControl {
         LabelledControl<RangeSlider> swapRangeSlider;
@@ -32,7 +32,8 @@ private:
 
 	MareverbAudioProcessor& audioProcessor;
 	juce::AnimatorUpdater& animatorUpdater;
-    ValueTooltipWindow valueTooltip;
+    ValueTooltipWindow& valueTooltip;
+    juce::Component& parentComponent;
 
     HoverableTextButton clearIRButton {animatorUpdater}, randomIRButton {animatorUpdater};
     EnvelopeControl envelopeControl;
@@ -40,16 +41,15 @@ private:
 
 	void prepare();
 
-    void parameterChanged(const juce::String& parameterID, float newValue) override;
-    void timerCallback() override;
-
 public:
 
-	IRControlsComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater);
-	~IRControlsComponent() override;
+	IRControlsComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater, ValueTooltipWindow& tooltip, juce::Component& parent);
+    ~IRControlsComponent() override = default;
 
 	void paint(juce::Graphics& g) override;
 	void resized() override;
+
+    void updateSwapState(int irIndex);
 
     EnvelopeControl* getEnvelopeControl();
     SwapControl* getSwapControl(int irIndex);

@@ -4,8 +4,6 @@
 /* PRIVATE */
 
 void IRControlsComponent::prepare() {
-    addAndMakeVisible(valueTooltip);
-
     clearIRButton.setButtonText("CLEAR");
     clearIRButton.onClick = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
@@ -34,7 +32,7 @@ void IRControlsComponent::prepare() {
         return Format::seconds(static_cast<float>(valueDur), 4);
     };
 
-    envelopeControl.bindValueTooltipCallbacks(valueTooltip, *this);
+    envelopeControl.bindValueTooltipCallbacks(valueTooltip, parentComponent);
     addAndMakeVisible(envelopeControl);
 
     // Swap controls
@@ -43,10 +41,6 @@ void IRControlsComponent::prepare() {
         addChildComponent(swapControls[i]->swapActiveToggle);
         addChildComponent(swapControls[i]->swapRangeSlider);
 
-        audioProcessor.apvts.addParameterListener(ParamID::irSwapMin(i), this);
-        audioProcessor.apvts.addParameterListener(ParamID::irSwapMax(i), this);
-        audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
-
         // Bind control formatting to apvts parameter formatting
         if (auto* param = dynamic_cast<juce::RangedAudioParameter*>(audioProcessor.apvts.getParameter(ParamID::irSwapMin(i)))) {
             swapControls[i]->swapRangeSlider.control.formatTextFromValueFunction = [param, i](double value) {
@@ -54,47 +48,15 @@ void IRControlsComponent::prepare() {
             };
         }
 
-        swapControls[i]->swapRangeSlider.control.bindValueTooltipCallbacks(valueTooltip, *this);
-    }
-
-    startTimerHz(REFRESH_RATE);
-}
-
-void IRControlsComponent::parameterChanged(const juce::String& parameterID, float /*newValue*/) {
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        if (parameterID == ParamID::irSwapActive(i) /*|| parameterID == ParamID::irSwapMin(i) || parameterID == ParamID::irSwapMax(i)*/) {
-            audioProcessor.guiState.swapChanged.store(true, std::memory_order_release);
-        }
-    }
-}
-
-void IRControlsComponent::timerCallback() {
-    if (audioProcessor.guiState.swapChanged.exchange(false, std::memory_order_acquire)) {
-        audioProcessor.guiState.syncingSwap.store(true, std::memory_order_release);
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        bool swapActive = swapControls[selectedIR]->swapActiveToggle.control.getToggleState();
-
-        swapControls[selectedIR]->swapRangeSlider.setEnabled(swapActive);
-        swapControls[selectedIR]->swapRangeSlider.repaint();
-        audioProcessor.getIRManager()->setSwapActive(selectedIR, swapActive);
-        audioProcessor.guiState.syncingSwap.store(false, std::memory_order_release);
-        // DBG("Swap changed");
+        swapControls[i]->swapRangeSlider.control.bindValueTooltipCallbacks(valueTooltip, parentComponent);
     }
 }
 
 /* PUBLIC */
 
-IRControlsComponent::IRControlsComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater)
-    : audioProcessor(processor), animatorUpdater(updater) {
+IRControlsComponent::IRControlsComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater, ValueTooltipWindow& tooltip, juce::Component& parent)
+    : audioProcessor(processor), animatorUpdater(updater), valueTooltip(tooltip), parentComponent(parent) {
     prepare();
-}
-
-IRControlsComponent::~IRControlsComponent() {
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        audioProcessor.apvts.removeParameterListener(ParamID::irSwapMin(i), this);
-        audioProcessor.apvts.removeParameterListener(ParamID::irSwapMax(i), this);
-        audioProcessor.apvts.removeParameterListener(ParamID::irSwapActive(i), this);
-    }
 }
 
 void IRControlsComponent::paint(juce::Graphics& g) {
@@ -159,6 +121,14 @@ void IRControlsComponent::resized() {
         rangeSlider.setControlMargin(juce::FlexItem::Margin(5.0f, 0.0f, 5.0f, 0.0f));
         rangeSlider.resized();
     }
+}
+
+void IRControlsComponent::updateSwapState(int irIndex) {
+    if (!validateIRIndex(irIndex)) return;
+    bool swapActive = swapControls[irIndex]->swapActiveToggle.control.getToggleState();
+    swapControls[irIndex]->swapRangeSlider.setEnabled(swapActive);
+    swapControls[irIndex]->swapRangeSlider.repaint();
+    audioProcessor.getIRManager()->setSwapActive(irIndex, swapActive);
 }
 
 EnvelopeControl* IRControlsComponent::getEnvelopeControl() { return &envelopeControl; }

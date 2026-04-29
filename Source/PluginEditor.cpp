@@ -12,7 +12,6 @@
 // Listeners and callbacks
 
 void MareverbAudioProcessorEditor::parameterChanged(const juce::String& parameterID, float /*newValue*/) {
-    // DBG("Parameter changed");
     if (parameterID == ParamID::positionPattern || parameterID == ParamID::positionModA || parameterID == ParamID::positionModB) {
         positionPathChanged.store(true, std::memory_order_release);
         audioProcessor.guiState.updatePosition.store(true, std::memory_order_release);
@@ -25,11 +24,18 @@ void MareverbAudioProcessorEditor::parameterChanged(const juce::String& paramete
         if (parameterID == ParamID::fieldPattern)
             audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
     }
+
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        if (parameterID == ParamID::irSwapActive(i) /*|| parameterID == ParamID::irSwapMin(i) || parameterID == ParamID::irSwapMax(i)*/) {
+            audioProcessor.guiState.swapChanged.store(true, std::memory_order_release);
+        }
+    }
 }
 
 void MareverbAudioProcessorEditor::timerCallback() {
     animatorUpdater.update();
 
+    /* Mare map */
     if (positionPathChanged.exchange(false, std::memory_order_acquire))
         polarMapComponent.notifyPathChanged();
 
@@ -46,6 +52,13 @@ void MareverbAudioProcessorEditor::timerCallback() {
         // DBG("Passed coordinates to map");
     }
 
+    if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire)) 
+        syncPosition();
+
+    if (audioProcessor.guiState.syncingField.load(std::memory_order_acquire)) 
+        syncField();
+
+    /* IRs */
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
             const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
@@ -60,18 +73,19 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
     if (audioProcessor.guiState.selectedIRChanged.exchange(false, std::memory_order_acquire))
         updateIRSlot(false);
-
+        
     if (polarMapComponent.getIRSwitched().exchange(false, std::memory_order_acquire)) {
         audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
         updateIRSlot(true);
     }
 
-    if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire))
-        syncPosition();
+    if (audioProcessor.guiState.swapChanged.exchange(false, std::memory_order_acquire)) {
+        audioProcessor.guiState.syncingSwap.store(true, std::memory_order_release);
+        for (int i = 0; i < MAX_IR_COUNT; ++i) selectedIRPanel.getIRControlsComponent()->updateSwapState(i);
+        audioProcessor.guiState.syncingSwap.store(false, std::memory_order_release);
+    }
 
-    if (audioProcessor.guiState.syncingField.load(std::memory_order_acquire))
-        syncField();
-
+    /* Settings modal */
     if (audioProcessor.getIRManager()->getDirectoryChanged().exchange(false, std::memory_order_acquire)) {
         if (settingsModal) settingsModal->refreshDirectories();
     }
@@ -500,7 +514,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
 
     topBarPanel(audioProcessor, animatorUpdater), 
     irSelectorPanel(audioProcessor, animatorUpdater), 
-    selectedIRPanel(audioProcessor, animatorUpdater) {
+    selectedIRPanel(audioProcessor, animatorUpdater, valueTooltip, *this) {
 
     setLookAndFeel(&mainLookAndFeel);
 
@@ -539,6 +553,12 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor (MareverbAudioProcess
         }
     }
 
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        audioProcessor.apvts.addParameterListener(ParamID::irSwapMin(i), this);
+        audioProcessor.apvts.addParameterListener(ParamID::irSwapMax(i), this);
+        audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
+    }
+
     initComponents();
 
     startTimerHz(REFRESH_RATE);
@@ -551,6 +571,11 @@ MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
 
     // Detach listeners
     for (auto& control : controls) audioProcessor.apvts.removeParameterListener(control.paramID, this);
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        audioProcessor.apvts.removeParameterListener(ParamID::irSwapMin(i), this);
+        audioProcessor.apvts.removeParameterListener(ParamID::irSwapMax(i), this);
+        audioProcessor.apvts.removeParameterListener(ParamID::irSwapActive(i), this);
+    }
 }
 
 // GUI

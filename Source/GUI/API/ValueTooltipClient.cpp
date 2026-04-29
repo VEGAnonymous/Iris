@@ -43,21 +43,21 @@ void ValueTooltipClient::bindValueTooltipCallbacks(ValueTooltipWindow& valueTool
         juce::Component* parentComponentPtr = &parentComponent;
 
         onShowValueTooltip = [&valueTooltip]() {
-            DBG("Showing tooltip");
+            //DBG("Showing tooltip");
             valueTooltip.setVisible(true);
         };
         onUpdateValueTooltipText = [&valueTooltip](const juce::String tooltip) {
-            DBG(tooltip);
+            //DBG(tooltip);
             valueTooltip.setText(tooltip);
         };
         onUpdateValueTooltipPosition =
             [this, &valueTooltip, parentComponentPtr, component](juce::Point<float> position) {
             auto localPoint = parentComponentPtr->getLocalPoint(component, position.roundToInt());
-            DBG("Local point: " << localPoint.x << ", " << localPoint.y);
+            //DBG("Local point: " << localPoint.x << ", " << localPoint.y);
             valueTooltip.updatePosition(getValueTooltip(), localPoint, parentComponentPtr->getLocalBounds());
         };
         onHideValueTooltip = [&valueTooltip]() {
-            DBG("Hid tooltip");
+            //DBG("Hid tooltip");
             valueTooltip.setVisible(false);
         };
     }

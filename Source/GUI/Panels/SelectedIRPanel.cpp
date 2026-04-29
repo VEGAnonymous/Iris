@@ -10,11 +10,11 @@ void SelectedIRPanel::prepare() {
 
 /* PUBLIC */
 
-SelectedIRPanel::SelectedIRPanel(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater)
+SelectedIRPanel::SelectedIRPanel(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater, ValueTooltipWindow& tooltip, juce::Component& parent)
     : audioProcessor(processor), animatorUpdater(updater),
       irHeaderComponent(processor, updater), 
       irDisplayComponent(audioProcessor, updater), 
-      irControlsComponent(audioProcessor, updater) {
+      irControlsComponent(audioProcessor, updater, tooltip, parent) {
     prepare();
 }
 
@@ -61,3 +61,5 @@ void SelectedIRPanel::updateIRSlot(int selectedIR, bool animate) {
         }
     }
 }
+
+IRControlsComponent* SelectedIRPanel::getIRControlsComponent() { return &irControlsComponent; }

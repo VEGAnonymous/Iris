@@ -24,10 +24,12 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SelectedIRPanel)
 
 public:
-    SelectedIRPanel(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater);
+    SelectedIRPanel(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater, ValueTooltipWindow& tooltip, juce::Component& parent);
     ~SelectedIRPanel() override = default;
 
     void resized() override;
 
     void updateIRSlot(int selectedIR, bool animate);
+
+    IRControlsComponent* getIRControlsComponent();
 };
