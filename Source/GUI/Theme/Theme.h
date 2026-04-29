@@ -2,6 +2,7 @@
 
 #include "Core/Defines.h"
 #include "GUI/Theme/MareverbFonts.h"
+#include "GUI/Theme/MareverbIcons.h"
 
 #include <JuceHeader.h>
 
@@ -36,6 +37,12 @@ namespace Theme {
             ); jassert(typeface);
             auto fontOptions = options.withStyle("").withTypeface(typeface);
             return juce::Font(juce::Font(fontOptions));
+        }
+    }
+
+    namespace Icons {
+        inline const juce::Image getBurgerMenuIcon() {
+            return juce::ImageCache::getFromMemory(MareverbIcons::Menu_png, MareverbIcons::Menu_pngSize);
         }
     }
 }

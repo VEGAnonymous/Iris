@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GUI/Components/SettingsComponent.h"
+#include "GUI/Components/Controls/HoverableImageButton.h"
 #include "GUI/Components/Controls/HoverableTextButton.h"
 #include "PluginProcessor.h"
 
@@ -12,7 +13,7 @@ private:
     juce::AnimatorUpdater& animatorUpdater;
 
     HoverableTextButton clearAllButton {animatorUpdater}, randomAllButton {animatorUpdater};
-    HoverableTextButton settingsButton {animatorUpdater};
+    HoverableImageButton settingsButton {animatorUpdater};
 
     void prepare();
 

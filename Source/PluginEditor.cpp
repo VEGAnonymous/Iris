@@ -332,6 +332,7 @@ void MareverbAudioProcessorEditor::prepare() {
             settingsModal->setBounds(getLocalBounds().withSizeKeepingCentre(462, 361));
             addAndMakeVisible(*settingsModal);
         }
+        repaint();
     };
 }
 
@@ -433,6 +434,19 @@ void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
     Bounds& rightPanel = totalBounds;
     g.setColour(Theme::Colors::background);
     g.fillRect(rightPanel);
+}
+
+void MareverbAudioProcessorEditor::paintOverChildren(juce::Graphics& g) {
+    if (!settingsModal) return;
+
+    juce::Path path;
+    path.addRectangle(getLocalBounds());
+    path.addRoundedRectangle(settingsModal->getBounds().toFloat(), 12.0f);
+    path.addRectangle(topBarPanel.getBounds().toFloat());
+    path.setUsingNonZeroWinding(false);
+
+    g.setColour(Theme::Colors::outline.withAlpha(0.35f));
+    g.fillPath(path);
 }
 
 void MareverbAudioProcessorEditor::resized() {

@@ -18,4 +18,7 @@ public:
 
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
         bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
+
+    void drawImageButton(juce::Graphics& g, juce::Image* image, int imageX, int imageY, int imageW, int imageH,
+        const juce::Colour& overlayColour, float imageOpacity, juce::ImageButton& button) override;
 };

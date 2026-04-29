@@ -96,6 +96,10 @@
                   file="Source/GUI/Components/Controls/EnvelopeControl.cpp"/>
             <FILE id="cMSQSF" name="EnvelopeControl.h" compile="0" resource="0"
                   file="Source/GUI/Components/Controls/EnvelopeControl.h"/>
+            <FILE id="OtuRb6" name="HoverableImageButton.cpp" compile="1" resource="0"
+                  file="Source/GUI/Components/Controls/HoverableImageButton.cpp"/>
+            <FILE id="MFGspU" name="HoverableImageButton.h" compile="0" resource="0"
+                  file="Source/GUI/Components/Controls/HoverableImageButton.h"/>
             <FILE id="F6x5t8" name="HoverableTextButton.cpp" compile="1" resource="0"
                   file="Source/GUI/Components/Controls/HoverableTextButton.cpp"/>
             <FILE id="XsKYik" name="HoverableTextButton.h" compile="0" resource="0"
@@ -202,6 +206,9 @@
           <FILE id="sSBKWk" name="MareverbFonts.cpp" compile="1" resource="0"
                 file="Source/GUI/Theme/MareverbFonts.cpp"/>
           <FILE id="XmA8t9" name="MareverbFonts.h" compile="0" resource="0" file="Source/GUI/Theme/MareverbFonts.h"/>
+          <FILE id="PJ7lPW" name="MareverbIcons.cpp" compile="1" resource="0"
+                file="Source/GUI/Theme/MareverbIcons.cpp"/>
+          <FILE id="SZwvL0" name="MareverbIcons.h" compile="0" resource="0" file="Source/GUI/Theme/MareverbIcons.h"/>
           <FILE id="zNNZ6Y" name="Theme.h" compile="0" resource="0" file="Source/GUI/Theme/Theme.h"/>
         </GROUP>
         <FILE id="NLRTuz" name="GUIUtilities.h" compile="0" resource="0" file="Source/GUI/GUIUtilities.h"/>

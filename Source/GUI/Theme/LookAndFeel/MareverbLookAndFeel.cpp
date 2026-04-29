@@ -24,6 +24,13 @@ void MareverbLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton
 		shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
 }
 
+void MareverbLookAndFeel::drawImageButton(juce::Graphics& g, juce::Image* image, int imageX, int imageY, int imageW, int imageH,
+	const juce::Colour& overlayColour, float imageOpacity, juce::ImageButton& button) {
+
+	buttonLookAndFeel.drawImageButton(g, image, imageX, imageY, imageW, imageH,
+		overlayColour, imageOpacity, button);
+}
+
 // ComboBox
 
 void MareverbLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown,

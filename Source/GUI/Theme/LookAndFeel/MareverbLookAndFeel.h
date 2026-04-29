@@ -28,6 +28,9 @@ public:
 	void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
 		bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
 
+	void drawImageButton(juce::Graphics& g, juce::Image* image, int imageX, int imageY, int imageW, int imageH,
+		const juce::Colour& overlayColour, float imageOpacity, juce::ImageButton& button) override;
+
 	// ComboBox
 	void drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown,
 		int buttonX, int buttonY, int buttonW, int buttonH, juce::ComboBox& comboBox) override;

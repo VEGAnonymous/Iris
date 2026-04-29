@@ -130,6 +130,7 @@ public:
     MareverbAudioProcessorEditor(MareverbAudioProcessor&);
     ~MareverbAudioProcessorEditor() override;
 
-    void paint(juce::Graphics&) override;
+    void paint(juce::Graphics& g) override;
+    void paintOverChildren(juce::Graphics& g) override;
     void resized() override;
 };

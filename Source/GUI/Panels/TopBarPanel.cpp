@@ -14,7 +14,12 @@ void TopBarPanel::prepare() {
     addAndMakeVisible(clearAllButton);
 
     // Settings modal
-    settingsButton.setButtonText("S");
+    const juce::Image settingsIcon = Theme::Icons::getBurgerMenuIcon();
+    const juce::Colour overlayColor = Theme::Colors::highlight;
+    settingsButton.setImages(true, true, true,
+        settingsIcon, 1.0f, overlayColor,
+        settingsIcon, 1.0f, overlayColor,
+        settingsIcon, 1.0f, overlayColor);
     settingsButton.onClick = [&]() { if (onSettingsClicked) onSettingsClicked(); };
     addAndMakeVisible(settingsButton);
 }
@@ -49,7 +54,8 @@ void TopBarPanel::resized() {
     topBarRow.items.add(juce::FlexItem(settingsButton)
         .withFlex(0.0f)
         .withWidth(w * 0.075f)
-        .withHeight(h * 0.6f));
+        .withHeight(h * 0.6f)
+        .withMargin(8.0f));
 
     topBarRow.performLayout(bounds.removeFromLeft(static_cast<int>(w * 0.4f)));
 }
