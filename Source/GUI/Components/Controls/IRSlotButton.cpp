@@ -18,7 +18,7 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
     g.fillRoundedRectangle(bounds, 3.0f);
 
     // Selection ring
-    g.setColour(selected ? juce::Colours::white : juce::Colours::darkgrey);
+    g.setColour(selected ? Theme::Colors::textLight : juce::Colours::darkgrey);
     g.drawRoundedRectangle(bounds, 3.0f, selected ? 1.5f : 0.5f);
 
     // Indicator dot

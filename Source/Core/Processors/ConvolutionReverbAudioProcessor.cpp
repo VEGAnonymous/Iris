@@ -13,7 +13,12 @@ ConvolutionReverbAudioProcessor::ConvolutionReverbAudioProcessor(std::shared_ptr
 ConvolutionReverbAudioProcessor::~ConvolutionReverbAudioProcessor() {}
 
 // Boilerplate
-double ConvolutionReverbAudioProcessor::getTailLengthSeconds() const { return 0.0; } // TODO: Put actual value here
+double ConvolutionReverbAudioProcessor::getTailLengthSeconds() const {
+    // HACK: May be innaccurate since the partition count can change over time
+    auto state = std::atomic_load(&convolutionState->state);
+    if (!state || state->irBank->getMaxPartitionCount() == 0) return 0.0;
+    return (state->irBank->getMaxPartitionCount() * PARTITION_SIZE) / getSampleRate();
+}
 
 bool ConvolutionReverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
     const auto& in = layouts.getMainInputChannelSet();

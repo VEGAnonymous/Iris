@@ -79,6 +79,10 @@ void MareverbAudioProcessor::connectAudioNodes() {
     }
 }
 
+ConvolutionReverbAudioProcessor* MareverbAudioProcessor::getConvolutionReverbProcessor() const {
+    return dynamic_cast<ConvolutionReverbAudioProcessor*>(convolutionVerbNode->getProcessor());
+}
+
 CutFilterAudioProcessor* MareverbAudioProcessor::getCutFilterProcessor() const {
     return dynamic_cast<CutFilterAudioProcessor*>(cutFilterNode->getProcessor());
 }
@@ -91,7 +95,7 @@ MareverbAudioProcessor::MareverbAudioProcessor()
         .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
 
     mainProcessor(new juce::AudioProcessorGraph()), 
-    mixer(HOP_SIZE),
+    mixer(PARTITION_SIZE),
     irManager(&applicationProperties) {
 
     // Init properties
@@ -152,7 +156,13 @@ MareverbAudioProcessor::~MareverbAudioProcessor() { }
 
 // Boilerplate
 
-double MareverbAudioProcessor::getTailLengthSeconds() const { return 0.0; } // TODO: Replace with actual value
+double MareverbAudioProcessor::getTailLengthSeconds() const {
+    double tailLength = 0.0;
+    for (const auto& node : mainProcessor->getNodes())
+        tailLength += node->getProcessor()->getTailLengthSeconds();
+    
+    return tailLength; 
+}
 
 #ifndef JucePlugin_PreferredChannelConfigurations
 bool MareverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
@@ -177,7 +187,7 @@ void MareverbAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBloc
     connectAudioNodes();
 
     mixer.setMixingRule(juce::dsp::DryWetMixingRule::sin3dB);
-    mixer.setWetLatency(HOP_SIZE);
+    mixer.setWetLatency(PARTITION_SIZE);
     mixer.prepare(spec);
 
     updateParameters();

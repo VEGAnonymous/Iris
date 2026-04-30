@@ -39,6 +39,7 @@ private:
 
     void connectAudioNodes();
 
+    ConvolutionReverbAudioProcessor* getConvolutionReverbProcessor() const;
     CutFilterAudioProcessor* getCutFilterProcessor() const;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MareverbAudioProcessor)
