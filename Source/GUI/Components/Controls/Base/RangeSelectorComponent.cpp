@@ -33,19 +33,19 @@ void RangeSelectorComponent::mouseMove(const juce::MouseEvent& e) {
         ? juce::MouseCursor::LeftRightResizeCursor
         : juce::MouseCursor::NormalCursor);
 
-    if (target == DragTarget::START) hoverStart.setAlpha(1.0f);
-    else if (target == DragTarget::END) hoverEnd.setAlpha(1.0f);
+    if (target == DragTarget::START) hoverStart.setValue(1.0f);
+    else if (target == DragTarget::END) hoverEnd.setValue(1.0f);
     else if (target == DragTarget::NONE) {
-        hoverStart.setAlpha(0.0f);
-        hoverEnd.setAlpha(0.0f);
+        hoverStart.setValue(0.0f);
+        hoverEnd.setValue(0.0f);
     }
 }
 
 void RangeSelectorComponent::mouseDown(const juce::MouseEvent& e) {
     dragTarget = hitHandle(e.position);
     if (dragTarget != DragTarget::NONE) {
-        if (dragTarget == DragTarget::START) hoverStart.setAlpha(0.0f);
-        else hoverEnd.setAlpha(0.0f);
+        if (dragTarget == DragTarget::START) hoverStart.setValue(0.0f);
+        else hoverEnd.setValue(0.0f);
         beginGesture();
         updateValueTooltipText();
         showValueTooltip();
@@ -97,8 +97,8 @@ void RangeSelectorComponent::mouseEnter(const juce::MouseEvent& e) {
 void RangeSelectorComponent::mouseUp(const juce::MouseEvent& /*e*/) {
     if (dragTarget != DragTarget::NONE || selecting) {
         endGesture();
-        if (dragTarget == DragTarget::START) hoverStart.setAlpha(1.0f);
-        else if (dragTarget == DragTarget::END) hoverEnd.setAlpha(1.0f);
+        if (dragTarget == DragTarget::START) hoverStart.setValue(1.0f);
+        else if (dragTarget == DragTarget::END) hoverEnd.setValue(1.0f);
     }
 
     dragTarget = DragTarget::NONE;
@@ -109,8 +109,8 @@ void RangeSelectorComponent::mouseUp(const juce::MouseEvent& /*e*/) {
 
 void RangeSelectorComponent::mouseExit(const juce::MouseEvent&) {
     if (dragTarget == DragTarget::NONE) {
-        hoverStart.setAlpha(0.0f);
-        hoverEnd.setAlpha(0.0f);
+        hoverStart.setValue(0.0f);
+        hoverEnd.setValue(0.0f);
         setMouseCursor(juce::MouseCursor::NormalCursor);
         hideValueTooltip();
         repaint();

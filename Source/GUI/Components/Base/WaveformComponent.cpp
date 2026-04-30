@@ -40,7 +40,7 @@ void WaveformComponent::paint(juce::Graphics& g) {
 
         waveform.closeSubPath();
 
-        float waveformAlpha = juce::jmap(activeAnim.getAlpha(), 0.3f, 1.0f);
+        float waveformAlpha = juce::jmap(activeAnim.getValue(), 0.3f, 1.0f);
         const float channelAlphaOffset = (channel == 0) ? 0.0f : 0.2f;
         waveformAlpha = juce::jmax(0.0f, waveformAlpha - channelAlphaOffset);
         g.setColour(color.withAlpha(waveformAlpha));
@@ -83,9 +83,7 @@ void WaveformComponent::setColor(juce::Colour nColor) {
 }
 
 void WaveformComponent::setActive(bool nActive, bool animate) { 
-    if (nActive) activeAnim.setAlpha(1.0f, animate);
-    else activeAnim.setAlpha(0.0f, animate);
-
+    activeAnim.setValue(nActive ? 1.0f : 0.0f, animate);
     active = nActive;
     repaint();
 }

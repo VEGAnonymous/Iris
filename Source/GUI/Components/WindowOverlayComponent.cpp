@@ -19,7 +19,7 @@ void WindowOverlayComponent::paint(juce::Graphics& g) {
     const auto bounds = getLocalBounds().toFloat();
     const float startX = inverseMap(start);
     const float endX = inverseMap(end);
-    float startAlpha = hoverStart.getAlpha(), endAlpha = hoverEnd.getAlpha();
+    float startAlpha = hoverStart.getValue(), endAlpha = hoverEnd.getValue();
 
     // Dim outside window
     g.setColour(Theme::Colors::background.withAlpha(0.5f));
@@ -50,7 +50,7 @@ void WindowOverlayComponent::paint(juce::Graphics& g) {
     */
 
     // Drag and drop indication
-    const float dragAlpha = dragHover.getAlpha();
+    const float dragAlpha = dragHover.getValue();
     Paint::dragAndDropHover(g, getLocalBounds().toFloat(), dragAlpha, (Theme::Colors::highlight).withAlpha(0.5f));
 }
 

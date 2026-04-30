@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RangeSlider.h"
+#include "GUI/Components/Controls/RangeSlider.h"
 
 #include <JuceHeader.h>
 

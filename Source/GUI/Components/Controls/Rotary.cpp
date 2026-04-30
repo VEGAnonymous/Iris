@@ -1,4 +1,4 @@
-#include "Rotary.h"
+#include "GUI/Components/Controls/Rotary.h"
 
 /* PUBLIC */
 
@@ -10,11 +10,11 @@ Rotary::Rotary(juce::AnimatorUpdater& updater, bool isBipolar) : juce::Slider(
 }
 
 void Rotary::mouseEnter(const juce::MouseEvent& e) { 
-    hoverAnim.setAlpha(1.0f); 
+    hoverAnim.setValue(1.0f);
     updateValueTooltipPosition(e.position);
 }
 void Rotary::mouseExit(const juce::MouseEvent& /*e*/) { 
-    hoverAnim.setAlpha(0.0f); 
+    hoverAnim.setValue(0.0f);
     hideValueTooltip();
 }
 
@@ -49,4 +49,4 @@ juce::String Rotary::getValueTooltip() { return textFromValue(getValue()); }
 void Rotary::setBipolar(bool nBipolar) { bipolar = nBipolar; }
 bool Rotary::isBipolar() const { return bipolar; }
 
-float Rotary::getHoverAlpha() const { return hoverAnim.getAlpha(); }
+float Rotary::getHoverAlpha() const { return hoverAnim.getValue(); }

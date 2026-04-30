@@ -14,7 +14,7 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
 
     // Background
     g.setColour(selected ? juce::Colours::white.withAlpha(0.1f)
-          : juce::Colours::white.withAlpha(0.05f).interpolatedWith(juce::Colours::transparentBlack, hoverAnim.getAlpha()));
+          : juce::Colours::white.withAlpha(0.05f).interpolatedWith(juce::Colours::transparentBlack, hoverAnim.getValue()));
     g.fillRoundedRectangle(bounds, 3.0f);
 
     // Selection ring
@@ -25,14 +25,14 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
     const float indicatorX = bounds.getX() + 6.0f;
     const float indicatorY = bounds.getY() + 6.0f;
 
-    float activeAlpha = indicatorActiveAnim.getAlpha();
+    float activeAlpha = indicatorActiveAnim.getValue();
     float indicatorAlpha = juce::jmap(activeAlpha, occupied ? 0.35f : 0.1f, occupied ? 1.0f : 0.2f);
 
     Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius, 
         irIndex, occupied, active, false, indicatorAlpha);
 
     // Drag and drop indication
-    const float dragAlpha = dragHover.getAlpha();
+    const float dragAlpha = dragHover.getValue();
     Paint::dragAndDropHover(g, getLocalBounds().toFloat(), dragAlpha, (Theme::Colors::highlight).withAlpha(0.5f));
 }
 
@@ -41,8 +41,8 @@ void IRSlotButton::resized() {
     waveformPreview.setBounds(bounds);
 }
 
-void IRSlotButton::mouseEnter(const juce::MouseEvent& /*e*/) { hoverAnim.setAlpha(1.0f); }
-void IRSlotButton::mouseExit(const juce::MouseEvent& /*e*/) { hoverAnim.setAlpha(0.0f); }
+void IRSlotButton::mouseEnter(const juce::MouseEvent& /*e*/) { hoverAnim.setValue(1.0f); }
+void IRSlotButton::mouseExit(const juce::MouseEvent& /*e*/) { hoverAnim.setValue(0.0f); }
 void IRSlotButton::mouseDown(const juce::MouseEvent& e) {
     // Check if clicked on indicator
     auto indicatorBounds = getIndicatorBounds(getLocalBounds(), indicatorRadius + 1.0f);
@@ -88,7 +88,7 @@ void IRSlotButton::setOccupied(bool nOccupied) {
 }
 
 void IRSlotButton::setActive(bool nActive) {
-    indicatorActiveAnim.setAlpha(nActive ? 1.0f : 0.0f);
+    indicatorActiveAnim.setValue(nActive ? 1.0f : 0.0f);
     active = nActive;
     waveformPreview.setActive(nActive, true);
     repaint();

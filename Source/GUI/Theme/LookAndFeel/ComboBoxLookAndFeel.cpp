@@ -1,4 +1,4 @@
-#include "ComboBoxLookAndFeel.h"
+#include "GUI/Theme/LookAndFeel/ComboBoxLookAndFeel.h"
 
 ComboBoxLookAndFeel::ComboBoxLookAndFeel() {}
 

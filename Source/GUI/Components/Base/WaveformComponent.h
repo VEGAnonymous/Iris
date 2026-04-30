@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Defines.h"
-#include "GUI/API/AnimatedAlpha.h"
+#include "GUI/API/AnimatedValue.h"
 
 #include <JuceHeader.h>
 
@@ -14,7 +14,7 @@ private:
 	juce::Colour color = juce::Colours::white;
 	bool active = true;
 
-	AnimatedAlpha activeAnim;
+	AnimatedValue activeAnim;
 
 	juce::AudioThumbnailCache thumbnailCache { THUMBNAIL_CACHE_SIZE };
 	juce::AudioThumbnail thumbnail { 126, formatManager, thumbnailCache };

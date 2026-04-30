@@ -1,4 +1,4 @@
-#include "MareverbLookAndFeel.h"
+#include "GUI/Theme/LookAndFeel/MareverbLookAndFeel.h"
 
 /* PUBLIC */
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Defines.h"
-#include "GUI/API/AnimatedAlpha.h"
+#include "GUI/API/AnimatedValue.h"
 #include "GUI/API/DragAndDropMixin.h"
 #include "GUI/Components/Base/WaveformComponent.h"
 
@@ -14,7 +14,7 @@ private:
     bool occupied = false;
     bool active = false;
 
-    AnimatedAlpha hoverAnim, indicatorActiveAnim;
+    AnimatedValue hoverAnim, indicatorActiveAnim;
 
     WaveformComponent waveformPreview;
 
@@ -29,7 +29,7 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(IRSlotButton)
 
 public:
-    AnimatedAlpha dragHover;
+    AnimatedValue dragHover;
 
     std::function<void(bool)> onActiveToggle;
 

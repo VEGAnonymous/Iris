@@ -1,12 +1,12 @@
 #pragma once
 
-#include "GUI/API/AnimatedAlpha.h"
+#include "GUI/API/AnimatedValue.h"
 
 #include <JuceHeader.h>
 
 class HoverableImageButton : public juce::ImageButton {
 private:
-    AnimatedAlpha hoverAnim;
+    AnimatedValue hoverAnim;
 
 public:
     HoverableImageButton(juce::AnimatorUpdater& updater);

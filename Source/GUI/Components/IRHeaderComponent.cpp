@@ -36,7 +36,7 @@ void IRHeaderComponent::setSlot(int irIndex, const IRSlot& slot) {
 }
 
 void IRHeaderComponent::setActive(bool nActive, bool animate) {
-    indicatorActiveAnim.setAlpha(nActive ? 1.0f : 0.0f, animate);
+    indicatorActiveAnim.setValue(nActive ? 1.0f : 0.0f, animate);
     currentIR.active = nActive;
     repaint();
 }
@@ -50,7 +50,7 @@ void IRHeaderComponent::paint(juce::Graphics& g) {
     const float indicatorX = bounds.getX() + 14.0f;
     const float indicatorY = bounds.getCentreY();
 
-    float activeAlpha = indicatorActiveAnim.getAlpha();
+    float activeAlpha = indicatorActiveAnim.getValue();
     float indicatorAlpha = juce::jmap(activeAlpha, currentIR.occupied ? 0.35f : 0.1f, currentIR.occupied ? 1.0f : 0.2f);
 
     Paint::irIndicator(g, {indicatorX, indicatorY}, indicatorRadius, 

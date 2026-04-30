@@ -1,13 +1,13 @@
 #pragma once
 
-#include "GUI/API/AnimatedAlpha.h"
+#include "GUI/API/AnimatedValue.h"
 #include "GUI/Theme/Theme.h"
 
 #include <JuceHeader.h>
 
 class HoverableTextButton : public juce::TextButton {
 private:
-    AnimatedAlpha hoverAnim;
+    AnimatedValue hoverAnim;
 
 public:
     HoverableTextButton(juce::AnimatorUpdater& updater);

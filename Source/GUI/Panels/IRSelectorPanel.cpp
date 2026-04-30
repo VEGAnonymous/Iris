@@ -54,7 +54,7 @@ void IRSelectorPanel::prepare() {
             };
 
         slotButton->dragHandler.onHoverChanged = [this, slotButton](bool hovering) {
-            slotButton->dragHover.setAlpha(hovering ? 1.0f : 0.0f);
+            slotButton->dragHover.setValue(hovering ? 1.0f : 0.0f);
             slotButton->setMouseCursor(hovering ? juce::MouseCursor::CopyingCursor : juce::MouseCursor::NormalCursor);
             };
     }

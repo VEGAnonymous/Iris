@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GUI/API/AnimatedAlpha.h"
+#include "GUI/API/AnimatedValue.h"
 #include "GUI/API/ValueTooltipClient.h"
 #include "GUI/Theme/Theme.h"
 
@@ -22,7 +22,7 @@ protected:
     
     const bool updateDuringDrag = false;
 
-    AnimatedAlpha hoverStart, hoverEnd;
+    AnimatedValue hoverStart, hoverEnd;
 
     float map(float x) const;
     float inverseMap(float norm) const;

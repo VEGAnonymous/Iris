@@ -1,13 +1,13 @@
 #pragma once
 
-#include "GUI/API/AnimatedAlpha.h"
+#include "GUI/API/AnimatedValue.h"
 #include "GUI/API/ValueTooltipClient.h"
 
 #include <JuceHeader.h>
 
 class Rotary : public juce::Slider, public ValueTooltipClient {
 private:
-    AnimatedAlpha hoverAnim;
+    AnimatedValue hoverAnim;
     bool bipolar = false;
 
 public:

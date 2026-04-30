@@ -3,7 +3,7 @@
 #include "Core/Defines.h"
 #include "Core/Utilities.h"
 #include "Core/Control/MotionController.h"
-#include "GUI/API/AnimatedAlpha.h"
+#include "GUI/API/AnimatedValue.h"
 
 #include <JuceHeader.h>
 #include <array>
@@ -24,12 +24,12 @@ private:
     BoundsF toBounds(PolarCoordinate p, float radius) const;
 
     // Animation
-    std::vector<AnimatedAlpha> fieldActiveStates;
+    std::vector<AnimatedValue> fieldActiveStates;
 
-    AnimatedAlpha positionInteractionState;
-    std::vector<AnimatedAlpha> fieldInteractionStates;
+    AnimatedValue positionInteractionState;
+    std::vector<AnimatedValue> fieldInteractionStates;
 
-    std::vector<AnimatedAlpha> fieldSelectionStates;
+    std::vector<AnimatedValue> fieldSelectionStates;
 
     // Hovering
     struct HoverState {

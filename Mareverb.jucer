@@ -61,6 +61,9 @@
       </GROUP>
       <GROUP id="{0020543F-18A4-A177-2507-1186AC105CC3}" name="GUI">
         <GROUP id="{20F60DF1-DA86-3271-0296-2888AADD19FE}" name="API">
+          <FILE id="W7m2vP" name="AnimatedValue.cpp" compile="1" resource="0"
+                file="Source/GUI/API/AnimatedValue.cpp"/>
+          <FILE id="iE9yKo" name="AnimatedValue.h" compile="0" resource="0" file="Source/GUI/API/AnimatedValue.h"/>
           <FILE id="ssHWtL" name="DragAndDropHandler.cpp" compile="1" resource="0"
                 file="Source/GUI/API/DragAndDropHandler.cpp"/>
           <FILE id="EibL31" name="DragAndDropHandler.h" compile="0" resource="0"
@@ -77,9 +80,6 @@
                 file="Source/GUI/API/ValueTooltipWindow.cpp"/>
           <FILE id="e75FF9" name="ValueTooltipWindow.h" compile="0" resource="0"
                 file="Source/GUI/API/ValueTooltipWindow.h"/>
-          <FILE id="W7m2vP" name="AnimatedAlpha.cpp" compile="1" resource="0"
-                file="Source/GUI/API/AnimatedAlpha.cpp"/>
-          <FILE id="iE9yKo" name="AnimatedAlpha.h" compile="0" resource="0" file="Source/GUI/API/AnimatedAlpha.h"/>
         </GROUP>
         <GROUP id="{B64805C0-891D-E1ED-ED51-121EC8B9149D}" name="Components">
           <GROUP id="{3F80DDB6-76F4-8F87-F86F-4F5FE9E7A606}" name="Controls">

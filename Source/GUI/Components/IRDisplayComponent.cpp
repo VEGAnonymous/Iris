@@ -31,7 +31,7 @@ void IRDisplayComponent::prepare() {
     };
 
     windowOverlayComponent.dragHandler.onHoverChanged = [this](bool hovering) {
-        windowOverlayComponent.dragHover.setAlpha(hovering ? 1.0f : 0.0f);
+        windowOverlayComponent.dragHover.setValue(hovering ? 1.0f : 0.0f);
         windowOverlayComponent.setMouseCursor(hovering ? juce::MouseCursor::CopyingCursor : juce::MouseCursor::NormalCursor);
     };
 

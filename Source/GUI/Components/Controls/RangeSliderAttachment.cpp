@@ -1,4 +1,4 @@
-#include "RangeSliderAttachment.h"
+#include "GUI/Components/Controls/RangeSliderAttachment.h"
 
 /* PRIVATE */
 

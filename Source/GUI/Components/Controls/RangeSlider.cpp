@@ -1,4 +1,4 @@
-#include "RangeSlider.h"
+#include "GUI/Components/Controls/RangeSlider.h"
 
 /* PROTECTED */
 
@@ -15,7 +15,7 @@ void RangeSlider::paint(juce::Graphics& g) {
     const float startX = inverseMap(start);
     const float endX = inverseMap(end);
     const float trackY = bounds.getCentreY();
-    const float startAlpha = hoverStart.getAlpha(), endAlpha = hoverEnd.getAlpha();
+    const float startAlpha = hoverStart.getValue(), endAlpha = hoverEnd.getValue();
     const bool enabled = isEnabled();
 
     // Background

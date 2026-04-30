@@ -2,24 +2,24 @@
 
 #include <JuceHeader.h>
 
-class AnimatedAlpha {
+class AnimatedValue {
 private:
-    float currentAlpha = 0.0f;
-    float targetAlpha = 0.0f;
+    float currentValue = 0.0f;
+    float targetValue = 0.0f;
 
     juce::AnimatorUpdater& animationUpdater;
     std::unique_ptr<juce::Animator> animator;
 
 public:
-    AnimatedAlpha(juce::Component& base, juce::AnimatorUpdater& updater, int animateTimeMs = 75);
+    AnimatedValue(juce::Component& base, juce::AnimatorUpdater& updater, int animateTimeMs = 75);
     
     /* // Causes an assertion failure for some reason
-    ~AnimatedAlpha() {
+    ~AnimatedValue() {
         if (animatorIn) animationUpdater.removeAnimator(*animatorIn);
         if (animatorOut) animationUpdater.removeAnimator(*animatorOut);
     }
     */
 
-    void setAlpha(float nAlpha, bool animate = true);
-    float getAlpha() const;
+    void setValue(float nValue, bool animate = true);
+    float getValue() const;
 };

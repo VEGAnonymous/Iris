@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Control/IRManager.h"
-#include "GUI/API/AnimatedAlpha.h"
+#include "GUI/API/AnimatedValue.h"
 #include "GUI/Components/Controls/HoverableTextButton.h"
 #include "GUI/Theme/LookAndFeel/ButtonLookAndFeel.h"
 #include "PluginProcessor.h"
@@ -16,7 +16,7 @@ private:
 	IRSlot currentIR {};
 	juce::String currentPath = "";
 
-	AnimatedAlpha indicatorActiveAnim;
+	AnimatedValue indicatorActiveAnim;
 
 	const float indicatorRadius = 5.0f;
 	BoundsF getIndicatorBounds(Bounds bounds, const float radius) const;

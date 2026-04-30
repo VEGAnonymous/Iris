@@ -1,4 +1,4 @@
-#include "GUI/API/AnimatedAlpha.h"
+#include "GUI/API/AnimatedValue.h"
 #include "GUI/Components/Controls/Rotary.h"
 #include "GUI/Theme/Theme.h"
 #include "GUI/Theme/LookAndFeel/RotaryLookAndFeel.h"

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GUI/API/AnimatedValue.h"
 #include "GUI/API/DragAndDropMixin.h"
 #include "GUI/Components/Controls/Base/RangeSelectorComponent.h"
 
@@ -15,7 +16,7 @@ protected:
     void endGesture() override;
 
 public:
-    AnimatedAlpha dragHover;
+    AnimatedValue dragHover;
 
     std::function<void(float start, float length)> onWindowChanged;
 

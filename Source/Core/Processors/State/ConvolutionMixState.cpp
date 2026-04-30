@@ -1,4 +1,4 @@
-#include "ConvolutionMixState.h"
+#include "Core/Processors/State/ConvolutionMixState.h"
 
 ConvolutionMixState::ConvolutionMixState() {
 	resize(MAX_IR_PARTITIONS);

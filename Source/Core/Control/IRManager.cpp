@@ -1,4 +1,4 @@
-#include "IRManager.h"
+#include "Core/Control/IRManager.h"
 
 /* PRIVATE */
 
