@@ -3,8 +3,10 @@
 #include "Core/Control/IRManager.h"
 #include "GUI/Components/Controls/HoverableToggleButton.h"
 #include "GUI/Components/Controls/HoverableTextButton.h"
+#include "GUI/Components/Controls/LabelledControl.h"
 #include "GUI/Theme/Theme.h"
 #include "GUI/Theme/LookAndFeel/ButtonLookAndFeel.h"
+#include "PluginProcessor.h"
 
 #include <JuceHeader.h>
 
@@ -13,14 +15,20 @@ private:
     static constexpr auto TITLE_ROW_HEIGHT = 36,
                           BUTTON_COLUMN_WIDTH = 20,
                           BUTTON_COLUMN_PADDING = 12,
-                          DIRECTORY_ROW_HEIGHT = 28;
+                          DIRECTORY_ROW_HEIGHT = 28,
+                          DIRECTORY_LIST_HEIGHT = 240,
+                          CONTROL_COLUMN_HEIGHT = 40;
 
-    IRManager* irManager;
+    MareverbAudioProcessor& audioProcessor;
     juce::AnimatorUpdater& animatorUpdater;
 
     juce::Label title;
     juce::ListBox directoryList { {}, this };
+
     HoverableTextButton addButton, removeButton;
+
+    LabelledControl<juce::ComboBox> randomModeSelector { "Random Sampling Method" };
+    const juce::StringArray randomModes { "Uniform across all files", "Uniform across directories" };
 
     int selectedRow = -1;
 
@@ -63,7 +71,7 @@ public:
         }
     };
 
-    DirectoryManagerComponent(IRManager* irManager, juce::AnimatorUpdater& updater);
+    DirectoryManagerComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater);
     ~DirectoryManagerComponent() override = default;
 
     void paint(juce::Graphics& g) override;

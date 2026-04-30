@@ -2,6 +2,7 @@
 
 #include "GUI/Components/DirectoryManagerComponent.h"
 #include "GUI/Theme/LookAndFeel/ButtonLookAndFeel.h"
+#include "PluginProcessor.h"
 
 #include <JuceHeader.h>
 
@@ -15,7 +16,7 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SettingsComponent)
 
 public:
-    SettingsComponent(IRManager* irManager, juce::AnimatorUpdater& updater);
+    SettingsComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater);
     ~SettingsComponent() override = default;
 
     void paint(juce::Graphics& g) override;

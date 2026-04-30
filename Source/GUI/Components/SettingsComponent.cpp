@@ -3,8 +3,8 @@
 
 /* PUBLIC */
 
-SettingsComponent::SettingsComponent(IRManager* irManager, juce::AnimatorUpdater& updater) 
-    : directoryManager(irManager, updater), closeButton(updater) {
+SettingsComponent::SettingsComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater)
+    : directoryManager(processor, updater), closeButton(updater) {
     addAndMakeVisible(closeButton);
     addAndMakeVisible(directoryManager);
     directoryManager.refresh();

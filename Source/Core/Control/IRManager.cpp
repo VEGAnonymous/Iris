@@ -29,10 +29,15 @@ void IRManager::loadDirectories() {
 }
 
 void IRManager::collectIRs() {
-    irFiles.clear();
+    irDirectoryFiles.clear();
     for (const auto& dir : irDirectories) {
         if (!dir.active || !dir.irDirectory.isDirectory()) continue;
-        irFiles.addArray(dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats()));
+
+        IRDirectoryFiles directoryFiles;
+        directoryFiles.dir = dir;
+        directoryFiles.files = dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats());
+
+        if (!directoryFiles.files.isEmpty()) irDirectoryFiles.push_back(std::move(directoryFiles));
     }
 }
 
@@ -73,10 +78,12 @@ void IRManager::prepare() {
     for (int i = 0; i < irSlots.size(); ++i) {
         computeEnvelope(irSlots[i]);
         irSlots[i].autoSwap.callback = [&, i]() {
-            loadRandomIR(i);
+            loadRandomIR(i, rngMode);
             irSlots[i].autoSwap.resetCountdown(irRNG);
         };
     }
+
+    collectIRs();
 }
 
 void IRManager::chooseIR(int irIndex) {
@@ -176,19 +183,41 @@ bool IRManager::loadIR(int irIndex, juce::File irFile) {
     return false;
 }
 
-bool IRManager::loadRandomIR(int irIndex) {
-    if (irFiles.isEmpty() || !validateIRIndex(irIndex)) return false;
+bool IRManager::loadRandomIR(int irIndex) { return loadRandomIR(irIndex, rngMode); }
+bool IRManager::loadRandomIR(int irIndex, IRSamplingMode mode) {
+    if (irDirectoryFiles.empty() || !validateIRIndex(irIndex)) return false;
 
-    int idx = irRNG.nextInt(irFiles.size());
-    juce::File randomIR = irFiles[idx];
-    // DBG("Generated random index: " << idx);
-    return loadIR(irIndex, randomIR);
+    switch (mode) {
+        case IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES: {
+            const int directoryIndex = irRNG.nextInt(static_cast<int>(irDirectoryFiles.size()));
+            const auto& dir = irDirectoryFiles[directoryIndex];
+            if (dir.files.isEmpty()) return false;
+
+            const int fileIndex = irRNG.nextInt(dir.files.size());
+            juce::File randomIR = dir.files[fileIndex];
+            return loadIR(irIndex, randomIR);
+        }
+        default:
+        case IRSamplingMode::UNIFORM_ACROSS_ALL_FILES: {
+            int totalFiles = 0;
+            for (const auto& dir : irDirectoryFiles) totalFiles += dir.files.size();
+            if (totalFiles == 0) return false;
+
+            int fileIndex = irRNG.nextInt(totalFiles);
+            for (const auto& dir : irDirectoryFiles) {
+                if (fileIndex < dir.files.size())
+                    return loadIR(irIndex, dir.files[fileIndex]);
+                fileIndex -= dir.files.size();
+            }
+            return false;
+        }
+    }
 }
 
-bool IRManager::loadRandomIRs() {
-    if (irFiles.isEmpty()) return false;
+bool IRManager::loadRandomIRs() { return loadRandomIRs(rngMode); }
+bool IRManager::loadRandomIRs(IRSamplingMode mode) {
     for (int irIndex = 0; irIndex < MAX_IR_COUNT; ++irIndex)
-        if (!loadRandomIR(irIndex)) return false;
+        if (!loadRandomIR(irIndex, mode)) return false;
     return true;
 }
 
@@ -287,6 +316,8 @@ IRChanges IRManager::consumeIRChanges() {
     irChanges = {};
     return changes;
 }
+
+void IRManager::setRandomMode(IRManager::IRSamplingMode nMode) { rngMode = nMode; }
 
 std::atomic<bool>& IRManager::getDirectoryChanged() { return directoryChanged; }
 

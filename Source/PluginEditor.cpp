@@ -327,7 +327,7 @@ void MareverbAudioProcessorEditor::prepare() {
         if (settingsModal) {
             settingsModal.reset();
         } else {
-            settingsModal = std::make_unique<SettingsComponent>(audioProcessor.getIRManager(), animatorUpdater);
+            settingsModal = std::make_unique<SettingsComponent>(audioProcessor, animatorUpdater);
             settingsModal->onCloseRequested = [this]() { juce::MessageManager::callAsync([this]() { settingsModal.reset(); }); };
             settingsModal->setBounds(getLocalBounds().withSizeKeepingCentre(462, 361));
             addAndMakeVisible(*settingsModal);

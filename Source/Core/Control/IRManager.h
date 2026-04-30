@@ -56,6 +56,11 @@ struct IRDirectory {
     bool active = true;
 };
 
+struct IRDirectoryFiles {
+    IRDirectory dir;
+    juce::Array<juce::File> files;
+};
+
 struct IRChanges {
     std::deque<int> irsSet {};
     std::deque<int> irsCleared {};
@@ -63,19 +68,26 @@ struct IRChanges {
 };
 
 class IRManager {
+public:
+    enum class IRSamplingMode {
+        UNIFORM_ACROSS_ALL_FILES,
+        UNIFORM_ACROSS_DIRECTORIES
+    };
+
 private:
     juce::ApplicationProperties* applicationProperties;
 
     std::array<IRSlot, MAX_IR_COUNT> irSlots;
 
     std::vector<IRDirectory> irDirectories;
-    juce::Array<juce::File> irFiles;
+    std::vector<IRDirectoryFiles> irDirectoryFiles;
 
     IRChanges irChanges;
     std::atomic<bool> directoryChanged { false };
 
     juce::AudioFormatManager formatManager;
     juce::Random irRNG;
+    IRSamplingMode rngMode = IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES;
     std::unique_ptr<juce::FileChooser> irFileChooser, irDirectoryChooser;
 
     void saveDirectories();
@@ -100,7 +112,9 @@ public:
 
     bool loadIR(int irIndex, juce::File file);
     bool loadRandomIR(int irIndex);
+    bool loadRandomIR(int irIndex, IRSamplingMode mode);
     bool loadRandomIRs();
+    bool loadRandomIRs(IRSamplingMode mode);
     void clearIR(int irIndex);
     void clearIRs();
 
@@ -120,6 +134,8 @@ public:
 
     const IRSlot& getIRSlot(int index) const;
     const std::vector<IRDirectory> getIRDirectories() const;
+
+    void setRandomMode(IRSamplingMode nMode);
 
     juce::AudioFormatManager* getFormatManager();
 };

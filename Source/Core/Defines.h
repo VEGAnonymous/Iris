@@ -70,7 +70,8 @@ namespace ParamID {
 namespace PropertyID {
     static constexpr auto
         selectedIR = "Selected IR",
-        selectedControlTab = "Selected Control Tab";
+        selectedControlTab = "Selected Control Tab",
+        randomIRMode = "Random IR Mode";
 
     namespace Position {
         static constexpr auto

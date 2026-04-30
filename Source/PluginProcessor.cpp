@@ -98,13 +98,18 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     if (!apvts.state.hasProperty(PropertyID::selectedIR))
         apvts.state.setProperty(PropertyID::selectedIR, 0, nullptr);
 
+    if (!apvts.state.hasProperty(PropertyID::randomIRMode))
+        apvts.state.setProperty(PropertyID::randomIRMode, static_cast<int>(IRManager::IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES), nullptr);
+
     juce::PropertiesFile::Options options;
     options.applicationName = "Mareverb";
     options.filenameSuffix = ".amre";
     options.osxLibrarySubFolder = "Application Support";
     applicationProperties.setStorageParameters(options);
 
-    // Init IRs
+    // Init IR manager
+    irManager.setRandomMode(static_cast<IRManager::IRSamplingMode>(static_cast<int>(
+        apvts.state.getProperty(PropertyID::randomIRMode, static_cast<int>(IRManager::IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES)))));
     irManager.prepare();
 
     // Init pattern states

@@ -3,8 +3,8 @@
 
 /* PUBLIC */
 
-DirectoryManagerComponent::DirectoryManagerComponent(IRManager* manager, juce::AnimatorUpdater& updater) 
-    : irManager(manager), animatorUpdater(updater), addButton(updater), removeButton(updater) {
+DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater)
+    : audioProcessor(processor), animatorUpdater(updater), addButton(updater), removeButton(updater) {
 
     title.setText("IR Directories", juce::NotificationType::dontSendNotification);
     title.setColour(juce::Label::ColourIds::textColourId, Theme::Colors::textLight);
@@ -22,41 +22,56 @@ DirectoryManagerComponent::DirectoryManagerComponent(IRManager* manager, juce::A
     addAndMakeVisible(addButton);
     addAndMakeVisible(removeButton);
 
-    directoryList.setRowHeight(DIRECTORY_ROW_HEIGHT);
-
     addButton.onClick = [this] {
-        this->irManager->chooseIRDirectory();
+        audioProcessor.getIRManager()->chooseIRDirectory();
     };
 
     removeButton.onClick = [this] {
         if (selectedRow >= 1) { // 0 = factory
-            this->irManager->removeIRDirectory(selectedRow);
+            audioProcessor.getIRManager()->removeIRDirectory(selectedRow);
             selectedRow = -1;
             directoryList.deselectAllRows();
         }
     };
 
-    setColour(juce::ScrollBar::ColourIds::thumbColourId, Theme::Colors::highlight);
+    directoryList.setRowHeight(DIRECTORY_ROW_HEIGHT);
+
+    randomModeSelector.control.addItemList(randomModes, 1);
+    randomModeSelector.control.setSelectedId(
+        static_cast<int>(audioProcessor.apvts.state.getProperty(PropertyID::randomIRMode)) + 1, juce::dontSendNotification);
+    randomModeSelector.control.onChange = [this]() {
+        const int randomMode = randomModeSelector.control.getSelectedId() - 1;
+        audioProcessor.apvts.state.setProperty(PropertyID::randomIRMode, randomMode, nullptr);
+        audioProcessor.getIRManager()->setRandomMode(static_cast<IRManager::IRSamplingMode>(randomMode));
+    };
+    addAndMakeVisible(randomModeSelector);
 }
 
 void DirectoryManagerComponent::paint(juce::Graphics& g) {
     g.setColour(Theme::Colors::section);
-    g.fillRoundedRectangle(getLocalBounds()
+    auto bounds = getLocalBounds();
+    auto listBounds = bounds
         .withTrimmedTop(TITLE_ROW_HEIGHT)
         .withTrimmedRight(BUTTON_COLUMN_WIDTH + BUTTON_COLUMN_PADDING)
-        .toFloat(), 12.0f);
+        .withHeight(DIRECTORY_LIST_HEIGHT);
+
+    g.fillRoundedRectangle(listBounds.toFloat(), 12.0f);
 }
 
 void DirectoryManagerComponent::resized() {
     auto bounds = getLocalBounds();
+
     const int titleLabelHeight = 16;
     auto titleBounds = bounds.removeFromTop(titleLabelHeight);
     title.setBounds(titleBounds);
 
     bounds.removeFromTop(TITLE_ROW_HEIGHT - titleLabelHeight);
-    auto buttonBounds = bounds.removeFromRight(BUTTON_COLUMN_WIDTH);
-    const float buttonHeight = 70, buttonMargin = 2.0f;
 
+    auto buttonBounds = bounds
+        .removeFromRight(BUTTON_COLUMN_WIDTH)
+        .withHeight(DIRECTORY_LIST_HEIGHT);
+
+    const float buttonHeight = 70, buttonMargin = 2.0f;
     juce::FlexBox buttonColumn(juce::FlexBox::JustifyContent::center);
     buttonColumn.flexDirection = juce::FlexBox::Direction::column;
     buttonColumn.alignItems = juce::FlexBox::AlignItems::center;
@@ -65,6 +80,7 @@ void DirectoryManagerComponent::resized() {
         .withWidth(BUTTON_COLUMN_WIDTH - buttonMargin)
         .withHeight(buttonHeight)
         .withMargin(buttonMargin));
+
     buttonColumn.items.add(juce::FlexItem(removeButton)
         .withWidth(BUTTON_COLUMN_WIDTH - buttonMargin)
         .withHeight(buttonHeight)
@@ -72,10 +88,22 @@ void DirectoryManagerComponent::resized() {
 
     buttonColumn.performLayout(buttonBounds);
 
-    directoryList.setBounds(bounds.withTrimmedRight(BUTTON_COLUMN_PADDING));
+    auto listBounds = bounds
+        .removeFromTop(DIRECTORY_LIST_HEIGHT)
+        .withTrimmedRight(BUTTON_COLUMN_PADDING);
+
+    directoryList.setBounds(listBounds);
+
+    bounds.removeFromTop(16);
+
+    randomModeSelector.setLabelDimensions(112.0f, 12.0f);
+    randomModeSelector.setControlDimensions(186.0f, 30.0f);
+    randomModeSelector.setControlMargin(juce::FlexItem::Margin(0.0f, 0.0f, 0.0f, 10.0f));
+    randomModeSelector.setLabelPosition(LabelledControl<juce::ComboBox>::LabelPosition::LEFT);
+    randomModeSelector.setBounds(bounds.removeFromTop(CONTROL_COLUMN_HEIGHT));
 }
 
-int DirectoryManagerComponent::getNumRows() { return static_cast<int>(irManager->getIRDirectories().size()); }
+int DirectoryManagerComponent::getNumRows() { return static_cast<int>(audioProcessor.getIRManager()->getIRDirectories().size()); }
 
 void DirectoryManagerComponent::paintListBoxItem(int /*rowNumber*/, juce::Graphics& g, int width, int height, bool rowIsSelected) {
     g.setColour(rowIsSelected ? Theme::Colors::highlight.withAlpha(0.1f) : Theme::Colors::section);
@@ -90,7 +118,7 @@ juce::Component* DirectoryManagerComponent::refreshComponentForRow(int rowNumber
     auto* directoryRow = dynamic_cast<DirectoryRowComponent*>(existingComponentToUpdate);
     if (!directoryRow) directoryRow = new DirectoryRowComponent(animatorUpdater);
 
-    const auto& directories = irManager->getIRDirectories();
+    const auto& directories = audioProcessor.getIRManager()->getIRDirectories();
     if (rowNumber < static_cast<int>(directories.size())) {
         const auto& directory = directories[rowNumber];
 
@@ -101,7 +129,7 @@ juce::Component* DirectoryManagerComponent::refreshComponentForRow(int rowNumber
 
         const int directoryIndex = rowNumber;
         directoryRow->onToggle = [this, directoryIndex](bool nActive) {
-            irManager->setIRDirectoryActive(directoryIndex, nActive);
+            audioProcessor.getIRManager()->setIRDirectoryActive(directoryIndex, nActive);
         };
     }
 
