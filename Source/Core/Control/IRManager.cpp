@@ -28,19 +28,6 @@ void IRManager::loadDirectories() {
     collectIRs();
 }
 
-void IRManager::collectIRs() {
-    irDirectoryFiles.clear();
-    for (const auto& dir : irDirectories) {
-        if (!dir.active || !dir.irDirectory.isDirectory()) continue;
-
-        IRDirectoryFiles directoryFiles;
-        directoryFiles.dir = dir;
-        directoryFiles.files = dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats());
-
-        if (!directoryFiles.files.isEmpty()) irDirectoryFiles.push_back(std::move(directoryFiles));
-    }
-}
-
 void IRManager::computeEnvelope(IRSlot& slot) {
     if (slot.buffer.getNumSamples() == 0) return;
     slot.window.envelope.length = juce::jlimit(1,
@@ -84,6 +71,19 @@ void IRManager::prepare() {
     }
 
     collectIRs();
+}
+
+void IRManager::collectIRs() {
+    irDirectoryFiles.clear();
+    for (const auto& dir : irDirectories) {
+        if (!dir.active || !dir.irDirectory.isDirectory()) continue;
+
+        IRDirectoryFiles directoryFiles;
+        directoryFiles.dir = dir;
+        directoryFiles.files = dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats());
+
+        if (!directoryFiles.files.isEmpty()) irDirectoryFiles.push_back(std::move(directoryFiles));
+    }
 }
 
 void IRManager::chooseIR(int irIndex) {

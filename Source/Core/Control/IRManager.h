@@ -93,8 +93,6 @@ private:
     void saveDirectories();
     void loadDirectories();
 
-    void collectIRs();
-
     void IRManager::computeEnvelope(IRSlot& slot);
 
 public:
@@ -102,6 +100,8 @@ public:
     ~IRManager() = default;
 
     void prepare();
+
+    void collectIRs();
 
     void chooseIR(int irIndex);
     void chooseIRDirectory();

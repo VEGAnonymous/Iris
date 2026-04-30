@@ -4,7 +4,7 @@
 /* PUBLIC */
 
 DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater)
-    : audioProcessor(processor), animatorUpdater(updater), addButton(updater), removeButton(updater) {
+    : audioProcessor(processor), animatorUpdater(updater), addButton(updater), removeButton(updater), refreshButton(updater) {
 
     title.setText("IR Directories", juce::NotificationType::dontSendNotification);
     title.setColour(juce::Label::ColourIds::textColourId, Theme::Colors::textLight);
@@ -22,17 +22,26 @@ DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& pro
     addAndMakeVisible(addButton);
     addAndMakeVisible(removeButton);
 
-    addButton.onClick = [this] {
+    addButton.onClick = [&]() {
         audioProcessor.getIRManager()->chooseIRDirectory();
     };
 
-    removeButton.onClick = [this] {
+    removeButton.onClick = [&]() {
         if (selectedRow >= 1) { // 0 = factory
             audioProcessor.getIRManager()->removeIRDirectory(selectedRow);
             selectedRow = -1;
             directoryList.deselectAllRows();
         }
     };
+
+    const juce::Image refreshIcon = Theme::Icons::getRefreshIcon();
+    const juce::Colour overlayColor = Theme::Colors::highlight;
+    refreshButton.setImages(true, true, true,
+        refreshIcon, 1.0f, overlayColor,
+        refreshIcon, 1.0f, overlayColor,
+        refreshIcon, 1.0f, overlayColor);
+    refreshButton.onClick = [&]() { audioProcessor.getIRManager()->collectIRs(); };
+    addAndMakeVisible(refreshButton);
 
     directoryList.setRowHeight(DIRECTORY_ROW_HEIGHT);
 
@@ -84,6 +93,11 @@ void DirectoryManagerComponent::resized() {
     buttonColumn.items.add(juce::FlexItem(removeButton)
         .withWidth(BUTTON_COLUMN_WIDTH - buttonMargin)
         .withHeight(buttonHeight)
+        .withMargin(buttonMargin));
+
+    buttonColumn.items.add(juce::FlexItem(refreshButton)
+        .withWidth(BUTTON_COLUMN_WIDTH - buttonMargin - 3.0f)
+        .withHeight(buttonHeight - 2.0f)
         .withMargin(buttonMargin));
 
     buttonColumn.performLayout(buttonBounds);

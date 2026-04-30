@@ -41,8 +41,14 @@ namespace Theme {
     }
 
     namespace Icons {
+        inline const juce::Image getLogo() {
+            return juce::ImageCache::getFromMemory(MareverbIcons::LYRAnonymous_png, MareverbIcons::LYRAnonymous_pngSize);
+        }
         inline const juce::Image getBurgerMenuIcon() {
             return juce::ImageCache::getFromMemory(MareverbIcons::Menu_png, MareverbIcons::Menu_pngSize);
+        }
+        inline const juce::Image getRefreshIcon() {
+            return juce::ImageCache::getFromMemory(MareverbIcons::Refresh_png, MareverbIcons::Refresh_pngSize);
         }
     }
 }

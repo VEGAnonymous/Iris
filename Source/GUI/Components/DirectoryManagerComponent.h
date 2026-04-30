@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Control/IRManager.h"
+#include "GUI/Components/Controls/HoverableImageButton.h"
 #include "GUI/Components/Controls/HoverableToggleButton.h"
 #include "GUI/Components/Controls/HoverableTextButton.h"
 #include "GUI/Components/Controls/LabelledControl.h"
@@ -26,6 +27,7 @@ private:
     juce::ListBox directoryList { {}, this };
 
     HoverableTextButton addButton, removeButton;
+    HoverableImageButton refreshButton;
 
     LabelledControl<juce::ComboBox> randomModeSelector { "Random Sampling Method" };
     const juce::StringArray randomModes { "Uniform across all files", "Uniform across directories" };
