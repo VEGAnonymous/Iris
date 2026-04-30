@@ -48,20 +48,39 @@ void ControlThread::updateWeights() {
     WeightingMode weightingMode = static_cast<WeightingMode>(apvts.getRawParameterValue(ParamID::weightingMode)->load());
     const float& strength = apvts.getRawParameterValue(ParamID::strength)->load();
 
-    float minDistance = juce::jmap(strength, 0.05f, 0.5f), maxWeight = 1.0f / (minDistance * minDistance), trim = 0.5f; // Absolute
-    float distanceFactor = juce::jmap(strength * strength, 0.5f, 3.5f); // Relative
+    const float minDistance = juce::jmap(strength, 0.05f, 0.5f), maxWeight = 1.0f / (minDistance * minDistance), trim = 0.5f; // Absolute
+    const float distanceFactor = juce::jmap(strength * strength, 0.5f, 3.5f), contrast = juce::jmap(strength, 0.8f, 2.5f); // Relative
 
     // Compute inverse-distance weights
     auto relatives = polarMap.getRelatives();
     if (weightingMode == WeightingMode::WEIGHTING_RELATIVE) {
-        for (int ir = 0; ir < MAX_IR_COUNT; ++ir) distanceWeights[ir] = 1.0f / powf(relatives[ir].r + EPSILON, distanceFactor);
-        float sum = std::accumulate(distanceWeights.begin(), distanceWeights.end(), 0.0f);
-        if (sum > 0.0f) for (int ir = 0; ir < MAX_IR_COUNT; ++ir) distanceWeights[ir] /= sum; // Normalize weights sum to 1
-    }
-    else { // WeightingMode::WEIGHTING_ABSOLUTE
-        for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
-            float d = std::max(relatives[ir].r, minDistance);
-            distanceWeights[ir] = ((1.0f / (d * d)) / maxWeight) * trim;
+        float sum = 0.0f;
+        for (int i = 0; i < MAX_IR_COUNT; ++i) {
+            const auto& slot = irManager.getIRSlot(i);
+            if (!slot.active || !slot.occupied) { // Inactive IRs don't contribute
+                distanceWeights[i] = 0.0f;
+                continue;
+            }
+
+            float weight = 1.0f / powf(relatives[i].r + EPSILON, distanceFactor);
+            weight = powf(weight, contrast);
+            distanceWeights[i] = weight;
+            sum += weight;
+        }
+
+        // Normalize active weights sum to 1
+        if (sum > 0.0f) {
+            for (int i = 0; i < MAX_IR_COUNT; ++i) {
+                const auto& slot = irManager.getIRSlot(i);
+                if (slot.active || slot.occupied) {
+                    distanceWeights[i] /= sum;
+                }
+            }
+        }
+    } else { // WeightingMode::WEIGHTING_ABSOLUTE
+        for (int i = 0; i < MAX_IR_COUNT; ++i) {
+            float d = std::max(relatives[i].r, minDistance);
+            distanceWeights[i] = ((1.0f / (d * d)) / maxWeight) * trim;
         }
     }
 
@@ -139,6 +158,7 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
         guiState.irChanged.store(true, std::memory_order_release);
         guiState.updatePosition.store(true, std::memory_order_release);
         guiState.updateField.store(true, std::memory_order_release);
+        guiState.updateWeights.store(true, std::memory_order_release);
 
         irBank = nBank;
     }

@@ -168,12 +168,6 @@ void PolarMapPanel::paint(juce::Graphics& g) {
 
     g.setOpacity(1.0f);
 
-    // Position indicator
-    positionRadius = basePositionRadius + juce::jmap(positionInteractionState.getValue(), 0.0f, 2.0f);
-    positionBounds = toBounds(currentPosition, positionRadius);
-    g.setColour(juce::Colours::lightcyan);
-    g.fillEllipse(positionBounds);
-
     // Field indicators
     for (int i = 0; i < fieldCoordinates.size(); ++i) {
         coordinateRadius = baseCoordinateRadius + juce::jmap(fieldInteractionStates[i].getValue(), 0.0f, 2.0f);
@@ -181,9 +175,15 @@ void PolarMapPanel::paint(juce::Graphics& g) {
         const auto& coordinate = fieldCoordinates[i];
         const float indicatorAlpha = fieldActiveStates[i].getValue();
         const float selectionAlpha = fieldSelectionStates[i].getValue();
-        Paint::irIndicator(g, map(polarToCartesian(coordinate)), coordinateRadius, i, false, false, 
+        Paint::irIndicator(g, map(polarToCartesian(coordinate)), coordinateRadius, i, false, false,
             (i == selectedIR), indicatorAlpha, selectionAlpha);
     }
+
+    // Position indicator
+    positionRadius = basePositionRadius + juce::jmap(positionInteractionState.getValue(), 0.0f, 2.0f);
+    positionBounds = toBounds(currentPosition, positionRadius);
+    g.setColour(juce::Colours::lightcyan);
+    g.fillEllipse(positionBounds);
 }
 
 void PolarMapPanel::mouseMove(const juce::MouseEvent& e) {
