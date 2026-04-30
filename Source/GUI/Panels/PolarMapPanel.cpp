@@ -193,6 +193,23 @@ void PolarMapPanel::mouseUp(const juce::MouseEvent&) {
     fieldIndex = -1;
 }
 
+void PolarMapPanel::mouseDoubleClick(const juce::MouseEvent& e) {
+    auto p = e.position;
+    if (hitPosition(p)) {
+        auto* modA = audioProcessor.apvts.getParameter(ParamID::positionModA);
+        auto* modB = audioProcessor.apvts.getParameter(ParamID::positionModB);
+        if (modA) modA->setValueNotifyingHost(0.0f);
+        if (modB) modB->setValueNotifyingHost(0.0f);
+    }
+
+    if (hitField(p) >= 0) {
+        auto* modA = audioProcessor.apvts.getParameter(ParamID::fieldModA);
+        auto* modB = audioProcessor.apvts.getParameter(ParamID::fieldModB);
+        if (modA) modA->setValueNotifyingHost(modA->convertTo0to1(0.0f));
+        if (modB) modB->setValueNotifyingHost(modB->convertTo0to1(0.0f));
+    }
+}
+
 std::atomic<bool>& PolarMapPanel::getIRSwitched() { return switchedIR; }
 
 void PolarMapPanel::notifyPathChanged() { pathChanged = true; repaint(); }
