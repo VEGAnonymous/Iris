@@ -197,5 +197,9 @@ juce::String EnvelopeControl::getValueTooltip() {
             break;
         }
     }
-    return textFromValue(static_cast<double>(value));
+
+    juce::String tooltipText = (envelope.type == EnvelopeType::PERC) 
+        ? Format::dimensionless(juce::jmap(value, 1.26f, 40.0f), 4)
+        : textFromValue(static_cast<double>(value));
+    return tooltipText;
 }

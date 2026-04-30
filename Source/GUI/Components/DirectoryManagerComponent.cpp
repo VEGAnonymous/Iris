@@ -94,7 +94,7 @@ void DirectoryManagerComponent::resized() {
 
     directoryList.setBounds(listBounds);
 
-    bounds.removeFromTop(16);
+    bounds.removeFromTop(20);
 
     randomModeSelector.setLabelDimensions(112.0f, 12.0f);
     randomModeSelector.setControlDimensions(186.0f, 30.0f);
