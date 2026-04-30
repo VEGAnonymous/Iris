@@ -25,4 +25,6 @@ struct GUIState {
 
     std::atomic<bool> irChanged { false };
     std::atomic<bool> selectedIRChanged { false };
+
+    std::atomic<bool> updateWeights { false }; // Editor forced update
 };

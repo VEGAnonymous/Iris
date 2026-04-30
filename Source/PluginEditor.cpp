@@ -19,7 +19,11 @@ void MareverbAudioProcessorEditor::parameterChanged(const juce::String& paramete
         audioProcessor.guiState.updatePosition.store(true, std::memory_order_release);
         if (parameterID == ParamID::positionPattern)
             audioProcessor.guiState.syncingPosition.store(true, std::memory_order_release);
-    } 
+    }
+
+    if (parameterID == ParamID::weightingMode || parameterID == ParamID::strength || parameterID == ParamID::spread) {
+        audioProcessor.guiState.updateWeights.store(true, std::memory_order_release);
+    }
     
     if (parameterID == ParamID::fieldPattern || parameterID == ParamID::fieldModA || parameterID == ParamID::fieldModB) {
         audioProcessor.guiState.updateField.store(true, std::memory_order_release);
@@ -315,15 +319,7 @@ void MareverbAudioProcessorEditor::prepare() {
         audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
     }
 
-    // Weighting mode toggle switch
-    // TODO: Change from TextButton to ToggleSwitch-esque component
-    weightingModeControl.control.setClickingTogglesState(true);
-    auto updateWeightingModeText = [this] {
-        weightingModeControl.control.setButtonText(weightingModes[weightingModeControl.control.getToggleState()]);
-    };
-    updateWeightingModeText();
-    weightingModeControl.control.onStateChange = updateWeightingModeText;
-
+    // Modals
     topBarPanel.onSettingsClicked = [this]() {
         if (settingsModal) {
             settingsModal.reset();
@@ -376,7 +372,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor(MareverbAudioProcesso
     topBarPanel(audioProcessor, animatorUpdater), 
     irSelectorPanel(audioProcessor, animatorUpdater), 
     selectedIRPanel(audioProcessor, animatorUpdater, valueTooltip, *this),
-    interactionControlsPanel(
+    interactionControlsPanel(audioProcessor,
         InteractionControlsPanel::InteractionRow
         { &weightingModeControl, { &strengthControl, &spreadControl} }
     ),

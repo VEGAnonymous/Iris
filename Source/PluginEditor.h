@@ -90,17 +90,15 @@ private:
         fieldModAControlAttachment, 
         fieldModBControlAttachment;
 
-    // Buttons
-    // TODO: Replace with toggle switch
-    LabelledControl<HoverableTextButton> weightingModeControl { 
-        getParameterName(audioProcessor.apvts, ParamID::weightingMode), animatorUpdater };
-    juce::AudioProcessorValueTreeState::ButtonAttachment weightingModeControlAttachment;
-
     // ComboBoxes
     LabelledControl<juce::ComboBox> 
+        weightingModeControl   { getParameterName(audioProcessor.apvts, ParamID::weightingMode) },
         positionPatternControl { getParameterName(audioProcessor.apvts, ParamID::positionPattern) },
         fieldPatternControl    { getParameterName(audioProcessor.apvts, ParamID::fieldPattern) };
-    juce::AudioProcessorValueTreeState::ComboBoxAttachment positionPatternControlAttachment, fieldPatternControlAttachment;
+    juce::AudioProcessorValueTreeState::ComboBoxAttachment 
+        weightingModeControlAttachment, 
+        positionPatternControlAttachment, 
+        fieldPatternControlAttachment;
 
     // Panels
     PolarMapPanel polarMapPanel;

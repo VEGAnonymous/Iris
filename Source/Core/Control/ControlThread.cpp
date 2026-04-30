@@ -203,7 +203,9 @@ std::shared_ptr<ConvolutionState> ControlThread::runControlCycle(float dt) {
     }
 
     // Weights
-    if (motionController.hasPositionUpdated() || motionController.hasFieldUpdated()) {
+    if (motionController.hasPositionUpdated() || motionController.hasFieldUpdated() 
+        || guiState.updateWeights.exchange(false, std::memory_order_acquire)) {
+
         polarMap.computeRelatives();
         updateWeights();
         juce::SpinLock::ScopedLockType lock(flagLock);

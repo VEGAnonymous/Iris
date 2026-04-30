@@ -4,14 +4,22 @@
 /* PRIVATE */
 
 void InteractionControlsPanel::prepare() {
-    addAndMakeVisible(interactionControls.weightingControl);
+
     for (auto* rotary : interactionControls.rotaries)
         addAndMakeVisible(rotary);
+
+    auto* weightingControl = interactionControls.weightingControl;
+    weightingControl->control.addItemList(weightingModes, 1);
+    weightingControl->control.setSelectedId(
+        static_cast<int>(audioProcessor.apvts.getRawParameterValue(ParamID::weightingMode)->load()) + 1,
+        juce::dontSendNotification);
+    addAndMakeVisible(weightingControl);
 }
 
 /* PUBLIC */
 
-InteractionControlsPanel::InteractionControlsPanel(InteractionRow controls) : interactionControls(controls) {
+InteractionControlsPanel::InteractionControlsPanel(MareverbAudioProcessor& processor, InteractionRow controls) 
+    : audioProcessor(processor), interactionControls(controls) {
     prepare();
 }
 
@@ -22,23 +30,24 @@ void InteractionControlsPanel::paint(juce::Graphics& g) {
 
 void InteractionControlsPanel::resized() {
     const Bounds bounds = getLocalBounds();
+
     juce::FlexBox interactionControlRow(juce::FlexBox::JustifyContent::center);
     interactionControlRow.alignItems = juce::FlexBox::AlignItems::center;
 
-    const auto rowItemMargin = juce::FlexItem::Margin(10.0f, 30.0f, 10.0f, 30.0f);
-    const float labelHeight = 12.0f;
+    const float comboBoxWidth = 96.0f, comboBoxHeight = 30.0f;
     const float rotaryWidth = 70.0f, rotaryHeight = 80.0f;
+    const float labelHeight = 12.0f;
+    const auto rowItemMargin = juce::FlexItem::Margin(10.0f, 30.0f, 10.0f, 30.0f);
 
     // Weighting mode
     auto* weightingControl = interactionControls.weightingControl;
-    // TEMP: This is currently a LabelledControl<HoverableTextButton> but will later be a toggle switch-like component
-    weightingControl->setLabelDimensions(68.0f, 12.0f);
-    weightingControl->setControlDimensions(70.0f, 40.0f);
+    weightingControl->setLabelDimensions(comboBoxWidth - 16.0f, labelHeight);
+    weightingControl->setControlDimensions(comboBoxWidth, comboBoxHeight);
     weightingControl->setControlMargin(juce::FlexItem::Margin(0.0f, 0.0f, 15.0f, 0.0f));
     weightingControl->flex.justifyContent = juce::FlexBox::JustifyContent::flexEnd;
     interactionControlRow.items.add(juce::FlexItem(*weightingControl)
         .withFlex(0.0f)
-        .withWidth(68.0f)
+        .withWidth(comboBoxWidth)
         .withHeight(80.0f)
         .withMargin(rowItemMargin));
 
