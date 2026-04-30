@@ -50,18 +50,6 @@ void IRManager::prepare() {
     irDirectories.clear();
     loadDirectories();
 
-    if (irDirectories.empty()) {
-        // HACK: Should store factory IRs in common directory
-        juce::File srcDirectory = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
-        while (srcDirectory.getFileName() != "Debug" && srcDirectory.getParentDirectory() != srcDirectory)
-            srcDirectory = srcDirectory.getParentDirectory();
-        irDirectories.push_back({ srcDirectory.getChildFile("IR Samples"), true });
-    }
-
-    // bool loadedIRs = loadRandomIRs();
-    // jassert(loadedIRs);
-    // clearIRs();
-
     for (int i = 0; i < irSlots.size(); ++i) {
         computeEnvelope(irSlots[i]);
         irSlots[i].autoSwap.callback = [&, i]() {
@@ -135,7 +123,7 @@ void IRManager::addIRDirectory(juce::File dir) {
     }
 }
 void IRManager::removeIRDirectory(int index) {
-    if (index >= 1 && index < static_cast<int>(irDirectories.size())) { // index 0 = factory
+    if (index >= 0 && index < static_cast<int>(irDirectories.size())) {
         irDirectories.erase(irDirectories.begin() + index);
         collectIRs();
         saveDirectories();

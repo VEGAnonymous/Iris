@@ -27,7 +27,7 @@ DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& pro
     };
 
     removeButton.onClick = [&]() {
-        if (selectedRow >= 1) { // 0 = factory
+        if (selectedRow >= 0) {
             audioProcessor.getIRManager()->removeIRDirectory(selectedRow);
             selectedRow = -1;
             directoryList.deselectAllRows();
@@ -138,7 +138,6 @@ juce::Component* DirectoryManagerComponent::refreshComponentForRow(int rowNumber
 
         const int maxPathLength = 62;
         juce::String path = formatPath(directory.irDirectory.getFullPathName(), maxPathLength, Ellipsis::FRONT);
-        if (rowNumber == 0) path = "Factory IRs";
         directoryRow->update(path, directory.active);
 
         const int directoryIndex = rowNumber;
