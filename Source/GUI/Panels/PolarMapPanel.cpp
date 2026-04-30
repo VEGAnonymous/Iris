@@ -4,8 +4,10 @@
 
 /* PRIVATE */
 
+// Utilities
+
 CartesianCoordinate PolarMapPanel::map(CartesianCoordinate p) const { // [-1, 1] -> pixel coordinates
-    auto b = getLocalBounds().toFloat();
+    auto b = getLocalBounds().reduced(MAP_INSET).toFloat();
     return {
         juce::jmap(p.x, -1.0f, 1.0f, b.getX(), b.getRight()),
         juce::jmap(p.y, -1.0f, 1.0f, b.getY(), b.getBottom())
@@ -13,17 +15,75 @@ CartesianCoordinate PolarMapPanel::map(CartesianCoordinate p) const { // [-1, 1]
 }
 
 CartesianCoordinate PolarMapPanel::inverseMap(CartesianCoordinate p) const {
-    auto b = getLocalBounds().toFloat();
+    auto b = getLocalBounds().reduced(MAP_INSET).toFloat();
     return {
         juce::jmap(p.x, b.getX(), b.getRight(),  -1.0f, 1.0f),
         juce::jmap(p.y, b.getY(), b.getBottom(), -1.0f, 1.0f)
     };
 }
 
-juce::Rectangle<float> PolarMapPanel::toBounds(PolarCoordinate p, float radius) const { // Coordinate -> fillEllipse() bounds
+BoundsF PolarMapPanel::toBounds(PolarCoordinate p, float radius) const { // Coordinate -> fillEllipse() bounds
     CartesianCoordinate c = map(polarToCartesian(p));
     return { c.x - radius, c.y - radius, radius * 2.0f, radius * 2.0f };
 }
+
+// Hovering
+
+bool PolarMapPanel::hitPosition(juce::Point<float> p) const {
+    auto center = toBounds(currentPosition, positionRadius).getCentre();
+    return p.getDistanceFrom(center) <= (positionRadius + HIT_RADIUS);
+}
+
+int PolarMapPanel::hitField(juce::Point<float> p) const {
+    for (int ir = 0; ir < fieldCoordinates.size(); ++ir) {
+        auto center = toBounds(fieldCoordinates[ir], coordinateRadius).getCentre();
+        if (p.getDistanceFrom(center) <= (coordinateRadius + HIT_RADIUS)) return ir;
+    }
+    return -1;
+}
+
+PolarMapPanel::HoverState PolarMapPanel::getHoverState(juce::Point<float> p) const {
+    HoverState hoverState;
+
+    const auto positionPattern = static_cast<PositionPattern>(
+        audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
+
+    if (positionPattern == PositionPattern::MANUAL && hitPosition(p)) {
+        hoverState.hoveringPosition = true;
+        return hoverState; // Prioritize position
+    }
+
+    hoverState.fieldIndex = hitField(p);
+    return hoverState;
+}
+
+void PolarMapPanel::applyHoverState(const HoverState& hoverState) {
+    positionInteractionState.setAlpha(0.0f);
+    for (auto& indicatorInteractionState : fieldInteractionStates) indicatorInteractionState.setAlpha(0.0f);
+
+    if (hoverState.hoveringPosition) {
+        positionInteractionState.setAlpha(1.0f);
+        setMouseCursor(juce::MouseCursor::CrosshairCursor);
+        return;
+    }
+
+    if (hoverState.fieldIndex >= 0) {
+        fieldInteractionStates[hoverState.fieldIndex].setAlpha(1.0f);
+
+        const auto fieldPattern = static_cast<FieldPattern>(
+            audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load());
+
+        setMouseCursor((fieldPattern == FieldPattern::MANUAL) 
+            ? juce::MouseCursor::CrosshairCursor 
+            : juce::MouseCursor::NormalCursor);
+
+        return;
+    }
+
+    setMouseCursor(juce::MouseCursor::NormalCursor);
+}
+
+// Parametric path
 
 void PolarMapPanel::repaintPath() {
     parametricPath.clear();
@@ -66,35 +126,37 @@ void PolarMapPanel::repaintPath() {
     pathChanged = false;
 }
 
-bool PolarMapPanel::hitPosition(juce::Point<float> p) const {
-    auto center = toBounds(currentPosition, positionRadius).getCentre();
-    return p.getDistanceFrom(center) <= positionRadius + hitRadius;
-}
-
-int PolarMapPanel::hitField(juce::Point<float> p) const {
-    for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
-        auto center = toBounds(fieldCoordinates[ir], coordinateRadius).getCentre();
-        if (p.getDistanceFrom(center) <= coordinateRadius + hitRadius) return ir;
-    }
-    return -1;
-}
-
 /* PUBLIC */
 
-PolarMapPanel::PolarMapPanel(MareverbAudioProcessor& p) : audioProcessor(p) { 
+PolarMapPanel::PolarMapPanel(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater) 
+    : audioProcessor(processor), animatorUpdater(updater), 
+    positionInteractionState(*this, updater) {
+
+    fieldActiveStates.reserve(MAX_IR_COUNT);
+    fieldInteractionStates.reserve(MAX_IR_COUNT);
+    fieldSelectionStates.reserve(MAX_IR_COUNT);
+
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        fieldActiveStates.emplace_back(*this, updater, ACTIVE_ANIMATION_TIME_MS);
+        fieldInteractionStates.emplace_back(*this, updater, INDICATOR_HOVER_ANIMATION_TIME_MS);
+        fieldSelectionStates.emplace_back(*this, updater, SELECTION_ANIMATION_TIME_MS);
+
+        const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
+        fieldActiveStates[i].setAlpha(getIRAlpha(slot.occupied, slot.active), true);
+    }
+
     setMouseCursor(juce::MouseCursor::NormalCursor);
     setBufferedToImage(true); 
 }
 
 void PolarMapPanel::paint(juce::Graphics& g) {
-    auto bounds = getLocalBounds().toFloat();
+    auto bounds = getLocalBounds().reduced(MAP_INSET).toFloat();
 
     // Background + border
     g.fillAll(juce::Colours::black);
-    g.setColour(juce::Colours::floralwhite);
-    // g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
-    g.setOpacity(0.5f);
-    g.drawEllipse(bounds, 2.0f);
+    g.setColour(Theme::Colors::textLight);
+    g.setOpacity(0.621f);
+    g.drawEllipse(bounds, 2.61f);
 
     // Parametric path
     if (pathChanged) repaintPath();
@@ -107,57 +169,49 @@ void PolarMapPanel::paint(juce::Graphics& g) {
     g.setOpacity(1.0f);
 
     // Position indicator
+    positionRadius = basePositionRadius + juce::jmap(positionInteractionState.getAlpha(), 0.0f, 2.0f);
     positionBounds = toBounds(currentPosition, positionRadius);
     g.setColour(juce::Colours::lightcyan);
     g.fillEllipse(positionBounds);
 
     // Field indicators
-    auto* irManager = audioProcessor.getIRManager();
     for (int i = 0; i < fieldCoordinates.size(); ++i) {
+        coordinateRadius = baseCoordinateRadius + juce::jmap(fieldInteractionStates[i].getAlpha(), 0.0f, 2.0f);
+        const int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         const auto& coordinate = fieldCoordinates[i];
-        Paint::irIndicator(g, map(polarToCartesian(coordinate)), coordinateRadius, i, 
-            irManager->getIRSlot(i).occupied, irManager->getIRSlot(i).active);
+        const float indicatorAlpha = fieldActiveStates[i].getAlpha();
+        const float selectionAlpha = fieldSelectionStates[i].getAlpha();
+        Paint::irIndicator(g, map(polarToCartesian(coordinate)), coordinateRadius, i, false, false, 
+            (i == selectedIR), indicatorAlpha, selectionAlpha);
     }
 }
 
 void PolarMapPanel::mouseMove(const juce::MouseEvent& e) {
-    auto p = e.position;
-    auto positionPattern = static_cast<PositionPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
-    if (positionPattern == PositionPattern::MANUAL && hitPosition(p)) {
-        setMouseCursor(juce::MouseCursor::CrosshairCursor);
-        return;
-    }
-
-    fieldIndex = hitField(p);
-    if (fieldIndex >= 0) {
-        auto fieldPattern = static_cast<FieldPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load());
-        if (fieldPattern == FieldPattern::MANUAL) {
-            setMouseCursor(juce::MouseCursor::CrosshairCursor);
-            return;
-        }
-    }
-
-    setMouseCursor(juce::MouseCursor::NormalCursor);
+    applyHoverState(getHoverState(e.position));
 }
 
 void PolarMapPanel::mouseDown(const juce::MouseEvent& e) {
-    auto p = e.position;
-    auto positionPattern = static_cast<PositionPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
-    if (positionPattern == PositionPattern::MANUAL && hitPosition(p)) {
+    auto hoverState = getHoverState(e.position);
+
+    if (hoverState.hoveringPosition) {
+        positionInteractionState.setAlpha(0.621f);
         dragTarget = DragTarget::POSITION;
         return;
     }
 
-    fieldIndex = hitField(p);
-    if (fieldIndex >= 0) {
-        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        if (fieldIndex != selectedIR) {
-            audioProcessor.apvts.state.setProperty(PropertyID::selectedIR, fieldIndex, nullptr);
+    if (hoverState.fieldIndex >= 0) {
+        fieldInteractionStates[hoverState.fieldIndex].setAlpha(0.621f);
+
+        const int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        if (hoverState.fieldIndex != selectedIR) {
+            audioProcessor.apvts.state.setProperty(PropertyID::selectedIR, hoverState.fieldIndex, nullptr);
             switchedIR.store(true, std::memory_order_release);
             audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
         }
 
-        auto fieldPattern = static_cast<FieldPattern>(audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load());
+        const auto fieldPattern = static_cast<FieldPattern>(
+            audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load());
+
         if (fieldPattern == FieldPattern::MANUAL) {
             dragTarget = DragTarget::FIELD;
             return;
@@ -188,49 +242,76 @@ void PolarMapPanel::mouseDrag(const juce::MouseEvent& e) {
     }
 }
 
-void PolarMapPanel::mouseUp(const juce::MouseEvent&) {
+void PolarMapPanel::mouseUp(const juce::MouseEvent& e) {
     dragTarget = DragTarget::NONE;
-    fieldIndex = -1;
+    applyHoverState(getHoverState(e.position));
 }
 
 void PolarMapPanel::mouseDoubleClick(const juce::MouseEvent& e) {
-    auto p = e.position;
-    if (hitPosition(p)) {
+    const auto& p = e.position;
+
+    const auto positionPattern = static_cast<PositionPattern>(
+        audioProcessor.apvts.getRawParameterValue(ParamID::positionPattern)->load());
+
+    if (positionPattern == PositionPattern::MANUAL && hitPosition(p)) {
         auto* modA = audioProcessor.apvts.getParameter(ParamID::positionModA);
         auto* modB = audioProcessor.apvts.getParameter(ParamID::positionModB);
         if (modA) modA->setValueNotifyingHost(0.0f);
         if (modB) modB->setValueNotifyingHost(0.0f);
+
+        positionInteractionState.setAlpha(0.0f);
     }
 
-    if (hitField(p) >= 0) {
+    const auto fieldPattern = static_cast<FieldPattern>(
+        audioProcessor.apvts.getRawParameterValue(ParamID::fieldPattern)->load());
+
+    const int hitFieldIndex = hitField(p);
+    if (fieldPattern == FieldPattern::MANUAL && hitFieldIndex >= 0) {
         auto* modA = audioProcessor.apvts.getParameter(ParamID::fieldModA);
         auto* modB = audioProcessor.apvts.getParameter(ParamID::fieldModB);
         if (modA) modA->setValueNotifyingHost(modA->convertTo0to1(0.0f));
         if (modB) modB->setValueNotifyingHost(modB->convertTo0to1(0.0f));
+
+        fieldInteractionStates[hitFieldIndex].setAlpha(0.0f);
     }
 }
 
-std::atomic<bool>& PolarMapPanel::getIRSwitched() { return switchedIR; }
+// Updates
 
-void PolarMapPanel::notifyPathChanged() { pathChanged = true; repaint(); }
+void PolarMapPanel::notifyPathChanged() { 
+    pathChanged = true; 
+    repaint(); 
+}
 
 void PolarMapPanel::notifyPositionChanged(PolarCoordinate nPosition) {
     currentPosition = nPosition;
-    repaint(positionBounds.toNearestInt().expanded(1)); // Clear old bounds
-    repaint(toBounds(nPosition, positionRadius).toNearestInt().expanded(1)); // Repaint at new bounds
+    repaint(positionBounds.toNearestInt().expanded(10)); // Clear old bounds
+    repaint(toBounds(nPosition, positionRadius).toNearestInt().expanded(10)); // Repaint at new bounds
 }
 
 void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates) {
     // Clear old bounds
     for (const auto& coord : fieldCoordinates) {
         auto oBounds = toBounds(coord, coordinateRadius);
-        repaint(oBounds.toNearestInt().expanded(1));
+        repaint(oBounds.toNearestInt().expanded(10));
     }
+
+    // Update animator targets
+    const int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
+        fieldActiveStates[i].setAlpha(getIRAlpha(slot.occupied, slot.active));
+        fieldSelectionStates[i].setAlpha((i == selectedIR) ? 1.0f : 0.0f);
+    }
+
+    if (dragTarget != DragTarget::FIELD) applyHoverState(getHoverState(getMouseXYRelative().toFloat()));
 
     // Repaint at new bounds
     fieldCoordinates = std::move(nCoordinates);
     for (const auto& coord : fieldCoordinates) {
         auto nBounds = toBounds(coord, coordinateRadius);
-        repaint(nBounds.toNearestInt().expanded(1));
+        repaint(nBounds.toNearestInt().expanded(10));
     }
 }
+
+std::atomic<bool>& PolarMapPanel::getIRSwitched() { return switchedIR; }

@@ -105,6 +105,7 @@ void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
     }
 
     selectedIRPanel.updateIRSlot(selectedIR, animate);
+    audioProcessor.guiState.updateField.store(true, std::memory_order_release);
 };
 
 void MareverbAudioProcessorEditor::syncPosition() {
@@ -362,7 +363,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor(MareverbAudioProcesso
     fieldModBControlAttachment(audioProcessor.apvts, ParamID::fieldModB, fieldModBControl.control),
 
     // Panels
-    polarMapPanel(audioProcessor),
+    polarMapPanel(audioProcessor, animatorUpdater),
     positionFieldControlsPanel(audioProcessor, animatorUpdater,
         std::array<PositionFieldControlsPanel::ControlTab, 2> {
             PositionFieldControlsPanel::ControlTab 

@@ -3,18 +3,52 @@
 #include "Core/Defines.h"
 #include "Core/Utilities.h"
 #include "Core/Control/MotionController.h"
+#include "GUI/API/AnimatedAlpha.h"
 
 #include <JuceHeader.h>
+#include <array>
 
 class MareverbAudioProcessor;
 
 class PolarMapPanel : public juce::Component {
 private:
-    MareverbAudioProcessor& audioProcessor;
+    static constexpr auto MAP_INSET = 8;
+    static constexpr auto HIT_RADIUS = 6.0f;
 
+    MareverbAudioProcessor& audioProcessor;
+    juce::AnimatorUpdater& animatorUpdater;
+
+    // Utilities
     CartesianCoordinate map(CartesianCoordinate p) const;
     CartesianCoordinate inverseMap(CartesianCoordinate p) const;
     BoundsF toBounds(PolarCoordinate p, float radius) const;
+
+    // Animation
+    std::vector<AnimatedAlpha> fieldActiveStates;
+
+    AnimatedAlpha positionInteractionState;
+    std::vector<AnimatedAlpha> fieldInteractionStates;
+
+    std::vector<AnimatedAlpha> fieldSelectionStates;
+
+    // Hovering
+    struct HoverState {
+        bool hoveringPosition = false;
+        int fieldIndex = -1;
+    };
+
+    bool hitPosition(juce::Point<float> p) const;
+    int hitField(juce::Point<float> p) const;
+
+    HoverState getHoverState(juce::Point<float> p) const;
+    void applyHoverState(const HoverState& hoverState);
+
+    // Dragging
+    enum class DragTarget { NONE, POSITION, FIELD };
+    DragTarget dragTarget{ DragTarget::NONE };
+
+    // State
+    std::atomic<bool> switchedIR { false };
 
     // Parametric path
     juce::Path parametricPath;
@@ -24,29 +58,19 @@ private:
 
     // Position indicator
     PolarCoordinate currentPosition {0.0f, 0.0f};
-    static constexpr float positionRadius = 4.0f;
+    const float basePositionRadius = 4.0f;
+    float positionRadius = 4.0f;
     BoundsF positionBounds {};
 
     // Field indicators
     std::vector<PolarCoordinate> fieldCoordinates {};
-    static constexpr float coordinateRadius = 6.0f;
-
-    // Dragging
-    enum class DragTarget { NONE, POSITION, FIELD };
-    DragTarget dragTarget { DragTarget::NONE };
-
-    int fieldIndex { -1 };
-    static constexpr float hitRadius = 6.0f;
-
-    bool hitPosition(juce::Point<float> p) const;
-    int hitField(juce::Point<float> p) const;
-
-    std::atomic<bool> switchedIR { false };
+    const float baseCoordinateRadius = 6.0f;
+    float coordinateRadius = 6.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PolarMapPanel)
 
 public:
-    PolarMapPanel(MareverbAudioProcessor& processor);
+    PolarMapPanel(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater);
     ~PolarMapPanel() override = default;
 
     void paint(juce::Graphics& g) override;
@@ -57,10 +81,10 @@ public:
     void mouseUp(const juce::MouseEvent& e) override;
     void mouseDoubleClick(const juce::MouseEvent& e) override;
 
-    std::atomic<bool>& getIRSwitched();
-
-    // Callbacks
+    // Updates
     void notifyPathChanged();
     void notifyPositionChanged(PolarCoordinate nPosition);
     void notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates);
+
+    std::atomic<bool>& getIRSwitched();
 };

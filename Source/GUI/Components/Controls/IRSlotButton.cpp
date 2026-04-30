@@ -28,7 +28,8 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
     float activeAlpha = indicatorActiveAnim.getAlpha();
     float indicatorAlpha = juce::jmap(activeAlpha, occupied ? 0.35f : 0.1f, occupied ? 1.0f : 0.2f);
 
-    Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius, irIndex, occupied, active, indicatorAlpha);
+    Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius, 
+        irIndex, occupied, active, false, indicatorAlpha);
 
     // Drag and drop indication
     const float dragAlpha = dragHover.getAlpha();
@@ -87,9 +88,7 @@ void IRSlotButton::setOccupied(bool nOccupied) {
 }
 
 void IRSlotButton::setActive(bool nActive) {
-    if (nActive) indicatorActiveAnim.setAlpha(1.0f);
-    else indicatorActiveAnim.setAlpha(0.0f);
-
+    indicatorActiveAnim.setAlpha(nActive ? 1.0f : 0.0f);
     active = nActive;
     waveformPreview.setActive(nActive, true);
     repaint();

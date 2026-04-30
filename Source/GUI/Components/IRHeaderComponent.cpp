@@ -36,9 +36,7 @@ void IRHeaderComponent::setSlot(int irIndex, const IRSlot& slot) {
 }
 
 void IRHeaderComponent::setActive(bool nActive, bool animate) {
-    if (nActive) indicatorActiveAnim.setAlpha(1.0f, animate);
-    else indicatorActiveAnim.setAlpha(0.0f, animate);
-
+    indicatorActiveAnim.setAlpha(nActive ? 1.0f : 0.0f, animate);
     currentIR.active = nActive;
     repaint();
 }
@@ -55,12 +53,13 @@ void IRHeaderComponent::paint(juce::Graphics& g) {
     float activeAlpha = indicatorActiveAnim.getAlpha();
     float indicatorAlpha = juce::jmap(activeAlpha, currentIR.occupied ? 0.35f : 0.1f, currentIR.occupied ? 1.0f : 0.2f);
 
-    Paint::irIndicator(g, {indicatorX, indicatorY}, indicatorRadius, currentIndex, currentIR.occupied, currentIR.active, indicatorAlpha);
+    Paint::irIndicator(g, {indicatorX, indicatorY}, indicatorRadius, 
+        currentIndex, currentIR.occupied, currentIR.active, false, indicatorAlpha);
 
     // IR #
     const float labelX = (indicatorX + indicatorRadius) + 12.0f;
     const float labelWidth = 36.0f;
-    g.setColour(juce::Colours::white);
+    g.setColour(Theme::Colors::textLight);
     g.setFont(Theme::Fonts::getEquestriaBoldFont(juce::FontOptions().withHeight(14.0f).withKerningFactor(0.1f)));
     g.drawText("IR " + juce::String(currentIndex), 
         BoundsF(labelX, 0, labelWidth, bounds.getHeight()), juce::Justification::centredLeft);
@@ -68,8 +67,8 @@ void IRHeaderComponent::paint(juce::Graphics& g) {
     // Filepath
     const float pathX = (labelX + labelWidth) + 16.0f;
     const float pathWidth = bounds.getWidth() - pathX - 10.0f;
-    g.setColour(juce::Colours::lightgrey);
-    g.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions().withHeight(12.0f).withKerningFactor(0.01f)));
+    g.setColour(Theme::Colors::textLight);
+    g.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions().withHeight(12.0f).withKerningFactor(0.005f)));
     g.drawFittedText(currentPath, 
         BoundsF(pathX, 0, pathWidth, bounds.getHeight()).toNearestInt(), juce::Justification::centredLeft, 1, 1.0f);
 }
