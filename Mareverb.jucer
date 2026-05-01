@@ -73,6 +73,8 @@
                 file="Source/GUI/API/DragAndDropMixin.cpp"/>
           <FILE id="oUkCMX" name="DragAndDropMixin.h" compile="0" resource="0"
                 file="Source/GUI/API/DragAndDropMixin.h"/>
+          <FILE id="m9deXL" name="MareAlert.cpp" compile="1" resource="0" file="Source/GUI/API/MareAlert.cpp"/>
+          <FILE id="tOhrYF" name="MareAlert.h" compile="0" resource="0" file="Source/GUI/API/MareAlert.h"/>
           <FILE id="OWOm1H" name="ValueTooltipClient.cpp" compile="1" resource="0"
                 file="Source/GUI/API/ValueTooltipClient.cpp"/>
           <FILE id="SeWkLT" name="ValueTooltipClient.h" compile="0" resource="0"
@@ -207,9 +209,10 @@
           <FILE id="sSBKWk" name="MareverbFonts.cpp" compile="1" resource="0"
                 file="Source/GUI/Theme/MareverbFonts.cpp"/>
           <FILE id="XmA8t9" name="MareverbFonts.h" compile="0" resource="0" file="Source/GUI/Theme/MareverbFonts.h"/>
-          <FILE id="PJ7lPW" name="MareverbIcons.cpp" compile="1" resource="0"
-                file="Source/GUI/Theme/MareverbIcons.cpp"/>
-          <FILE id="SZwvL0" name="MareverbIcons.h" compile="0" resource="0" file="Source/GUI/Theme/MareverbIcons.h"/>
+          <FILE id="PJ7lPW" name="MareverbAssets.cpp" compile="1" resource="0"
+                file="Source/GUI/Theme/MareverbAssets.cpp"/>
+          <FILE id="SZwvL0" name="MareverbAssets.h" compile="0" resource="0"
+                file="Source/GUI/Theme/MareverbAssets.h"/>
           <FILE id="zNNZ6Y" name="Theme.h" compile="0" resource="0" file="Source/GUI/Theme/Theme.h"/>
         </GROUP>
         <FILE id="NLRTuz" name="GUIUtilities.h" compile="0" resource="0" file="Source/GUI/GUIUtilities.h"/>

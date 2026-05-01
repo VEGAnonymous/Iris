@@ -2,8 +2,11 @@
 
 #pragma once
 
-namespace MareverbIcons
+namespace MareverbAssets
 {
+    extern const char*  Derpy_Hooves_png;
+    const int           Derpy_Hooves_pngSize = 297595;
+
     extern const char*  LYRAnonymous_png;
     const int           LYRAnonymous_pngSize = 92269;
 

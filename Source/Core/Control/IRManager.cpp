@@ -1,5 +1,7 @@
 #include "Core/Utilities.h"
 #include "Core/Control/IRManager.h"
+#include "GUI/GUIUtilities.h"
+#include "GUI/API/MareAlert.h"
 
 /* PRIVATE */
 
@@ -56,7 +58,9 @@ IRManager::IRManager(juce::ApplicationProperties* p) : applicationProperties(p) 
     irRNG.setSeedRandomly();
 }
 
-IRManager::~IRManager() { irThreadPool.removeAllJobs(false, 1000); }
+IRManager::~IRManager() { 
+    irThreadPool.removeAllJobs(false, 1000);
+}
 
 void IRManager::prepare() {
     irDirectories.clear();
@@ -112,12 +116,15 @@ void IRManager::chooseIRDirectory() { // Only to be called from the message thre
             if (fileChooser.getResults().isEmpty()) return;
 
             auto dirs = fileChooser.getResults();
+            juce::String invalidDirectories = "";
+            int invalidCount = 0;
+
             for (juce::File& dir : dirs) {
-                if (!validateIRDirectory(dir)) {
-                    // TODO: Apply look and feel to alert window
-                    // juce::AlertWindow whoops("Oops...My bad!", "I just don't know what went wrong!", juce::MessageBoxIconType::WarningIcon);
-                    // whoops.showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Oops...My bad!", "I just don't know what went wrong!", "Muffin?");
-                    return;
+                if (!validateIRDirectory(dir) && invalidCount < 10) {
+                    invalidCount++;
+                    if (invalidCount < 10) invalidDirectories.append(formatPath(dir.getFullPathName(), 40, Ellipsis::MIDDLE) + "\n", 42);
+                    else invalidDirectories.append("...", 3);
+                    continue;
                 }
 
                 for (auto& irDir : irDirectories) {
@@ -129,6 +136,15 @@ void IRManager::chooseIRDirectory() { // Only to be called from the message thre
 
                 for (int i = static_cast<int>(irDirectories.size()) - 1; i >= 0; --i) // Iterate backwards since removal shifts indices
                     if (irDirectories[i].irDirectory.isAChildOf(dir)) removeIRDirectory(i);
+            }
+
+            if (onAlert && invalidDirectories.isNotEmpty()) {
+                onAlert(
+                    "Oops...My bad!",
+                    "I just don't know what went wrong!",
+                    invalidDirectories,
+                    "Muffin?"
+                );
             }
         }
     );

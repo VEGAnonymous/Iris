@@ -2,6 +2,7 @@
 
 #include "Core/Control/IRDefines.h"
 #include "Core/Control/State/Envelope.h"
+#include "GUI/Theme/LookAndFeel/MareverbLookAndFeel.h"
 #include "concurrentqueue.h"
 
 #include <JuceHeader.h>
@@ -10,6 +11,8 @@ class IRManager {
 private:
     juce::ApplicationProperties* applicationProperties;
     juce::AudioFormatManager formatManager;
+
+    MareverbLookAndFeel mainLookAndFeel;
 
     // IR management
     std::array<IRSlot, MAX_IR_COUNT> irSlots;
@@ -41,6 +44,8 @@ private:
 
 public:
     juce::ThreadPool irThreadPool {4};
+
+    std::function<void(juce::String title, juce::String message, juce::String details, juce::String buttonText)> onAlert;
 
     IRManager(juce::ApplicationProperties* p);
     ~IRManager();

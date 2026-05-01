@@ -477,6 +477,10 @@ ControlThread::ControlThread(const juce::AudioProcessorValueTreeState& apvts, IR
     motionController(&polarMap, &positionTime, &fieldTime),
     fftThreadPool() {}
 
+ControlThread::~ControlThread() {
+    fftThreadPool.removeAllJobs(false, 1000);
+}
+
 void ControlThread::run() {
     lastTick = std::chrono::steady_clock::now();
     while (!threadShouldExit()) {

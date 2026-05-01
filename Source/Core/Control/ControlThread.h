@@ -74,7 +74,7 @@ private:
 public:
     ControlThread(const juce::AudioProcessorValueTreeState& apvts, IRManager& manager, 
         GUIState& gState, std::shared_ptr<ConvolutionStateHolder> cState);
-    ~ControlThread() = default;
+    ~ControlThread();
 
     void run() override;
 };

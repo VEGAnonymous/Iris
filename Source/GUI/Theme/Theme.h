@@ -2,7 +2,7 @@
 
 #include "Core/Defines.h"
 #include "GUI/Theme/MareverbFonts.h"
-#include "GUI/Theme/MareverbIcons.h"
+#include "GUI/Theme/MareverbAssets.h"
 
 #include <JuceHeader.h>
 
@@ -42,13 +42,19 @@ namespace Theme {
 
     namespace Icons {
         inline const juce::Image getLogo() {
-            return juce::ImageCache::getFromMemory(MareverbIcons::LYRAnonymous_png, MareverbIcons::LYRAnonymous_pngSize);
+            return juce::ImageCache::getFromMemory(MareverbAssets::LYRAnonymous_png, MareverbAssets::LYRAnonymous_pngSize);
         }
         inline const juce::Image getBurgerMenuIcon() {
-            return juce::ImageCache::getFromMemory(MareverbIcons::Menu_png, MareverbIcons::Menu_pngSize);
+            return juce::ImageCache::getFromMemory(MareverbAssets::Menu_png, MareverbAssets::Menu_pngSize);
         }
         inline const juce::Image getRefreshIcon() {
-            return juce::ImageCache::getFromMemory(MareverbIcons::Refresh_png, MareverbIcons::Refresh_pngSize);
+            return juce::ImageCache::getFromMemory(MareverbAssets::Refresh_png, MareverbAssets::Refresh_pngSize);
+        }
+    }
+
+    namespace Images {
+        inline const juce::Image getDerpyHooves() {
+            return juce::ImageCache::getFromMemory(MareverbAssets::Derpy_Hooves_png, MareverbAssets::Derpy_Hooves_pngSize);
         }
     }
 }

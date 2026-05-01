@@ -35,7 +35,7 @@ private:
     // API
     juce::AnimatorUpdater animatorUpdater;
     ValueTooltipWindow valueTooltip;
-
+    
     // ControlDefs
     std::vector<ControlDef> controls { { 
        // ParamID                   Component                Slider (opt)                  

@@ -3,6 +3,7 @@
 #include "GUI/GUIUtilities.h"
 #include "GUI/Components/Controls/LabelledControl.h"
 #include "GUI/Theme/Theme.h"
+#include "GUI/API/MareAlert.h"
 #include "GUI/API/ValueTooltipClient.h"
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
@@ -335,6 +336,10 @@ void MareverbAudioProcessorEditor::prepare() {
             addAndMakeVisible(*settingsModal);
         }
         repaint();
+    };
+
+    audioProcessor.getIRManager()->onAlert = [this](juce::String title, juce::String message, juce::String details, juce::String buttonText) {
+        MareAlert::show(animatorUpdater, &mainLookAndFeel, title, message, details, buttonText);
     };
 }
 
