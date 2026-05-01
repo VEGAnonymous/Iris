@@ -21,6 +21,10 @@
           <FILE id="g9UPJQ" name="ControlThread.cpp" compile="1" resource="0"
                 file="Source/Core/Control/ControlThread.cpp"/>
           <FILE id="h4NZuy" name="ControlThread.h" compile="0" resource="0" file="Source/Core/Control/ControlThread.h"/>
+          <FILE id="BLQXfZ" name="ConvolutionStateBuilder.cpp" compile="1" resource="0"
+                file="Source/Core/Control/ConvolutionStateBuilder.cpp"/>
+          <FILE id="L7YXAH" name="ConvolutionStateBuilder.h" compile="0" resource="0"
+                file="Source/Core/Control/ConvolutionStateBuilder.h"/>
           <FILE id="NB2jKC" name="IRDefines.h" compile="0" resource="0" file="Source/Core/Control/IRDefines.h"/>
           <FILE id="y1pRDt" name="IRManager.cpp" compile="1" resource="0" file="Source/Core/Control/IRManager.cpp"/>
           <FILE id="VRVSeu" name="IRManager.h" compile="0" resource="0" file="Source/Core/Control/IRManager.h"/>
