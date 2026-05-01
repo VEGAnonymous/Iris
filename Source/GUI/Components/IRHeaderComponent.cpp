@@ -12,7 +12,10 @@ BoundsF IRHeaderComponent::getIndicatorBounds(Bounds bounds, const float radius)
 void IRHeaderComponent::mouseDown(const juce::MouseEvent& e) {
     auto indicatorBounds = getIndicatorBounds(getLocalBounds(), indicatorRadius);
     if (indicatorBounds.contains(e.position)) {
-        audioProcessor.getIRManager()->setIRActive(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), !currentIR.active);
+        IRCommand cmd = { IRCommand::IR_SET_ACTIVE_STATE };
+        cmd.irIndex = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        cmd.irActiveState = !currentIR.active;
+        audioProcessor.getIRManager()->enqueueCommand(cmd);
         audioProcessor.guiState.updateField.store(true, std::memory_order_release);
     }
 }
@@ -24,7 +27,7 @@ IRHeaderComponent::IRHeaderComponent(MareverbAudioProcessor& processor, juce::An
     setBufferedToImage(true);
 }
 
-void IRHeaderComponent::setSlot(int irIndex, const IRSlot& slot) {
+void IRHeaderComponent::setSlot(int irIndex, const IRSlotLite slot) {
     currentIndex = irIndex;
     currentIR = slot;
 

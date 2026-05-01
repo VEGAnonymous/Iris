@@ -29,22 +29,26 @@ void SelectedIRPanel::resized() {
 void SelectedIRPanel::updateIRSlot(int selectedIR, bool animate) {
     if (validateIRIndex(selectedIR)) {
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
+        {
+            juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.irWaveformLock);
+            const auto& waveform = audioProcessor.guiState.irWaveforms[selectedIR];
 
-        irHeaderComponent.setActive(slot.active, animate);
-        irHeaderComponent.setSlot(selectedIR, slot);
+            irHeaderComponent.setActive(slot.active, animate);
+            irHeaderComponent.setSlot(selectedIR, slot);
 
-        auto* waveformComponent = irDisplayComponent.getWaveformComponent();
-        jassert(waveformComponent);
-        if (waveformComponent) {
-            waveformComponent->setNumPoints(WAVEFORM_POINTS);
-            waveformComponent->setWaveform(&slot.buffer, audioProcessor.getSampleRate());
-            waveformComponent->setActive(slot.active, animate);
+            auto* waveformComponent = irDisplayComponent.getWaveformComponent();
+            jassert(waveformComponent);
+            if (waveformComponent) {
+                waveformComponent->setNumPoints(WAVEFORM_POINTS);
+                waveformComponent->setWaveform(slot.occupied ? &waveform : nullptr, audioProcessor.getSampleRate());
+                waveformComponent->setActive(slot.active, animate);
+            }
         }
 
         auto* windowOverlayComponent = irDisplayComponent.getWindowOverlayComponent();
         jassert(windowOverlayComponent);
         if (windowOverlayComponent) {
-            windowOverlayComponent->setMaxLength(slot.getMaxWindowLength());
+            windowOverlayComponent->setMaxLength(slot.maxWindowLength);
             windowOverlayComponent->setWindow(slot.window.start, slot.window.start + slot.window.length);
         }
 

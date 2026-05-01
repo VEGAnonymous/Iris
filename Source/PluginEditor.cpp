@@ -65,12 +65,17 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
     // IRs
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
-        for (int i = 0; i < MAX_IR_COUNT; ++i) {
-            const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
-            auto* slotButton = irSelectorPanel.getIRSlotButton(i);
-            slotButton->setOccupied(slot.occupied);
-            slotButton->setActive(slot.active);
-            slotButton->setWaveform(slot.occupied ? &slot.buffer : nullptr, audioProcessor.getSampleRate());
+        {
+            juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.irWaveformLock);
+            for (int i = 0; i < MAX_IR_COUNT; ++i) {
+                const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
+                const auto& waveform = audioProcessor.guiState.irWaveforms[i];
+                auto* slotButton = irSelectorPanel.getIRSlotButton(i);
+
+                slotButton->setOccupied(slot.occupied);
+                slotButton->setActive(slot.active);
+                slotButton->setWaveform(slot.occupied ? &waveform : nullptr, audioProcessor.getSampleRate());
+            }
         }
 
         updateIRSlot(true);

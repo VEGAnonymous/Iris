@@ -6,11 +6,18 @@
 void TopBarPanel::prepare() {
     // Randomize / clear all buttons
     randomAllButton.setButtonText("RANDOM ALL");
-    randomAllButton.onClick = [this]() { audioProcessor.getIRManager()->loadRandomIRs(); };
+    randomAllButton.onClick = [irManager = audioProcessor.getIRManager()]() {
+        if (irManager->getFFTBusy().load(std::memory_order_acquire)) return; // NICE TRY
+        IRCommand cmd = { IRCommand::IR_LOAD_RANDOM_ALL };
+        irManager->enqueueCommand(cmd);
+    };
     addAndMakeVisible(randomAllButton);
 
     clearAllButton.setButtonText("CLEAR ALL");
-    clearAllButton.onClick = [this]() { audioProcessor.getIRManager()->clearIRs(); };
+    clearAllButton.onClick = [irManager = audioProcessor.getIRManager()]() {
+        IRCommand cmd = { IRCommand::IR_CLEAR_ALL };
+        irManager->enqueueCommand(cmd);
+    };
     addAndMakeVisible(clearAllButton);
 
     // Settings modal

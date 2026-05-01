@@ -1,3 +1,4 @@
+#include "Core/Utilities.h"
 #include "Core/Control/IRManager.h"
 
 /* PRIVATE */
@@ -46,6 +47,8 @@ IRManager::IRManager(juce::ApplicationProperties* p) : applicationProperties(p) 
     irRNG.setSeedRandomly();
 }
 
+IRManager::~IRManager() { irThreadPool.removeAllJobs(false, 1000); }
+
 void IRManager::prepare() {
     irDirectories.clear();
     loadDirectories();
@@ -53,13 +56,15 @@ void IRManager::prepare() {
     for (int i = 0; i < irSlots.size(); ++i) {
         computeEnvelope(irSlots[i]);
         irSlots[i].autoSwap.callback = [&, i]() {
-            loadRandomIR(i, rngMode);
+            enqueueCommand(IRCommand{ IRCommand::IR_LOAD_RANDOM, i });
             irSlots[i].autoSwap.resetCountdown(irRNG);
         };
     }
 
     collectIRs();
 }
+
+void IRManager::enqueueCommand(IRCommand cmd) { irCommandQueue.enqueue(cmd); }
 
 void IRManager::collectIRs() {
     irDirectoryFiles.clear();
@@ -80,7 +85,9 @@ void IRManager::chooseIR(int irIndex) {
     irFileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
         [this, irIndex](const juce::FileChooser& fileChooser) {
             if (fileChooser.getResults().isEmpty()) return;
-            loadIR(irIndex, fileChooser.getResult());
+            IRCommand cmd = IRCommand{ IRCommand::IR_LOAD, irIndex };
+            cmd.irFile = fileChooser.getResult();
+            enqueueCommand(cmd);
         });
 }
 
@@ -139,85 +146,88 @@ void IRManager::setIRDirectoryActive(int index, bool nState) {
     }
 }
 
-bool IRManager::loadIR(int irIndex, juce::File irFile) {
-    if (!validateIRIndex(irIndex)) return false;
-
-    DBG("Loading IR file into slot " << irIndex);
-
+juce::AudioBuffer<float> IRManager::readIR(juce::File irFile) {
     // Create reader for file
+    jassert(irFile.existsAsFile());
     std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(irFile));
-    if (!reader) return false;
+    jassert(reader);
+    if (!reader) return juce::AudioBuffer<float> {};
 
-    const int numChannels = static_cast<int>(reader->numChannels);
+    // Read IR buffer
+    const int numChannels = reader->numChannels;
     const int numSamples = std::min(static_cast<int>(reader->lengthInSamples), MAX_IR_FILE_SAMPLES);
 
-    // Read IR buffer, update state
-    auto& slot = irSlots[irIndex];
-    slot.buffer.setSize(numChannels, numSamples);
-    if (reader->read(&slot.buffer, 0, numSamples, 0, true, true)) {
-        slot.file = irFile; // File validated
-        slot.occupied = true;
-        // slot.active = true;
-
-        // Reset window
-        slot.window.start = 0.0f;
-        slot.window.length = juce::jlimit(0.0f, 1.0f, static_cast<float>(MAX_IR_SAMPLES) / static_cast<float>(numSamples));
-        // slot.window.envelope.type = EnvelopeType::NONE;
-
-        irChanges.irsSet.push_back(irIndex); // Request update
-        irChanges.irsActiveStateSet.push_back(irIndex);
-        return true;
-    }
-    return false;
+    juce::AudioBuffer<float> buffer;
+    buffer.setSize(numChannels, numSamples);
+    bool readSuccess = reader->read(&buffer, 0, numSamples, 0, true, true);
+    jassert(readSuccess);
+    return buffer;
 }
 
-bool IRManager::loadRandomIR(int irIndex) { return loadRandomIR(irIndex, rngMode); }
-bool IRManager::loadRandomIR(int irIndex, IRSamplingMode mode) {
-    if (irDirectoryFiles.empty() || !validateIRIndex(irIndex)) return false;
+void IRManager::setIR(int irIndex, juce::File irFile, juce::AudioBuffer<float>& irBuffer) {
+    if (!validateIRIndex(irIndex)) return;
+
+    const int numSamples = irBuffer.getNumSamples();
+
+    auto& slot = irSlots[irIndex];
+    slot.buffer = std::move(irBuffer);
+    slot.file = irFile;
+    slot.occupied = true;
+    slot.window.start = 0.0f;
+    slot.window.length = juce::jlimit(0.0f, 1.0f, static_cast<float>(MAX_IR_SAMPLES) / static_cast<float>(numSamples));
+
+    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex });
+    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_ACTIVE_CHANGED, irIndex });
+}
+
+juce::File IRManager::sampleRandomIR() { return sampleRandomIR(rngMode); }
+juce::File IRManager::sampleRandomIR(IRSamplingMode mode) {
+    if (irDirectoryFiles.empty()) return juce::File();
 
     switch (mode) {
         case IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES: {
             const int directoryIndex = irRNG.nextInt(static_cast<int>(irDirectoryFiles.size()));
             const auto& dir = irDirectoryFiles[directoryIndex];
-            if (dir.files.isEmpty()) return false;
+            if (dir.files.isEmpty()) return juce::File();
 
-            const int fileIndex = irRNG.nextInt(dir.files.size());
-            juce::File randomIR = dir.files[fileIndex];
-            return loadIR(irIndex, randomIR);
+            int fileIndex = -1;
+            {
+                juce::SpinLock::ScopedLockType lock(irLock);
+                fileIndex = irRNG.nextInt(dir.files.size());
+                jassert(fileIndex >= 0);
+            }
+            return dir.files[fileIndex];
         }
         default:
         case IRSamplingMode::UNIFORM_ACROSS_ALL_FILES: {
             int totalFiles = 0;
             for (const auto& dir : irDirectoryFiles) totalFiles += dir.files.size();
-            if (totalFiles == 0) return false;
+            if (totalFiles == 0) return juce::File();
 
-            int fileIndex = irRNG.nextInt(totalFiles);
+            int fileIndex = -1;
+            {
+                juce::SpinLock::ScopedLockType lock(irLock);
+                fileIndex = irRNG.nextInt(totalFiles);
+                jassert(fileIndex >= 0);
+            }
             for (const auto& dir : irDirectoryFiles) {
-                if (fileIndex < dir.files.size())
-                    return loadIR(irIndex, dir.files[fileIndex]);
+                if (fileIndex < dir.files.size()) return dir.files[fileIndex];
                 fileIndex -= dir.files.size();
             }
-            return false;
+            return juce::File();
         }
     }
 }
 
-bool IRManager::loadRandomIRs() { return loadRandomIRs(rngMode); }
-bool IRManager::loadRandomIRs(IRSamplingMode mode) {
-    for (int irIndex = 0; irIndex < MAX_IR_COUNT; ++irIndex)
-        if (!loadRandomIR(irIndex, mode)) return false;
-    return true;
-}
-
 void IRManager::clearIR(int irIndex) {
     if (!validateIRIndex(irIndex)) return;
-    DBG("Clearing IR slot " << irIndex);
+    // DBG("Clearing IR slot " << irIndex);
     auto& slot = irSlots[irIndex];
     slot.file = juce::File{};
     slot.buffer.setSize(0, 0);
     slot.occupied = false;
 
-    irChanges.irsCleared.push_back(irIndex); // Request update
+    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_CLEAR, irIndex });
 }
 
 void IRManager::clearIRs() {
@@ -228,7 +238,7 @@ void IRManager::setIRActive(int irIndex, bool nState) {
     if (!validateIRIndex(irIndex)) return;
     auto& slot = irSlots[irIndex];
     slot.active = nState;
-    irChanges.irsActiveStateSet.push_back(irIndex); // Request update
+    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_ACTIVE_CHANGED, irIndex });
 }
 
 bool IRManager::setWindow(int irIndex, float start, float length) {
@@ -240,7 +250,7 @@ bool IRManager::setWindow(int irIndex, float start, float length) {
     slot.window.length = juce::jlimit(0.0f, 1.0f - slot.window.start, length);
 
     computeEnvelope(slot);
-    irChanges.irsSet.push_back(irIndex); // Request update
+    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex });
     return true;
 }
 
@@ -253,7 +263,7 @@ void IRManager::setEnvelope(int irIndex, EnvelopeType type, float attack, float 
     slot.window.envelope.release = release;
 
     computeEnvelope(slot);
-    irChanges.irsSet.push_back(irIndex); // Request update
+    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex });
 }
 
 juce::AudioBuffer<float> IRManager::applyWindow(int irIndex) const {
@@ -299,19 +309,33 @@ void IRManager::advanceSwapTimers(float dt) {
         irSlots[i].autoSwap.advanceTimer(dt);
 }
 
-IRChanges IRManager::consumeIRChanges() {
-    IRChanges changes = std::move(irChanges);
-    irChanges = {};
-    return changes;
-}
-
-void IRManager::setRandomMode(IRManager::IRSamplingMode nMode) { rngMode = nMode; }
+void IRManager::setSamplingMode(IRSamplingMode nMode) { rngMode = nMode; }
 
 std::atomic<bool>& IRManager::getDirectoryChanged() { return directoryChanged; }
+std::atomic<bool>& IRManager::getFFTBusy() { return fftBusy; }
 
-const IRSlot& IRManager::getIRSlot(int index) const {
+moodycamel::ConcurrentQueue<IRCommand>* IRManager::getCommandQueue() { return &irCommandQueue; };
+moodycamel::ConcurrentQueue<IRResult>* IRManager::getResultQueue() { return &irResultQueue; };
+moodycamel::ConcurrentQueue<IRUpdate>* IRManager::getUpdateQueue() { return &irUpdateQueue; };
+
+const IRSlot& IRManager::getIRSlotInternal(int index) const {
     jassert(validateIRIndex(index));
     return irSlots[index];
+}
+
+const IRSlotLite IRManager::getIRSlot(int index) const {
+    jassert(validateIRIndex(index));
+    juce::SpinLock::ScopedLockType lock(irLock);
+
+    const auto& slot = irSlots[index];
+    return IRSlotLite{
+        slot.file,
+        slot.occupied,
+        slot.active,
+        slot.window,
+        slot.getMaxWindowLength(),
+        slot.buffer.getNumSamples()
+    };
 }
 
 const std::vector<IRDirectory> IRManager::getIRDirectories() const { return irDirectories; };

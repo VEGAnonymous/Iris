@@ -103,7 +103,7 @@ MareverbAudioProcessor::MareverbAudioProcessor()
         apvts.state.setProperty(PropertyID::selectedIR, 0, nullptr);
 
     if (!apvts.state.hasProperty(PropertyID::randomIRMode))
-        apvts.state.setProperty(PropertyID::randomIRMode, static_cast<int>(IRManager::IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES), nullptr);
+        apvts.state.setProperty(PropertyID::randomIRMode, static_cast<int>(IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES), nullptr);
 
     juce::PropertiesFile::Options options;
     options.applicationName = "Mareverb";
@@ -112,8 +112,8 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     applicationProperties.setStorageParameters(options);
 
     // Init IR manager
-    irManager.setRandomMode(static_cast<IRManager::IRSamplingMode>(static_cast<int>(
-        apvts.state.getProperty(PropertyID::randomIRMode, static_cast<int>(IRManager::IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES)))));
+    irManager.setSamplingMode(static_cast<IRSamplingMode>(static_cast<int>(
+        apvts.state.getProperty(PropertyID::randomIRMode, static_cast<int>(IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES)))));
     irManager.prepare();
 
     // Init pattern states
@@ -385,10 +385,12 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
             float envelopeRelease = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::release, 0.0f);
 
             if (occupied && filePath.isNotEmpty()) {
-                bool restoredIR = irManager.loadIR(i, juce::File(filePath));
-                jassert(restoredIR);
+                IRCommand cmd = { IRCommand::IR_LOAD };
+                cmd.irIndex = i;
+                cmd.irFile = juce::File(filePath);
+                irManager.enqueueCommand(cmd);
             }
-
+                
             irManager.setIRActive(i, active);
             irManager.setWindow(i, windowStart, windowLength);
             irManager.setEnvelope(i, envelopeType, envelopeAttack, envelopeRelease);

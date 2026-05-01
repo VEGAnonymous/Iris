@@ -1,106 +1,53 @@
 #pragma once
 
+#include "Core/Control/IRDefines.h"
 #include "Core/Control/State/Envelope.h"
-#include "Core/Utilities.h"
+#include "concurrentqueue.h"
 
 #include <JuceHeader.h>
 
-// Leaving these here for now but may move to separate headers later /*
-
-struct Window {
-    float start = 0.0f; // Normalized (up to MAX_IR_SAMPLES)
-    float length = 1.0f;
-    Envelope envelope;
-};
-
-struct RandomTimer {
-    float minTime = SWAP_INTERVAL_MIN; // seconds
-    float maxTime = SWAP_INTERVAL_MAX;
-    float countdown = 0.0f;
-    bool active = true;
-    std::function<void()> callback;
-
-    void advanceTimer(float dt) {
-        if (!active) return;
-        countdown -= dt;
-        if (countdown <= 0.0f && callback) callback();
-        // Callback should probably call resetCountdown()
-    }
-    void resetCountdown(juce::Random& rng) {
-        countdown = active ? juce::jmap(rng.nextFloat(), minTime, maxTime) : 0.0f;
-    }
-};
-
-// */
-
-struct IRSlot {
-    juce::File file{};
-    juce::AudioBuffer<float> buffer{};
-    bool occupied = false;
-    bool active = true;
-
-    // Windowing
-    Window window;
-    inline float getMaxWindowLength() const {
-        const int numSamples = buffer.getNumSamples();
-        if (numSamples == 0) return 1.0f;
-        else return juce::jlimit(0.0f, 1.0f, static_cast<float>(MAX_IR_SAMPLES) / static_cast<float>(numSamples));
-    }
-
-    // Auto swap at random intervals
-    RandomTimer autoSwap;
-};
-
-struct IRDirectory {
-    juce::File irDirectory;
-    bool active = true;
-};
-
-struct IRDirectoryFiles {
-    IRDirectory dir;
-    juce::Array<juce::File> files;
-};
-
-struct IRChanges {
-    std::deque<int> irsSet {};
-    std::deque<int> irsCleared {};
-    std::deque<int> irsActiveStateSet {};
-};
-
 class IRManager {
-public:
-    enum class IRSamplingMode {
-        UNIFORM_ACROSS_ALL_FILES,
-        UNIFORM_ACROSS_DIRECTORIES
-    };
-
 private:
     juce::ApplicationProperties* applicationProperties;
+    juce::AudioFormatManager formatManager;
 
+    // IR management
     std::array<IRSlot, MAX_IR_COUNT> irSlots;
 
     std::vector<IRDirectory> irDirectories;
     std::vector<IRDirectoryFiles> irDirectoryFiles;
 
-    IRChanges irChanges;
-    std::atomic<bool> directoryChanged { false };
-
-    juce::AudioFormatManager formatManager;
     juce::Random irRNG;
     IRSamplingMode rngMode = IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES;
-    std::unique_ptr<juce::FileChooser> irFileChooser, irDirectoryChooser;
+
+    std::unique_ptr<juce::FileChooser> irFileChooser;
+    std::unique_ptr<juce::FileChooser> irDirectoryChooser;
 
     void saveDirectories();
     void loadDirectories();
 
+    // Utilities
     void IRManager::computeEnvelope(IRSlot& slot);
 
+    // Concurrency
+    juce::SpinLock irLock;
+    std::atomic<bool> directoryChanged{ false };
+    std::atomic<bool> fftBusy{ false };
+
+    moodycamel::ConcurrentQueue<IRCommand> irCommandQueue; // Forward requests
+    moodycamel::ConcurrentQueue<IRResult> irResultQueue; // Forward worker output
+    moodycamel::ConcurrentQueue<IRUpdate> irUpdateQueue; // Forward updates
+
 public:
+    juce::ThreadPool irThreadPool {4};
+
     IRManager(juce::ApplicationProperties* p);
-    ~IRManager() = default;
+    ~IRManager();
 
     void prepare();
+    void enqueueCommand(IRCommand cmd);
 
+    // Commands
     void collectIRs();
 
     void chooseIR(int irIndex);
@@ -110,11 +57,12 @@ public:
     void removeIRDirectory(int index);
     void setIRDirectoryActive(int index, bool nState);
 
-    bool loadIR(int irIndex, juce::File file);
-    bool loadRandomIR(int irIndex);
-    bool loadRandomIR(int irIndex, IRSamplingMode mode);
-    bool loadRandomIRs();
-    bool loadRandomIRs(IRSamplingMode mode);
+    juce::AudioBuffer<float> readIR(juce::File file);
+    void setIR(int irIndex, juce::File irFile, juce::AudioBuffer<float>& irBuffer);
+
+    juce::File sampleRandomIR();
+    juce::File sampleRandomIR(IRSamplingMode mode);
+
     void clearIR(int irIndex);
     void clearIRs();
 
@@ -129,13 +77,19 @@ public:
     void setSwapActive(int irIndex, bool nActive);
     void advanceSwapTimers(float dt);
 
-    IRChanges consumeIRChanges();
-    std::atomic<bool>& getDirectoryChanged();
+    void setSamplingMode(IRSamplingMode nMode);
 
-    const IRSlot& getIRSlot(int index) const;
+    moodycamel::ConcurrentQueue<IRCommand>* getCommandQueue();
+    moodycamel::ConcurrentQueue<IRResult>* getResultQueue();
+    moodycamel::ConcurrentQueue<IRUpdate>* getUpdateQueue();
+
+    const IRSlot& getIRSlotInternal(int index) const;
+    const IRSlotLite getIRSlot(int index) const;
+    
     const std::vector<IRDirectory> getIRDirectories() const;
 
-    void setRandomMode(IRSamplingMode nMode);
+    std::atomic<bool>& getDirectoryChanged();
+    std::atomic<bool>& getFFTBusy();
 
     juce::AudioFormatManager* getFormatManager();
 };

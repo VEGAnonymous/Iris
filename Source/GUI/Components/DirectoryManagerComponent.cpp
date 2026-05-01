@@ -22,13 +22,16 @@ DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& pro
     addAndMakeVisible(addButton);
     addAndMakeVisible(removeButton);
 
-    addButton.onClick = [&]() {
-        audioProcessor.getIRManager()->chooseIRDirectory();
+    addButton.onClick = [this]() {
+        IRCommand cmd = { IRCommand::IR_DIRECTORY_CHOOSE };
+        audioProcessor.getIRManager()->enqueueCommand(cmd);
     };
 
-    removeButton.onClick = [&]() {
+    removeButton.onClick = [this]() {
         if (selectedRow >= 0) {
-            audioProcessor.getIRManager()->removeIRDirectory(selectedRow);
+            IRCommand cmd = { IRCommand::IR_DIRECTORY_REMOVE };
+            cmd.irDirectoryIndex = selectedRow;
+            audioProcessor.getIRManager()->enqueueCommand(cmd);
             selectedRow = -1;
             directoryList.deselectAllRows();
         }
@@ -40,7 +43,10 @@ DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& pro
         refreshIcon, 1.0f, overlayColor,
         refreshIcon, 1.0f, overlayColor,
         refreshIcon, 1.0f, overlayColor);
-    refreshButton.onClick = [&]() { audioProcessor.getIRManager()->collectIRs(); };
+    refreshButton.onClick = [this]() { 
+        IRCommand cmd = { IRCommand::IR_DIRECTORY_REFRESH };
+        audioProcessor.getIRManager()->enqueueCommand(cmd);
+    };
     addAndMakeVisible(refreshButton);
 
     directoryList.setRowHeight(DIRECTORY_ROW_HEIGHT);
@@ -51,7 +57,10 @@ DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& pro
     randomModeSelector.control.onChange = [this]() {
         const int randomMode = randomModeSelector.control.getSelectedId() - 1;
         audioProcessor.apvts.state.setProperty(PropertyID::randomIRMode, randomMode, nullptr);
-        audioProcessor.getIRManager()->setRandomMode(static_cast<IRManager::IRSamplingMode>(randomMode));
+
+        IRCommand cmd = { IRCommand::SET_SAMPLING_MODE };
+        cmd.samplingMode = static_cast<IRSamplingMode>(randomMode);
+        audioProcessor.getIRManager()->enqueueCommand(cmd);
     };
     addAndMakeVisible(randomModeSelector);
 }
@@ -142,7 +151,10 @@ juce::Component* DirectoryManagerComponent::refreshComponentForRow(int rowNumber
 
         const int directoryIndex = rowNumber;
         directoryRow->onToggle = [this, directoryIndex](bool nActive) {
-            audioProcessor.getIRManager()->setIRDirectoryActive(directoryIndex, nActive);
+            IRCommand cmd = { IRCommand::IR_DIRECTORY_SET_ACTIVE_STATE };
+            cmd.irDirectoryIndex = directoryIndex;
+            cmd.irDirectoryActiveState = nActive;
+            audioProcessor.getIRManager()->enqueueCommand(cmd);
         };
     }
 

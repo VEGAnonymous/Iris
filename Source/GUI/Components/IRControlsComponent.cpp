@@ -7,27 +7,42 @@ void IRControlsComponent::prepare() {
     clearIRButton.setButtonText("CLEAR");
     clearIRButton.onClick = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        if (validateIRIndex(selectedIR)) audioProcessor.getIRManager()->clearIR(selectedIR);
+        if (validateIRIndex(selectedIR)) {
+            IRCommand cmd = { IRCommand::CommandType::IR_CLEAR };
+            cmd.irIndex = selectedIR;
+            audioProcessor.getIRManager()->enqueueCommand(cmd);
+        }
     };
     addAndMakeVisible(clearIRButton);
 
     randomIRButton.setButtonText("RANDOM");
     randomIRButton.onClick = [this]() {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        if (validateIRIndex(selectedIR)) audioProcessor.getIRManager()->loadRandomIR(selectedIR);
+        if (validateIRIndex(selectedIR)) {
+            IRCommand cmd = { IRCommand::CommandType::IR_LOAD_RANDOM };
+            cmd.irIndex = selectedIR;
+            audioProcessor.getIRManager()->enqueueCommand(cmd);
+        }
     };
     addAndMakeVisible(randomIRButton);
 
     // Envelope control
-    envelopeControl.onEnvelopeChanged = [this](EnvelopeType type, float atk, float rel) {
+    envelopeControl.onEnvelopeChanged = [this](EnvelopeType type, float attack, float release) {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        if (validateIRIndex(selectedIR)) audioProcessor.getIRManager()->setEnvelope(selectedIR, type, atk, rel);
+        if (validateIRIndex(selectedIR)) {
+            IRCommand cmd = { IRCommand::IR_SET_ENVELOPE };
+            cmd.irIndex = selectedIR;
+            cmd.envelopeType = type;
+            cmd.envelopeAttack = attack;
+            cmd.envelopeRelease = release;
+            audioProcessor.getIRManager()->enqueueCommand(cmd);
+        }
     };
 
     envelopeControl.formatTextFromValueFunction = [this](double value) {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
-        double windowDur = (slot.window.length * slot.buffer.getNumSamples()) / audioProcessor.getSampleRate();
+        double windowDur = (slot.window.length * slot.numSamples) / audioProcessor.getSampleRate();
         double valueDur = juce::jmap(value, 0.0, windowDur);
         return Format::seconds(static_cast<float>(valueDur), 4);
     };
@@ -132,6 +147,9 @@ void IRControlsComponent::updateSwapState(int irIndex) {
     bool swapActive = swapControls[irIndex]->swapActiveToggle.control.getToggleState();
     swapControls[irIndex]->swapRangeSlider.setEnabled(swapActive);
     swapControls[irIndex]->swapRangeSlider.repaint();
+    IRCommand cmd = { IRCommand::CommandType::IR_CLEAR };
+    cmd.irIndex = irIndex;
+    cmd.swapActiveState = swapActive;
     audioProcessor.getIRManager()->setSwapActive(irIndex, swapActive);
 }
 

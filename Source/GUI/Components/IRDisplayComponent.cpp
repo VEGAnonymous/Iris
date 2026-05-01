@@ -8,12 +8,19 @@ void IRDisplayComponent::prepare() {
     addAndMakeVisible(irWaveformComponent);
 
     windowOverlayComponent.onWindowChanged = [this](float start, float length) {
-        audioProcessor.getIRManager()->setWindow(audioProcessor.apvts.state.getProperty(PropertyID::selectedIR), start, length);
+        IRCommand cmd = { IRCommand::IR_SET_WINDOW };
+        cmd.irIndex = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        cmd.windowStart = start;
+        cmd.windowLength = length;
+        audioProcessor.getIRManager()->enqueueCommand(cmd);
     };
 
     windowOverlayComponent.dragHandler.onFileDropped = [this](const juce::File& file) {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        audioProcessor.getIRManager()->loadIR(selectedIR, file);
+        IRCommand cmd = { IRCommand::IR_LOAD };
+        cmd.irIndex = selectedIR;
+        cmd.irFile = file;
+        audioProcessor.getIRManager()->enqueueCommand(cmd);
     };
 
     windowOverlayComponent.dragHandler.fileFilter = [this](const juce::File& file) {

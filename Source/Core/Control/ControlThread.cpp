@@ -1,6 +1,29 @@
+#include "Core/Control/IRDefines.h"
 #include "Core/Control/ControlThread.h"
 #include "Core/Control/State/ParameterSettings.h"
 #include "Core/Utilities.h"
+
+class IRFFTJob : public juce::ThreadPoolJob {
+private:
+    std::shared_ptr<ConvolutionIRBank> bank;
+    juce::AudioBuffer<float> buffer;
+    int index;
+
+public:
+    IRFFTJob(std::shared_ptr<ConvolutionIRBank> bank, juce::AudioBuffer<float> buf, int irIndex)
+        : ThreadPoolJob("IR FFT " + juce::String(irIndex)), 
+        bank(std::move(bank)), buffer(std::move(buf)), index(irIndex) {
+    }
+
+    JobStatus runJob() override {
+        if (shouldExit()) return jobHasFinished;
+        bank->setIR(index, buffer);
+        return jobHasFinished;
+    }
+
+    std::shared_ptr<ConvolutionIRBank> getBank() { return bank; }
+    int getIRIndex() const { return index; }
+};
 
 /* PRIVATE */
 
@@ -87,115 +110,327 @@ void ControlThread::updateWeights() {
     processBinaural(distanceWeights, relatives); // Inject binaural cues, mutate irWeights
 }
 
-std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
-    auto currentState = std::atomic_load(&convolutionState->state);
-    jassert(currentState && currentState->irBank);
-    auto nextState = std::make_shared<ConvolutionState>();
-
-    // DBG("Building convolution state");
-
-    // Get flags
-    std::deque<int> irsSet, irsCleared, irsActiveStateSet;
-    bool decayChanged, weightsChanged;
-    {
-        juce::SpinLock::ScopedLockType lock(flagLock);
-
-        IRChanges irChanges = irManager.consumeIRChanges();
-        irsSet = std::move(irChanges.irsSet);
-        irsCleared = std::move(irChanges.irsCleared);
-        irsActiveStateSet = std::move(irChanges.irsActiveStateSet);
-        decayChanged = stateFlags.decayChanged;
-        weightsChanged = stateFlags.weightsChanged;
-
-        stateFlags.resetFlags();
-    }
-
-    // IR state
+bool ControlThread::updateIRBank(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState) {
     std::shared_ptr<const ConvolutionIRBank> irBank = currentState->irBank;
-    bool irChanged = !(irsSet.empty() && irsCleared.empty() && irsActiveStateSet.empty());
+    bool irChanged = !(setIRs.empty() && clearedIRs.empty() && activeChangedIRs.empty());
     if (irChanged) {
-        auto nBank = std::make_shared<ConvolutionIRBank>(*currentState->irBank);
+        if (!nextBank) nextBank = std::make_shared<ConvolutionIRBank>(*currentState->irBank);
+        auto& nBank = nextBank;
 
-        std::vector<std::future<void>> irJobs; // Parallelize
+        // Remove finished or requeued jobs
+        {
+            juce::SpinLock::ScopedLockType lock(fftJobLock);
+            for (auto& fftJob : pendingJobs) {
+                for (int irIndex : setIRs) {
+                    if (fftJob.irIndex == irIndex) fftThreadPool.removeJob(fftJob.job, true, 0);
+                }
+            }
 
-        while (!irsSet.empty()) {
-            // loadIR()
-            int irIndex = irsSet.front();
-            irsSet.pop_front();
-            if (validateIRIndex(irIndex)) {
-                DBG("Setting IR " << irIndex);
+            pendingJobs.erase(
+                std::remove_if(pendingJobs.begin(), pendingJobs.end(),
+                    [this](const FFTJob& p) {
+                        return !fftThreadPool.contains(p.job);
+                    }),
+                pendingJobs.end()
+            );
+        }
+
+        // Load IRs
+        if (!setIRs.empty()) {
+            for (int irIndex : setIRs) {
+                if (!validateIRIndex(irIndex)) continue;
+                // DBG("Setting IR " << irIndex);
+                {
+                    juce::SpinLock::ScopedLockType lock(fftJobLock);
+                    if (fftThreadPool.getNumJobs() >= MAX_IR_COUNT) continue;
+                    bool jobPending = std::any_of(pendingJobs.begin(), pendingJobs.end(),
+                        [irIndex](const FFTJob& job) { return job.irIndex == irIndex; });
+                    if (jobPending) continue;
+                }
+
                 auto buffer = irManager.applyWindow(irIndex);
-                irJobs.push_back(std::async(std::launch::async,
-                    [&nBank, buf = std::move(buffer), irIndex]() { nBank->setIR(irIndex, buf); }
-                ));
+                {
+                    juce::SpinLock::ScopedLockType lock(guiState.irWaveformLock);
+                    guiState.irWaveforms[irIndex] = buffer;
+                }
+
+                auto* job = new IRFFTJob(nBank, std::move(buffer), irIndex);
+                {
+                    juce::SpinLock::ScopedLockType lock(fftJobLock);
+                    pendingJobs.push_back({ irIndex, job });
+                }
+                fftThreadPool.addJob(job, true);
+
             }
         }
 
-        while (!irsCleared.empty()) {
-            // clearIR()
-            int irIndex = irsCleared.front();
-            irsCleared.pop_front();
-            if (validateIRIndex(irIndex)) {
-                DBG("Clearing IR " << irIndex);
+        // Clear IRs
+        if (!clearedIRs.empty()) {
+            for (int irIndex : clearedIRs) {
+                if (!validateIRIndex(irIndex)) continue;
+                // DBG("Clearing IR " << irIndex);
                 nBank->clearIR(irIndex);
+                nBank->updateMaxPartitionCount();
             }
         }
 
-        while (!irsActiveStateSet.empty()) {
-            // activateIR()
-            int irIndex = irsActiveStateSet.front();
-            irsActiveStateSet.pop_front();
-            if (validateIRIndex(irIndex)) {
-                DBG("Setting IR active state " << irIndex);
+        // Set IR active states
+        if (!activeChangedIRs.empty()) {
+            for (int irIndex : activeChangedIRs) {
+                if (!validateIRIndex(irIndex)) continue;
+                // DBG("Setting IR active state " << irIndex);
                 const auto& active = irManager.getIRSlot(irIndex).active;
                 nBank->setIRActive(irIndex, active);
             }
         }
 
-        for (auto& job : irJobs) job.get();
-        nBank->updateMaxPartitionCount();
-
+        // Update GUI state
         guiState.irChanged.store(true, std::memory_order_release);
         guiState.updatePosition.store(true, std::memory_order_release);
         guiState.updateField.store(true, std::memory_order_release);
         guiState.updateWeights.store(true, std::memory_order_release);
 
-        irBank = nBank;
+        // Jobs pending, defer mix
+        irBank = currentState->irBank;
+        jobsPending = true;
+        irChanged = false;
+    }
+
+    // Unless no FFT jobs are active
+    if (jobsPending && fftThreadPool.getNumJobs() == 0) {
+        // Then swap in the new bank
+        nextBank->updateMaxPartitionCount();
+        irBank = nextBank;
+        nextBank = nullptr;
+
+        jobsPending = false;
+        irChanged = true; // And allow mixing
+        irManager.getFFTBusy().store(false, std::memory_order_release); // And allow pressing that Celestia-forsaken button again
     }
 
     nextState->irBank = irBank;
+    return irChanged;
+}
+
+void ControlThread::updateMixState(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState, bool irChanged) {
+    auto& nextMixState = nextState->mixState;
+
+    if (decayChanged || irChanged) nextMixState.setDecay(decay, nextState->irBank->getMaxPartitionCount());
+    else nextMixState.irEnvelopes = currentState->mixState.irEnvelopes;
+
+    if (weightsChanged) nextMixState.setWeights(irWeights);
+    else nextMixState.irWeights = currentState->mixState.irWeights;
+
+    if (weightsChanged || decayChanged || irChanged) nextMixState.mixSpectrum(*(nextState->irBank));
+    else nextMixState.mixedSpectra = currentState->mixState.mixedSpectra;
+
+    decayChanged = false;
+    weightsChanged = false;
+}
+
+std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
+    auto currentState = std::atomic_load(&convolutionState->state);
+    jassert(currentState && currentState->irBank);
+
+    // DBG("Building convolution state");
+
+    auto nextState = std::make_shared<ConvolutionState>();
+    bool irChanged = updateIRBank(currentState, nextState);
     jassert(nextState->irBank);
     nextState->prepare();
-
-    // Mix state
-    if (decayChanged || irChanged)
-        nextState->mixState.setDecay(decay, nextState->irBank->getMaxPartitionCount());
-    else
-        nextState->mixState.irEnvelopes = currentState->mixState.irEnvelopes;
-
-    if (weightsChanged)
-        nextState->mixState.setWeights(irWeights);
-    else
-        nextState->mixState.irWeights = currentState->mixState.irWeights;
-
-    if (weightsChanged || decayChanged || irChanged)
-        nextState->mixState.mixSpectrum(*nextState->irBank);
-    else {
-        nextState->mixState.mixedSpectra = currentState->mixState.mixedSpectra;
-    }
-
-    {
-        juce::SpinLock::ScopedLockType lock(flagLock);
-        stateFlags.resetFlags();
-    }
+    updateMixState(currentState, nextState, irChanged);
 
     return nextState;
+}
+
+void ControlThread::updateMotionParameters() {
+    ParameterSettings settings = getParameterSettings(apvts);
+
+    if (!guiState.syncingPosition.load(std::memory_order_acquire)) {
+        motionController.setPositionParameters({
+            settings.positionPattern,
+            settings.positionRate,
+            settings.positionModA,
+            settings.positionModB
+            });
+    }
+
+    if (!guiState.syncingField.load(std::memory_order_acquire)) {
+        motionController.setFieldParameters({
+            MAX_IR_COUNT,
+            apvts.state.getProperty(PropertyID::selectedIR),
+            settings.fieldPattern,
+            settings.fieldRate,
+            settings.fieldModA,
+            settings.fieldModB
+            });
+    }
+}
+
+void ControlThread::updateSwapParameters() {
+    for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
+        float nMin = apvts.getRawParameterValue(ParamID::irSwapMin(ir))->load();
+        float nMax = apvts.getRawParameterValue(ParamID::irSwapMax(ir))->load();
+        irManager.setSwapInterval(ir, nMin, nMax);
+    }
+}
+
+void ControlThread::processIRCommands() {
+    IRCommand cmd;
+    auto* commandQueue = irManager.getCommandQueue();
+    while (commandQueue->try_dequeue(cmd)) {
+        switch (cmd.type) {
+        case IRCommand::IR_CHOOSE: {
+            irManager.chooseIR(cmd.irIndex);
+            break;
+        }
+        case IRCommand::IR_LOAD: {
+            const int irIndex = cmd.irIndex;
+            const juce::File file = cmd.irFile;
+            irManager.irThreadPool.addJob(
+                [this, irIndex, file]() {
+                    juce::AudioBuffer<float> irBuffer = irManager.readIR(file);
+                    irManager.getResultQueue()->enqueue(
+                        IRResult { irIndex, file, std::move(irBuffer) }
+                    );
+                }
+            );
+            break;
+        }
+        case IRCommand::IR_LOAD_RANDOM: {
+            const int irIndex = cmd.irIndex;
+            const auto randomFile = irManager.sampleRandomIR();
+            irManager.irThreadPool.addJob(
+                [this, irIndex, randomFile]() {
+                    juce::AudioBuffer<float> irBuffer = irManager.readIR(randomFile);
+                    irManager.getResultQueue()->enqueue(
+                        IRResult { irIndex, randomFile, std::move(irBuffer) }
+                    );
+                }
+            );
+            break;
+        }
+        case IRCommand::IR_LOAD_RANDOM_ALL: {
+            for (int i = 0; i < MAX_IR_COUNT; ++i) {
+                const int irIndex = i;
+                const auto randomFile = irManager.sampleRandomIR();
+                irManager.getFFTBusy().store(true, std::memory_order_release);
+                irManager.irThreadPool.addJob(
+                    [this, irIndex, randomFile]() {
+                        juce::AudioBuffer<float> irBuffer = irManager.readIR(randomFile);
+                        irManager.getResultQueue()->enqueue(
+                            IRResult{ irIndex, randomFile, std::move(irBuffer) }
+                        );
+                    }
+                );
+            }
+            break;
+        }
+        case IRCommand::IR_CLEAR: {
+            irManager.clearIR(cmd.irIndex);
+            break;
+        }
+        case IRCommand::IR_CLEAR_ALL: {
+            irManager.clearIRs();
+            break;
+        }
+        case IRCommand::IR_SET_ACTIVE_STATE: {
+            irManager.setIRActive(cmd.irIndex, cmd.irActiveState);
+            break;
+        }
+        case IRCommand::IR_SET_WINDOW: {
+            irManager.setWindow(cmd.irIndex, cmd.windowStart, cmd.windowLength);
+            break;
+        }
+        case IRCommand::IR_SET_ENVELOPE: {
+            irManager.setEnvelope(cmd.irIndex, cmd.envelopeType, cmd.envelopeAttack, cmd.envelopeRelease);
+            break;
+        }
+        case IRCommand::IR_SET_SWAP_ACTIVE: {
+            irManager.setSwapActive(cmd.irIndex, cmd.swapActiveState);
+            break;
+        }
+        case IRCommand::IR_SET_SWAP_INTERVAL: {
+            irManager.setSwapInterval(cmd.irIndex, cmd.swapMinTime, cmd.swapMaxTime);
+            break;
+        }
+        case IRCommand::IR_DIRECTORY_CHOOSE: {
+            irManager.chooseIRDirectory();
+            break;
+        }
+        case IRCommand::IR_DIRECTORY_ADD: {
+            irManager.addIRDirectory(cmd.irDirectory);
+            break;
+        }
+        case IRCommand::IR_DIRECTORY_REMOVE: {
+            irManager.removeIRDirectory(cmd.irDirectoryIndex);
+            break;
+        }
+        case IRCommand::IR_DIRECTORY_SET_ACTIVE_STATE: {
+            irManager.setIRDirectoryActive(cmd.irDirectoryIndex, cmd.irDirectoryActiveState);
+            break;
+        }
+        case IRCommand::IR_DIRECTORY_REFRESH: {
+            irManager.collectIRs();
+            break;
+        }
+        case IRCommand::SET_SAMPLING_MODE: {
+            irManager.setSamplingMode(cmd.samplingMode);
+            break;
+        }
+        default:
+            continue;
+        }
+    }
+}
+
+void ControlThread::processIRResults() {
+    IRResult result;
+    auto* resultQueue = irManager.getResultQueue();
+
+    auto startTime = std::chrono::steady_clock::now();
+    const int deadlineMs = 5;
+
+    while (resultQueue->try_dequeue(result)) {
+        irManager.setIR(result.irIndex, result.file, result.buffer);
+        if ((std::chrono::steady_clock::now() - startTime) > std::chrono::milliseconds(deadlineMs)) break;
+    }
+}
+
+void ControlThread::processIRUpdates() {
+    setIRs.clear();
+    clearedIRs.clear();
+    activeChangedIRs.clear();
+
+    IRUpdate update;
+    auto* updateQueue = irManager.getUpdateQueue();
+
+    while (updateQueue->try_dequeue(update)) {
+        switch (update.type) {
+            case IRUpdate::IR_SET: {
+                setIRs.push_back(update.irIndex);
+                break;
+            }
+            case IRUpdate::IR_CLEAR: {
+                clearedIRs.push_back(update.irIndex);
+                break;
+            }
+            case IRUpdate::IR_ACTIVE_CHANGED: {
+                activeChangedIRs.push_back(update.irIndex); 
+                break;
+            }
+        }
+    }
 }
 
 std::shared_ptr<ConvolutionState> ControlThread::runControlCycle(float dt) {
     advancePhase(dt);
 
-    if (!guiState.syncingSwap.load(std::memory_order_acquire)) irManager.advanceSwapTimers(dt);
+    // Swap timers
+    updateSwapParameters();
+    if (!guiState.syncingSwap.load(std::memory_order_acquire)) {
+        irManager.advanceSwapTimers(dt);
+    }
 
     // Position + field
     updateMotionParameters();
@@ -218,8 +453,7 @@ std::shared_ptr<ConvolutionState> ControlThread::runControlCycle(float dt) {
     float nDecay = apvts.getRawParameterValue(ParamID::decay)->load();
     if (nDecay != decay) {
         decay = nDecay;
-        juce::SpinLock::ScopedLockType lock(flagLock);
-        stateFlags.decayChanged = true;
+        decayChanged = true;
     }
 
     // Weights
@@ -228,47 +462,26 @@ std::shared_ptr<ConvolutionState> ControlThread::runControlCycle(float dt) {
 
         polarMap.computeRelatives();
         updateWeights();
-        juce::SpinLock::ScopedLockType lock(flagLock);
-        stateFlags.weightsChanged = true;
+        weightsChanged = true;
     }
 
-    // Build state
+    // Process IR state
+    processIRCommands();
+    processIRResults();
+    processIRUpdates();
+
+    // Build final state
     return buildConvolutionState();
 }
 
 /* PUBLIC */
 
-ControlThread::ControlThread(const juce::AudioProcessorValueTreeState& a, IRManager& m, GUIState& g, std::shared_ptr<ConvolutionStateHolder> c) :
-    juce::Thread("Control Thread"), 
+ControlThread::ControlThread(const juce::AudioProcessorValueTreeState& apvts, IRManager& manager, 
+    GUIState& gState, std::shared_ptr<ConvolutionStateHolder> cState) : juce::Thread("Control Thread"),
+    apvts(apvts), irManager(manager), 
+    guiState(gState), convolutionState(cState),
     motionController(&polarMap, &positionTime, &fieldTime),
-    irManager(m), 
-    apvts(a),
-    guiState(g),
-    convolutionState(c) {}
-
-void ControlThread::updateMotionParameters() {
-    ParameterSettings settings = getParameterSettings(apvts);
-
-    if (!guiState.syncingPosition.load(std::memory_order_acquire)) {
-        motionController.setPositionParameters({
-            settings.positionPattern,
-            settings.positionRate,
-            settings.positionModA,
-            settings.positionModB
-        });
-    }
-
-    if (!guiState.syncingField.load(std::memory_order_acquire)) {
-        motionController.setFieldParameters({
-            MAX_IR_COUNT,
-            apvts.state.getProperty(PropertyID::selectedIR),
-            settings.fieldPattern,
-            settings.fieldRate,
-            settings.fieldModA,
-            settings.fieldModB
-        });
-    }
-}
+    fftThreadPool() {}
 
 void ControlThread::run() {
     lastTick = std::chrono::steady_clock::now();
@@ -288,6 +501,9 @@ void ControlThread::run() {
         // DBG("Control cycle: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count() << " ms");
         auto remainingTime = std::chrono::duration<double>(1.0f / CONTROL_RATE) - elapsedTime;
         // DBG("Headroom: " << std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count() << " ms");
+        auto headroomMs = std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count();
+        if (headroomMs < 0) DBG("Control deadline(s) missed: " << headroomMs << " ms");
+
         if (remainingTime > std::chrono::duration<double>::zero()) 
             wait(static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count()));
     }

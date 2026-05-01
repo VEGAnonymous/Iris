@@ -13,7 +13,7 @@ private:
 	MareverbAudioProcessor& audioProcessor;
 
 	int currentIndex = 0;
-	IRSlot currentIR {};
+	IRSlotLite currentIR {};
 	juce::String currentPath = "";
 
 	AnimatedValue indicatorActiveAnim;
@@ -29,7 +29,7 @@ public:
 	IRHeaderComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater);
 	~IRHeaderComponent() override = default;
 
-	void setSlot(int irIndex, const IRSlot& slot);
+	void setSlot(int irIndex, const IRSlotLite slot);
 	void setActive(bool nActive, bool animate = false);
 
 	void paint(juce::Graphics& g) override;

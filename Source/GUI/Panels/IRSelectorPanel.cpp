@@ -13,7 +13,10 @@ void IRSelectorPanel::prepare() {
         slotButton->setClickingTogglesState(true);
 
         slotButton->onActiveToggle = [this, i](bool active) {
-            audioProcessor.getIRManager()->setIRActive(i, active);
+            IRCommand cmd = { IRCommand::IR_SET_ACTIVE_STATE };
+            cmd.irIndex = i;
+            cmd.irActiveState = active;
+            audioProcessor.getIRManager()->enqueueCommand(cmd);
             audioProcessor.guiState.updateField.store(true, std::memory_order_release);
             };
 
@@ -30,14 +33,20 @@ void IRSelectorPanel::prepare() {
 
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
         slotButton->setOccupied(slot.occupied);
-        if (slot.occupied) slotButton->setWaveform(&slot.buffer, audioProcessor.getSampleRate());
+        {
+            juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.irWaveformLock);
+            const auto& waveform = audioProcessor.guiState.irWaveforms[i];
+            if (slot.occupied) slotButton->setWaveform(&waveform, audioProcessor.getSampleRate());
+        }
         addAndMakeVisible(*slotButton);
 
         // Drag and drop callbacks
         slotButton->dragHandler.onFileDropped = [this, i, switchSelectedIR](const juce::File& file) {
             switchSelectedIR();
-            audioProcessor.getIRManager()->loadIR(i, file);
-            };
+            IRCommand cmd = { IRCommand::IR_LOAD, i };
+            cmd.irFile = file;
+            audioProcessor.getIRManager()->enqueueCommand(cmd);
+        };
 
         slotButton->dragHandler.fileFilter = [this](const juce::File& file) {
             juce::String extension = file.getFileExtension();
@@ -51,12 +60,12 @@ void IRSelectorPanel::prepare() {
                 }
             }
             return matched;
-            };
+        };
 
         slotButton->dragHandler.onHoverChanged = [this, slotButton](bool hovering) {
             slotButton->dragHover.setValue(hovering ? 1.0f : 0.0f);
             slotButton->setMouseCursor(hovering ? juce::MouseCursor::CopyingCursor : juce::MouseCursor::NormalCursor);
-            };
+        };
     }
 
     int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);

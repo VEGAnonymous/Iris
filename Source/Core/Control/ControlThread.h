@@ -9,16 +9,6 @@
 #include <JuceHeader.h>
 #include <chrono>
 
-struct ConvolutionStateFlags {
-    bool decayChanged = false;
-    bool weightsChanged = false;
-
-    void resetFlags() {
-        decayChanged = false;
-        weightsChanged = false;
-    }
-};
-
 class ControlThread : public juce::Thread {
 private:
     const juce::AudioProcessorValueTreeState& apvts;
@@ -30,12 +20,19 @@ private:
     MotionController motionController;
 
     // Convolution state
-    ConvolutionStateFlags stateFlags;
+    bool decayChanged = false;
+    bool weightsChanged = false;
+
+    std::vector<int> setIRs;
+    std::vector<int> clearedIRs;
+    std::vector<int> activeChangedIRs;
+
     std::shared_ptr<ConvolutionStateHolder> convolutionState;
+
+    bool updateIRBank(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState);
+    void updateMixState(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState, bool irChanged);
     
     std::shared_ptr<ConvolutionState> buildConvolutionState();
-
-    float decay = -1.0f;
 
     // Time
     float positionTime = 0.0f;
@@ -46,17 +43,38 @@ private:
     // Weights
     void processBinaural(const std::array<float, MAX_IR_COUNT>& rawWeights, const std::vector<PolarCoordinate>& relatives);
     void updateWeights();
+
+    float decay = -1.0f;
     std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS> irWeights {}; // Local copy
 
     // Concurrency
-    juce::SpinLock flagLock;
+    juce::SpinLock fftJobLock;
+
+    struct FFTJob {
+        int irIndex;
+        juce::ThreadPoolJob* job;
+    };
+
+    juce::ThreadPool fftThreadPool ;
+    std::shared_ptr<ConvolutionIRBank> nextBank;
+
+    std::vector<FFTJob> pendingJobs;
+    bool jobsPending = false;
+
+    void processIRCommands();
+    void processIRResults();
+    void processIRUpdates();
+
+    // Control cycle
+    void updateMotionParameters();
+    void updateSwapParameters();
+
     std::shared_ptr<ConvolutionState> runControlCycle(float dt);
 
 public:
-    ControlThread(const juce::AudioProcessorValueTreeState& a, IRManager& m, GUIState& g, std::shared_ptr<ConvolutionStateHolder> c);
+    ControlThread(const juce::AudioProcessorValueTreeState& apvts, IRManager& manager, 
+        GUIState& gState, std::shared_ptr<ConvolutionStateHolder> cState);
     ~ControlThread() = default;
-
-    void updateMotionParameters();
 
     void run() override;
 };

@@ -85,7 +85,7 @@ EnvelopeControl::~EnvelopeControl() {
     typeSelector.setLookAndFeel(nullptr);
 }
 
-void EnvelopeControl::setSlot(const IRSlot& slot) {
+void EnvelopeControl::setSlot(const IRSlotLite slot) {
     updatingSlot = true; // Block callback while updating
 
     envelope = slot.window.envelope;

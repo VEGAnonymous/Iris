@@ -304,7 +304,8 @@ void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates
         fieldSelectionStates[i].setValue((i == selectedIR) ? 1.0f : 0.0f);
     }
 
-    if (dragTarget != DragTarget::FIELD) applyHoverState(getHoverState(getMouseXYRelative().toFloat()));
+    const auto& p = getMouseXYRelative().toFloat();
+    if (dragTarget == DragTarget::NONE && !hitPosition(p)) { applyHoverState(getHoverState(p)); }
 
     // Repaint at new bounds
     fieldCoordinates = std::move(nCoordinates);

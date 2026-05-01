@@ -38,7 +38,7 @@ public:
     EnvelopeControl();
     ~EnvelopeControl() override;
 
-    void setSlot(const IRSlot& slot);
+    void setSlot(const IRSlotLite slot);
 
     void paint(juce::Graphics& g) override;
     void resized() override;
