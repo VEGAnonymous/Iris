@@ -23,11 +23,12 @@ private:
     std::unique_ptr<juce::FileChooser> irFileChooser;
     std::unique_ptr<juce::FileChooser> irDirectoryChooser;
 
+    inline bool validateIRDirectory(const juce::File& dir) const;
     void saveDirectories();
     void loadDirectories();
 
     // Utilities
-    void IRManager::computeEnvelope(IRSlot& slot);
+    void computeEnvelope(IRSlot& slot);
 
     // Concurrency
     juce::SpinLock irLock;

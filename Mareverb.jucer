@@ -3,7 +3,7 @@
 <JUCERPROJECT id="Zdvz2w" name="Mareverb" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" defines="JUCE_USE_FLAC=1&#10;JUCE_USE_MP3AUDIOFORMAT=1&#10;JUCE_USE_OGGVORBIS=1"
               bundleIdentifier="lyra.mare.Mareverb" companyEmail="lyranonymous@protonmail.com"
-              companyName="Eponymous DSP" pluginManufacturerCode="Mare">
+              companyName="Eponymous DSP" pluginManufacturerCode="Mare" headerPath="..\..\Source&#10;..\..\lib">
   <MAINGROUP id="uSBxoM" name="Mareverb">
     <GROUP id="{52C29717-2BB5-4F62-25D3-FC09807A17AA}" name="Source">
       <GROUP id="{E8E09355-96DE-4999-837E-A4DC15ED52BC}" name="Core">
@@ -21,6 +21,7 @@
           <FILE id="g9UPJQ" name="ControlThread.cpp" compile="1" resource="0"
                 file="Source/Core/Control/ControlThread.cpp"/>
           <FILE id="h4NZuy" name="ControlThread.h" compile="0" resource="0" file="Source/Core/Control/ControlThread.h"/>
+          <FILE id="NB2jKC" name="IRDefines.h" compile="0" resource="0" file="Source/Core/Control/IRDefines.h"/>
           <FILE id="y1pRDt" name="IRManager.cpp" compile="1" resource="0" file="Source/Core/Control/IRManager.cpp"/>
           <FILE id="VRVSeu" name="IRManager.h" compile="0" resource="0" file="Source/Core/Control/IRManager.h"/>
           <FILE id="efG5sR" name="MotionController.cpp" compile="1" resource="0"
@@ -245,8 +246,9 @@
   <EXPORTFORMATS>
     <VS2022 targetFolder="Builds/VisualStudio2022">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="Mareverb" headerPath="..\..\Source&#10;..\..\lib"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="Mareverb" headerPath="..\..\Source&#10;..\..\lib"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="Mareverb" extraCompilerFlags="/W4&#10;/RTC1&#10;/MDd&#10;/D_DEBUG"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="Mareverb" extraLinkerFlags="/LTCG&#10;/OPT:REF&#10;/OPT:ICF"
+                       extraCompilerFlags="/O2&#10;/Ob2&#10;/Oi&#10;/GL&#10;/Gy&#10;/MD&#10;/DNDEBUG&#10;/fp:fast"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_animation" path="../../../../../../../Program Files/JUCE/modules"/>

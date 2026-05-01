@@ -128,8 +128,8 @@ bool ControlThread::updateIRBank(const std::shared_ptr<ConvolutionState>& curren
 
             pendingJobs.erase(
                 std::remove_if(pendingJobs.begin(), pendingJobs.end(),
-                    [this](const FFTJob& p) {
-                        return !fftThreadPool.contains(p.job);
+                    [this](const FFTJob& pending) {
+                        return !fftThreadPool.contains(pending.job);
                     }),
                 pendingJobs.end()
             );
@@ -232,8 +232,6 @@ std::shared_ptr<ConvolutionState> ControlThread::buildConvolutionState() {
     auto currentState = std::atomic_load(&convolutionState->state);
     jassert(currentState && currentState->irBank);
 
-    // DBG("Building convolution state");
-
     auto nextState = std::make_shared<ConvolutionState>();
     bool irChanged = updateIRBank(currentState, nextState);
     jassert(nextState->irBank);
@@ -280,10 +278,6 @@ void ControlThread::processIRCommands() {
     auto* commandQueue = irManager.getCommandQueue();
     while (commandQueue->try_dequeue(cmd)) {
         switch (cmd.type) {
-        case IRCommand::IR_CHOOSE: {
-            irManager.chooseIR(cmd.irIndex);
-            break;
-        }
         case IRCommand::IR_LOAD: {
             const int irIndex = cmd.irIndex;
             const juce::File file = cmd.irFile;
@@ -298,6 +292,8 @@ void ControlThread::processIRCommands() {
             break;
         }
         case IRCommand::IR_LOAD_RANDOM: {
+            if (irManager.getIRDirectories().empty()) return;
+
             const int irIndex = cmd.irIndex;
             const auto randomFile = irManager.sampleRandomIR();
             irManager.irThreadPool.addJob(
@@ -311,6 +307,8 @@ void ControlThread::processIRCommands() {
             break;
         }
         case IRCommand::IR_LOAD_RANDOM_ALL: {
+            if (irManager.getIRDirectories().empty()) return;
+
             for (int i = 0; i < MAX_IR_COUNT; ++i) {
                 const int irIndex = i;
                 const auto randomFile = irManager.sampleRandomIR();
@@ -352,10 +350,6 @@ void ControlThread::processIRCommands() {
         }
         case IRCommand::IR_SET_SWAP_INTERVAL: {
             irManager.setSwapInterval(cmd.irIndex, cmd.swapMinTime, cmd.swapMaxTime);
-            break;
-        }
-        case IRCommand::IR_DIRECTORY_CHOOSE: {
-            irManager.chooseIRDirectory();
             break;
         }
         case IRCommand::IR_DIRECTORY_ADD: {
@@ -494,13 +488,11 @@ void ControlThread::run() {
         // Update state
         auto nextState = runControlCycle(dt);
         std::atomic_store(&convolutionState->state, nextState);
-        // DBG("Stored state");
 
         // eepy
         auto elapsedTime = std::chrono::steady_clock::now() - startTime;
         // DBG("Control cycle: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count() << " ms");
         auto remainingTime = std::chrono::duration<double>(1.0f / CONTROL_RATE) - elapsedTime;
-        // DBG("Headroom: " << std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count() << " ms");
         auto headroomMs = std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count();
         if (headroomMs < 0) DBG("Control deadline(s) missed: " << headroomMs << " ms");
 

@@ -81,7 +81,6 @@ struct IRDirectoryFiles {
 
 struct IRCommand {
     enum CommandType {
-        IR_CHOOSE,
         IR_LOAD,
         IR_LOAD_RANDOM,
         IR_LOAD_RANDOM_ALL,
@@ -93,7 +92,6 @@ struct IRCommand {
         IR_SET_SWAP_ACTIVE,
         IR_SET_SWAP_INTERVAL,
 
-        IR_DIRECTORY_CHOOSE,
         IR_DIRECTORY_ADD,
         IR_DIRECTORY_REMOVE,
         IR_DIRECTORY_SET_ACTIVE_STATE,

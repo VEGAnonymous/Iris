@@ -23,8 +23,7 @@ DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& pro
     addAndMakeVisible(removeButton);
 
     addButton.onClick = [this]() {
-        IRCommand cmd = { IRCommand::IR_DIRECTORY_CHOOSE };
-        audioProcessor.getIRManager()->enqueueCommand(cmd);
+        audioProcessor.getIRManager()->chooseIRDirectory();
     };
 
     removeButton.onClick = [this]() {

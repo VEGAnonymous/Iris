@@ -3,6 +3,13 @@
 
 /* PRIVATE */
 
+bool IRManager::validateIRDirectory(const juce::File& dir) const {
+    return (dir.isDirectory()
+        && !dir.isRoot()
+        && dir.hasReadAccess()
+        && !dir.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats()).isEmpty());
+}
+
 void IRManager::saveDirectories() {
     auto* properties = applicationProperties->getUserSettings();
     if (!properties) return;
@@ -24,10 +31,12 @@ void IRManager::loadDirectories() {
     for (int i = 0; i < dirCount; ++i) {
         juce::File dir(properties->getValue("irDirectory_" + juce::String(i)));
         bool active = properties->getBoolValue("irDirectoryActive_" + juce::String(i), true);
-        if (dir.isDirectory()) irDirectories.push_back({ dir, active });
+        if (validateIRDirectory(dir)) irDirectories.push_back({ dir, active });
     }
     collectIRs();
 }
+
+// Utilities
 
 void IRManager::computeEnvelope(IRSlot& slot) {
     if (slot.buffer.getNumSamples() == 0) return;
@@ -79,21 +88,24 @@ void IRManager::collectIRs() {
     }
 }
 
-void IRManager::chooseIR(int irIndex) {
+void IRManager::chooseIR(int irIndex) { // Only to be called from the message thread!
     irFileChooser = std::make_unique<juce::FileChooser>(
         "Load an impulse response...", juce::File{}, formatManager.getWildcardForAllFormats());
+    const juce::MessageManagerLock mmLock;
     irFileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
         [this, irIndex](const juce::FileChooser& fileChooser) {
             if (fileChooser.getResults().isEmpty()) return;
             IRCommand cmd = IRCommand{ IRCommand::IR_LOAD, irIndex };
             cmd.irFile = fileChooser.getResult();
             enqueueCommand(cmd);
-        });
+        }
+    );
 }
 
-void IRManager::chooseIRDirectory() {
+void IRManager::chooseIRDirectory() { // Only to be called from the message thread!
     irDirectoryChooser = std::make_unique<juce::FileChooser>(
         "Choose IR directories...", juce::File{});
+    const juce::MessageManagerLock mmLock;
     irDirectoryChooser->launchAsync(
         juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories | juce::FileBrowserComponent::canSelectMultipleItems,
         [this](const juce::FileChooser& fileChooser) {
@@ -101,7 +113,7 @@ void IRManager::chooseIRDirectory() {
 
             auto dirs = fileChooser.getResults();
             for (juce::File& dir : dirs) {
-                if (dir.isRoot() || !dir.hasReadAccess()) {
+                if (!validateIRDirectory(dir)) {
                     // TODO: Apply look and feel to alert window
                     // juce::AlertWindow whoops("Oops...My bad!", "I just don't know what went wrong!", juce::MessageBoxIconType::WarningIcon);
                     // whoops.showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Oops...My bad!", "I just don't know what went wrong!", "Muffin?");
@@ -118,11 +130,12 @@ void IRManager::chooseIRDirectory() {
                 for (int i = static_cast<int>(irDirectories.size()) - 1; i >= 0; --i) // Iterate backwards since removal shifts indices
                     if (irDirectories[i].irDirectory.isAChildOf(dir)) removeIRDirectory(i);
             }
-        });
+        }
+    );
 }
 
 void IRManager::addIRDirectory(juce::File dir) {
-    if (dir.isDirectory()) {
+    if (validateIRDirectory(dir)) {
         irDirectories.push_back({ dir, true });
         collectIRs();
         saveDirectories();
@@ -148,9 +161,7 @@ void IRManager::setIRDirectoryActive(int index, bool nState) {
 
 juce::AudioBuffer<float> IRManager::readIR(juce::File irFile) {
     // Create reader for file
-    jassert(irFile.existsAsFile());
     std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(irFile));
-    jassert(reader);
     if (!reader) return juce::AudioBuffer<float> {};
 
     // Read IR buffer
