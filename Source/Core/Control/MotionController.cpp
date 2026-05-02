@@ -13,7 +13,7 @@ PolarCoordinate MotionController::randomDiscrete(PositionParameters positionPara
     float radius = positionParameters.positionModA;
     float smoothing = juce::jmap(1.0f - positionParameters.positionModB, 0.05f, 1.0f);
 
-    const float probabilityScale = 0.05f;
+    const float probabilityScale = 0.0126f;
     float probability = std::fabs(positionParameters.positionRate) * probabilityScale;
 
     if (randFloat() < probability && !hasTarget) {
@@ -41,7 +41,7 @@ PolarCoordinate MotionController::randomWalk(PositionParameters positionParamete
     CartesianCoordinate& velocity = positionState.walkVelocity;
     CartesianCoordinate p = polarToCartesian(positionState.currentPosition);
 
-    const float rateScale = 0.01f;
+    const float rateScale = 0.00621f;
     const float step = positionParameters.positionRate * rateScale;
 
     const float damping = juce::jmap(positionParameters.positionModA * positionParameters.positionModA, 0.85f, 0.98f);

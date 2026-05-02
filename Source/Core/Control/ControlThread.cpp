@@ -8,7 +8,7 @@
 // Time
 
 void ControlThread::advancePhase(float dt) {
-    constexpr float positionRateScale = 0.2f, fieldRateScale = 0.05f;
+    constexpr float positionRateScale = 0.1f, fieldRateScale = 0.035f;
 
     const float positionFreq = apvts.getRawParameterValue(ParamID::positionRate)->load() * positionRateScale;
     const float fieldFreq = apvts.getRawParameterValue(ParamID::fieldRate)->load() * fieldRateScale;
