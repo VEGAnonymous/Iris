@@ -3,6 +3,7 @@
 #include "Core/Defines.h"
 #include "GUI/Theme/MareverbAssets.h"
 #include "GUI/Theme/MareverbFonts.h"
+#include "GUI/Theme/MareverbMaresAlt.h"
 #include "GUI/Theme/MareverbMaresMain.h"
 
 #include <JuceHeader.h>
@@ -143,7 +144,7 @@ namespace Theme {
                 return juce::ImageCache::getFromMemory(mare, mareSize);
             }
 
-            return juce::Image();
+            return juce::ImageCache::getFromMemory(MareverbMaresAlt::anonfilly_gif, MareverbMaresAlt::anonfilly_gifSize);
         }
     }
 }

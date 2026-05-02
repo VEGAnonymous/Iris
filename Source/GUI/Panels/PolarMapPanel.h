@@ -12,7 +12,7 @@ class MareverbAudioProcessor;
 
 class PolarMapPanel : public juce::Component {
 private:
-    static constexpr auto MAP_INSET = 8;
+    static constexpr auto MAP_INSET = 18;
     static constexpr auto HIT_RADIUS = 6.0f;
 
     MareverbAudioProcessor& audioProcessor;

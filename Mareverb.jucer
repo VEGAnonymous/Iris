@@ -217,6 +217,10 @@
           <FILE id="sSBKWk" name="MareverbFonts.cpp" compile="1" resource="0"
                 file="Source/GUI/Theme/MareverbFonts.cpp"/>
           <FILE id="XmA8t9" name="MareverbFonts.h" compile="0" resource="0" file="Source/GUI/Theme/MareverbFonts.h"/>
+          <FILE id="xo9zyE" name="MareverbMaresAlt.cpp" compile="1" resource="0"
+                file="Source/GUI/Theme/MareverbMaresAlt.cpp"/>
+          <FILE id="Alpwmr" name="MareverbMaresAlt.h" compile="0" resource="0"
+                file="Source/GUI/Theme/MareverbMaresAlt.h"/>
           <FILE id="McXqk1" name="MareverbMaresMain.cpp" compile="1" resource="0"
                 file="Source/GUI/Theme/MareverbMaresMain.cpp"/>
           <FILE id="S6VNV3" name="MareverbMaresMain.h" compile="0" resource="0"
