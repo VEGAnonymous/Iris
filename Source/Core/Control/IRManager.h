@@ -18,7 +18,7 @@ private:
     std::array<IRSlot, MAX_IR_COUNT> irSlots;
 
     std::vector<IRDirectory> irDirectories;
-    std::vector<IRDirectoryFiles> irDirectoryFiles;
+    std::shared_ptr<std::vector<IRDirectoryFiles>> irDirectoryFiles { std::make_shared<std::vector<IRDirectoryFiles>>() };
 
     juce::Random irRNG;
     IRSamplingMode rngMode = IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES;

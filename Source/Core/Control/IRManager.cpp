@@ -80,16 +80,20 @@ void IRManager::prepare() {
 void IRManager::enqueueCommand(IRCommand cmd) { irCommandQueue.enqueue(cmd); }
 
 void IRManager::collectIRs() {
-    irDirectoryFiles.clear();
-    for (const auto& dir : irDirectories) {
-        if (!dir.active || !dir.irDirectory.isDirectory()) continue;
+    irThreadPool.addJob([this]() {
+        auto newFiles = std::make_shared<std::vector<IRDirectoryFiles>>();
+        for (const auto& dir : irDirectories) {
+            if (!dir.active || !dir.irDirectory.isDirectory()) continue;
 
-        IRDirectoryFiles directoryFiles;
-        directoryFiles.dir = dir;
-        directoryFiles.files = dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats());
+            IRDirectoryFiles directoryFiles;
+            directoryFiles.dir = dir;
+            directoryFiles.files = dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats());
 
-        if (!directoryFiles.files.isEmpty()) irDirectoryFiles.push_back(std::move(directoryFiles));
-    }
+            if (!directoryFiles.files.isEmpty()) newFiles->push_back(std::move(directoryFiles));
+        }
+        std::atomic_store(&irDirectoryFiles, newFiles);
+        directoryChanged.store(true, std::memory_order_release);
+    });
 }
 
 void IRManager::chooseIR(int irIndex) { // Only to be called from the message thread!
@@ -209,12 +213,12 @@ void IRManager::setIR(int irIndex, juce::File irFile, juce::AudioBuffer<float>& 
 
 juce::File IRManager::sampleRandomIR() { return sampleRandomIR(rngMode); }
 juce::File IRManager::sampleRandomIR(IRSamplingMode mode) {
-    if (irDirectoryFiles.empty()) return juce::File();
+    if ((*irDirectoryFiles).empty()) return juce::File();
 
     switch (mode) {
         case IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES: {
-            const int directoryIndex = irRNG.nextInt(static_cast<int>(irDirectoryFiles.size()));
-            const auto& dir = irDirectoryFiles[directoryIndex];
+            const int directoryIndex = irRNG.nextInt(static_cast<int>((*irDirectoryFiles).size()));
+            const auto& dir = (*irDirectoryFiles)[directoryIndex];
             if (dir.files.isEmpty()) return juce::File();
 
             int fileIndex = -1;
@@ -228,7 +232,7 @@ juce::File IRManager::sampleRandomIR(IRSamplingMode mode) {
         default:
         case IRSamplingMode::UNIFORM_ACROSS_ALL_FILES: {
             int totalFiles = 0;
-            for (const auto& dir : irDirectoryFiles) totalFiles += dir.files.size();
+            for (const auto& dir : *irDirectoryFiles) totalFiles += dir.files.size();
             if (totalFiles == 0) return juce::File();
 
             int fileIndex = -1;
@@ -237,7 +241,7 @@ juce::File IRManager::sampleRandomIR(IRSamplingMode mode) {
                 fileIndex = irRNG.nextInt(totalFiles);
                 jassert(fileIndex >= 0);
             }
-            for (const auto& dir : irDirectoryFiles) {
+            for (const auto& dir : *irDirectoryFiles) {
                 if (fileIndex < dir.files.size()) return dir.files[fileIndex];
                 fileIndex -= dir.files.size();
             }
