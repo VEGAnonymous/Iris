@@ -75,7 +75,7 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
                 slotButton->setOccupied(slot.occupied);
                 slotButton->setActive(slot.active);
-                slotButton->setWaveform(slot.occupied ? &waveform : nullptr, audioProcessor.getSampleRate());
+                slotButton->setWaveform(slot.occupied ? waveform.get()  : nullptr, audioProcessor.getSampleRate());
             }
         }
 

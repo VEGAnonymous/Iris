@@ -4,16 +4,18 @@
 class IRFFTJob : public juce::ThreadPoolJob {
 private:
     std::shared_ptr<ConvolutionIRBank> bank;
-    juce::AudioBuffer<float> buffer;
+    IRManager& irManager;
     int index;
 
 public:
-    IRFFTJob(std::shared_ptr<ConvolutionIRBank> bank, juce::AudioBuffer<float> buf, int irIndex)
+    IRFFTJob(std::shared_ptr<ConvolutionIRBank> bank, IRManager& irManager, int irIndex)
         : ThreadPoolJob("IR FFT " + juce::String(irIndex)),
-        bank(std::move(bank)), buffer(std::move(buf)), index(irIndex) {
+        bank(std::move(bank)), irManager(irManager), index(irIndex) {
     }
 
     JobStatus runJob() override {
+        if (shouldExit()) return jobHasFinished;
+        auto buffer = irManager.applyWindow(index);
         if (shouldExit()) return jobHasFinished;
         bank->setIR(index, buffer);
         return jobHasFinished;
@@ -63,8 +65,7 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
                     if (jobPending) continue;
                 }
 
-                auto buffer = irManager.applyWindow(irIndex);
-                auto* job = new IRFFTJob(nBank, std::move(buffer), irIndex);
+                auto* job = new IRFFTJob(nBank, irManager, irIndex);
                 {
                     juce::SpinLock::ScopedLockType lock(fftJobLock);
                     pendingJobs.push_back({ irIndex, job });
@@ -115,7 +116,7 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
 
         jobsPending = false;
         irChanged = true; // And allow mixing
-        irManager.getFFTBusy().store(false, std::memory_order_release); // And allow pressing that Celestia-forsaken button again
+        irManager.getBusyLoading().store(false, std::memory_order_release); // And allow pressing that Celestia-forsaken button again
     }
 
     nextState->irBank = irBank;
@@ -129,7 +130,7 @@ void ConvolutionStateBuilder::updateMixState(const std::shared_ptr<ConvolutionSt
 
     if (decayChanged || irChanged) nextMixState.setDecay(decay, nextState->irBank->getMaxPartitionCount());
     else nextMixState.irEnvelopes = currentState->mixState.irEnvelopes;
-
+    
     if (weightsChanged) nextMixState.setWeights(irWeights);
     else nextMixState.irWeights = currentState->mixState.irWeights;
 

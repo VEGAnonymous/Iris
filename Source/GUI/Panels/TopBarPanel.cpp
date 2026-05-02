@@ -7,7 +7,7 @@ void TopBarPanel::prepare() {
     // Randomize / clear all buttons
     randomAllButton.setButtonText("RANDOM ALL");
     randomAllButton.onClick = [irManager = audioProcessor.getIRManager()]() {
-        if (irManager->getFFTBusy().load(std::memory_order_acquire)) return; // NICE TRY
+        if (irManager->getBusyLoading().load(std::memory_order_acquire)) return; // NICE TRY
         IRCommand cmd = { IRCommand::IR_LOAD_RANDOM_ALL };
         irManager->enqueueCommand(cmd);
     };

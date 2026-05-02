@@ -30,7 +30,7 @@ private:
         juce::ThreadPoolJob* job;
     };
 
-    juce::ThreadPool fftThreadPool;
+    juce::ThreadPool fftThreadPool {2};
     std::shared_ptr<ConvolutionIRBank> nextBank;
 
     std::vector<FFTJob> pendingJobs;

@@ -36,14 +36,16 @@ private:
     // Concurrency
     juce::SpinLock irLock;
     std::atomic<bool> directoryChanged{ false };
-    std::atomic<bool> fftBusy{ false };
+    std::atomic<bool> busyLoading { false };
+    std::atomic<bool> busyCollecting { false };
+    std::atomic<bool> collectPending { false };
 
     moodycamel::ConcurrentQueue<IRCommand> irCommandQueue; // Forward requests
     moodycamel::ConcurrentQueue<IRResult> irResultQueue; // Forward worker output
     moodycamel::ConcurrentQueue<IRUpdate> irUpdateQueue; // Forward updates
 
 public:
-    juce::ThreadPool irThreadPool {4};
+    juce::ThreadPool irThreadPool {2};
 
     std::function<void(juce::String title, juce::String message, juce::String details, juce::String buttonText)> onAlert;
 
@@ -95,7 +97,8 @@ public:
     const std::vector<IRDirectory> getIRDirectories() const;
 
     std::atomic<bool>& getDirectoryChanged();
-    std::atomic<bool>& getFFTBusy();
+    std::atomic<bool>& getBusyLoading();
+    std::atomic<bool>& getBusyCollecting();
 
     juce::AudioFormatManager* getFormatManager();
 };

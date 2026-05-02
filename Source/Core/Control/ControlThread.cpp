@@ -169,6 +169,16 @@ void ControlThread::processIRCommands() {
             irManager.irThreadPool.addJob(
                 [this, irIndex, randomFile]() {
                     juce::AudioBuffer<float> irBuffer = irManager.readIR(randomFile);
+
+                    auto waveformBuffer = std::make_shared<juce::AudioBuffer<float>>(irBuffer);
+                    {
+                        juce::SpinLock::ScopedLockType lock(guiState.irWaveformLock);
+                        guiState.irWaveforms[irIndex] = std::move(waveformBuffer);
+                    }
+                    {
+                        juce::SpinLock::ScopedLockType lock(guiState.mareLock);
+                        guiState.mareImages[irIndex] = Theme::Mares::getMare(randomFile.getFileNameWithoutExtension());
+                    }
                     irManager.getResultQueue()->enqueue(
                         IRResult{ irIndex, randomFile, std::move(irBuffer) }
                     );
@@ -178,7 +188,7 @@ void ControlThread::processIRCommands() {
         }
         case IRCommand::IR_LOAD_RANDOM_ALL: {
             auto irDirectories = irManager.getIRDirectories();
-            if (irDirectories.empty()) return;
+            if (irDirectories.empty() || irManager.getBusyCollecting().load(std::memory_order_acquire)) return;
             bool canLoad = false;
             for (const auto& dir : irDirectories) {
                 if (dir.active) {
@@ -191,10 +201,20 @@ void ControlThread::processIRCommands() {
             for (int i = 0; i < MAX_IR_COUNT; ++i) {
                 const int irIndex = i;
                 const auto randomFile = irManager.sampleRandomIR();
-                irManager.getFFTBusy().store(true, std::memory_order_release);
+                irManager.getBusyLoading().store(true, std::memory_order_release);
                 irManager.irThreadPool.addJob(
                     [this, irIndex, randomFile]() {
                         juce::AudioBuffer<float> irBuffer = irManager.readIR(randomFile);
+
+                        auto waveformBuffer = std::make_shared<juce::AudioBuffer<float>>(irBuffer);
+                        {
+                            juce::SpinLock::ScopedLockType lock(guiState.irWaveformLock);
+                            guiState.irWaveforms[irIndex] = std::move(waveformBuffer);
+                        }
+                        {
+                            juce::SpinLock::ScopedLockType lock(guiState.mareLock);
+                            guiState.mareImages[irIndex] = Theme::Mares::getMare(randomFile.getFileNameWithoutExtension());
+                        }
                         irManager.getResultQueue()->enqueue(
                             IRResult{ irIndex, randomFile, std::move(irBuffer) }
                         );
@@ -266,14 +286,6 @@ void ControlThread::processIRResults() {
 
     while (resultQueue->try_dequeue(result)) {
         irManager.setIR(result.irIndex, result.file, result.buffer);
-        {
-            juce::SpinLock::ScopedLockType lock(guiState.irWaveformLock);
-            guiState.irWaveforms[result.irIndex] = irManager.getIRSlotInternal(result.irIndex).buffer;
-        }
-        {
-            juce::SpinLock::ScopedLockType lock(guiState.mareLock);
-            guiState.mareImages[result.irIndex] = Theme::Mares::getMare(result.file.getFileNameWithoutExtension());
-        }
         if ((std::chrono::steady_clock::now() - startTime) > std::chrono::milliseconds(deadlineMs)) break;
     }
 }
@@ -291,6 +303,7 @@ void ControlThread::processIRUpdates() {
 // Control cycle
 
 void ControlThread::runControlCycle(float dt) {
+    auto startTime = std::chrono::steady_clock::now();
     advancePhase(dt);
 
     // Swap timers

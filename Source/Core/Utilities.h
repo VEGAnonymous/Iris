@@ -59,3 +59,9 @@ inline float wrapAngle(float angle) {
     if (angle < 0.0f) angle += TWO_PI;
     return angle;
 }
+
+/* DEBUGGING */
+
+inline void profileTime(juce::String desc, std::chrono::steady_clock::time_point startTime) {
+    DBG(desc << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count() << " ms");
+}

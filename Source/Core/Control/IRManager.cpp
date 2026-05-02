@@ -80,25 +80,33 @@ void IRManager::prepare() {
 void IRManager::enqueueCommand(IRCommand cmd) { irCommandQueue.enqueue(cmd); }
 
 void IRManager::collectIRs() {
+    collectPending.store(true, std::memory_order_release);
+    if (busyCollecting.exchange(true, std::memory_order_acq_rel)) return;
     irThreadPool.addJob([this]() {
-        auto newFiles = std::make_shared<std::vector<IRDirectoryFiles>>();
-        for (const auto& dir : irDirectories) {
-            if (!dir.active || !dir.irDirectory.isDirectory()) continue;
+        do {
+            collectPending.store(false, std::memory_order_release);
+            auto newFiles = std::make_shared<std::vector<IRDirectoryFiles>>();
+            for (const auto& dir : irDirectories) {
+                if (!dir.active || !dir.irDirectory.isDirectory()) continue;
 
-            IRDirectoryFiles directoryFiles;
-            directoryFiles.dir = dir;
-            directoryFiles.files = dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats());
+                IRDirectoryFiles directoryFiles;
+                directoryFiles.dir = dir;
+                directoryFiles.files = dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats());
 
-            if (!directoryFiles.files.isEmpty()) newFiles->push_back(std::move(directoryFiles));
-        }
-        std::atomic_store(&irDirectoryFiles, newFiles);
-        directoryChanged.store(true, std::memory_order_release);
+                if (!directoryFiles.files.isEmpty()) newFiles->push_back(std::move(directoryFiles));
+            }
+            std::atomic_store(&irDirectoryFiles, newFiles);
+            directoryChanged.store(true, std::memory_order_release);
+        } while (collectPending.load(std::memory_order_acquire)); // Don't drop changes
+
+        DBG("Finished collecting IRs");
+        busyCollecting.store(false, std::memory_order_release);
     });
 }
 
 void IRManager::chooseIR(int irIndex) { // Only to be called from the message thread!
     irFileChooser = std::make_unique<juce::FileChooser>(
-        "Load an impulse response...", juce::File{}, formatManager.getWildcardForAllFormats());
+        "Load an impulse response", juce::File{}, formatManager.getWildcardForAllFormats());
     const juce::MessageManagerLock mmLock;
     irFileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
         [this, irIndex](const juce::FileChooser& fileChooser) {
@@ -112,7 +120,7 @@ void IRManager::chooseIR(int irIndex) { // Only to be called from the message th
 
 void IRManager::chooseIRDirectory() { // Only to be called from the message thread!
     irDirectoryChooser = std::make_unique<juce::FileChooser>(
-        "Choose IR directories...", juce::File{});
+        "Choose IR directories", juce::File{});
     const juce::MessageManagerLock mmLock;
     irDirectoryChooser->launchAsync(
         juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories | juce::FileBrowserComponent::canSelectMultipleItems,
@@ -343,7 +351,8 @@ void IRManager::advanceSwapTimers(float dt) {
 void IRManager::setSamplingMode(IRSamplingMode nMode) { rngMode = nMode; }
 
 std::atomic<bool>& IRManager::getDirectoryChanged() { return directoryChanged; }
-std::atomic<bool>& IRManager::getFFTBusy() { return fftBusy; }
+std::atomic<bool>& IRManager::getBusyLoading() { return busyLoading; }
+std::atomic<bool>& IRManager::getBusyCollecting() { return busyCollecting; }
 
 moodycamel::ConcurrentQueue<IRCommand>* IRManager::getCommandQueue() { return &irCommandQueue; };
 moodycamel::ConcurrentQueue<IRResult>* IRManager::getResultQueue() { return &irResultQueue; };

@@ -40,7 +40,7 @@ void SelectedIRPanel::updateIRSlot(int selectedIR, bool animate) {
             jassert(waveformComponent);
             if (waveformComponent) {
                 waveformComponent->setNumPoints(WAVEFORM_POINTS);
-                waveformComponent->setWaveform(slot.occupied ? &waveform : nullptr, audioProcessor.getSampleRate());
+                waveformComponent->setWaveform(slot.occupied ? waveform.get() : nullptr, audioProcessor.getSampleRate());
                 waveformComponent->setColor(Theme::Colors::irSlotColours[selectedIR]);
                 waveformComponent->setActive(slot.active, animate);
             }

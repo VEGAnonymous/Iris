@@ -7,7 +7,7 @@ DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& pro
     : audioProcessor(processor), animatorUpdater(updater), addButton(updater), removeButton(updater), refreshButton(updater) {
 
     title.setText("IR Directories", juce::NotificationType::dontSendNotification);
-    title.setColour(juce::Label::ColourIds::textColourId, Theme::Colors::textLight);
+    title.setColour(juce::Label::ColourIds::textColourId, Theme::Colors::highlight);
     title.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions(18.0f).withKerningFactor(0.05f)));
     title.setJustificationType(juce::Justification::centredTop);
     title.setMinimumHorizontalScale(1.0f);
@@ -43,6 +43,7 @@ DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& pro
         refreshIcon, 1.0f, overlayColor,
         refreshIcon, 1.0f, overlayColor);
     refreshButton.onClick = [this]() { 
+        if (audioProcessor.getIRManager()->getBusyCollecting().load(std::memory_order_acquire)) return;
         IRCommand cmd = { IRCommand::IR_DIRECTORY_REFRESH };
         audioProcessor.getIRManager()->enqueueCommand(cmd);
     };
@@ -138,7 +139,7 @@ juce::Component* DirectoryManagerComponent::refreshComponentForRow(int rowNumber
     bool /*isRowSelected*/, juce::Component* existingComponentToUpdate) {
     // Probably UNSAFE
     auto* directoryRow = dynamic_cast<DirectoryRowComponent*>(existingComponentToUpdate);
-    if (!directoryRow) directoryRow = new DirectoryRowComponent(animatorUpdater);
+    if (!directoryRow) directoryRow = new DirectoryRowComponent(animatorUpdater, audioProcessor.getIRManager()->getBusyCollecting());
 
     const auto& directories = audioProcessor.getIRManager()->getIRDirectories();
     if (rowNumber < static_cast<int>(directories.size())) {
@@ -161,6 +162,9 @@ juce::Component* DirectoryManagerComponent::refreshComponentForRow(int rowNumber
 }
 
 void DirectoryManagerComponent::refresh() {
+    bool busyCollecting = audioProcessor.getIRManager()->getBusyCollecting().load(std::memory_order_acquire);
+    // directoryList.setAlpha(busyCollecting ? 0.5f : 1.0f);
+    refreshButton.setAlpha(busyCollecting ? 0.5f : 1.0f);
     directoryList.updateContent();
     repaint();
 }

@@ -39,23 +39,30 @@ private:
 public:
     class DirectoryRowComponent : public juce::Component {
     private:
+        std::atomic<bool>& isBusy;
         HoverableToggleButton activeToggle;
         juce::Label pathLabel;
 
     public:
         std::function<void(bool)> onToggle;
 
-        DirectoryRowComponent(juce::AnimatorUpdater& updater) : activeToggle(updater) {
+        DirectoryRowComponent(juce::AnimatorUpdater& updater, std::atomic<bool>& busy) : activeToggle(updater), isBusy(busy) {
+            activeToggle.setClickingTogglesState(false);
             addAndMakeVisible(activeToggle);
-            addAndMakeVisible(pathLabel);
+
             pathLabel.setMinimumHorizontalScale(1.0f);
             pathLabel.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions(13.0f).withKerningFactor(0.01f)));
+            addAndMakeVisible(pathLabel);
 
             this->setInterceptsMouseClicks(false, true);
             pathLabel.setInterceptsMouseClicks(false, false);
 
             activeToggle.onClick = [this] {
-                if (onToggle) onToggle(activeToggle.getToggleState());
+                if (isBusy.load(std::memory_order_acquire) || !onToggle) return;
+
+                const bool nState = !activeToggle.getToggleState();
+                activeToggle.setToggleState(nState, juce::dontSendNotification);
+                onToggle(nState);
             };
         }
 
