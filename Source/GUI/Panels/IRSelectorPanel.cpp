@@ -6,7 +6,7 @@
 
 void IRSelectorPanel::prepare() {
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        irSlotButtons[i] = std::make_unique<IRSlotButton>(i, animatorUpdater);
+        irSlotButtons[i] = std::make_unique<IRSlotButton>(i, animatorUpdater, audioProcessor.guiState);
 
         auto* slotButton = irSlotButtons[i].get();
         slotButton->setRadioGroupId(1);
@@ -27,7 +27,7 @@ void IRSelectorPanel::prepare() {
                 audioProcessor.guiState.selectedIRChanged.store(true, std::memory_order_relaxed);
                 audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
             }
-            };
+        };
 
         slotButton->onClick = switchSelectedIR;
 

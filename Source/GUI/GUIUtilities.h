@@ -28,12 +28,25 @@ namespace Paint {
     inline void irIndicator(juce::Graphics& g, CartesianCoordinate center, float radius, 
         int irIndex, bool occupied, bool active, bool selected,
         float indicatorAlpha = -1.0f, float selectionAlpha = -1.0f, 
-        juce::Colour color = juce::Colours::transparentBlack) {
+        juce::Colour color = juce::Colours::transparentBlack,
+        juce::Image* mare = nullptr) {
 
-        color = (color != juce::Colours::transparentBlack) ? color : IR_SLOT_COLORS[irIndex];
+        color = (color != juce::Colours::transparentBlack) ? color : Theme::Colors::irSlotColours[irIndex];
         indicatorAlpha = (indicatorAlpha >= 0.0f) ? indicatorAlpha : getIRIndicatorAlpha(occupied, active);
-        g.setColour(color.withAlpha(indicatorAlpha));
-        g.fillEllipse(center.x - radius, center.y - radius, radius * 2.0f, radius * 2.0f);
+
+        if (mare && !mare->isNull()) {
+            radius += 4.0f;
+            g.setOpacity(indicatorAlpha);
+            g.drawImage(*mare, 
+                static_cast<int>(center.x - radius), static_cast<int>(center.y - radius), 
+                static_cast<int>(radius * 2.0f), static_cast<int>(radius * 2.0f),
+                0, 0, mare->getWidth(), mare->getHeight()
+            );
+        }
+        else {
+            g.setColour(color.withAlpha(indicatorAlpha));
+            g.fillEllipse(center.x - radius, center.y - radius, radius * 2.0f, radius * 2.0f);
+        }
 
         if (selected) {
             radius *= 1.62f;

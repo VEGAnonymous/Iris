@@ -56,11 +56,12 @@ void IRHeaderComponent::paint(juce::Graphics& g) {
     float activeAlpha = indicatorActiveAnim.getValue();
     float indicatorAlpha = juce::jmap(activeAlpha, currentIR.occupied ? 0.35f : 0.1f, currentIR.occupied ? 1.0f : 0.2f);
 
-    Paint::irIndicator(g, {indicatorX, indicatorY}, indicatorRadius, 
-        currentIndex, currentIR.occupied, currentIR.active, false, indicatorAlpha);
+    auto mareIndicator = &audioProcessor.guiState.mareImages[currentIndex];
+    Paint::irIndicator(g, { indicatorX, indicatorY }, indicatorRadius - (!mareIndicator->isNull() ? 1.0f : 0.0f),
+        currentIndex, currentIR.occupied, currentIR.active, false, indicatorAlpha, -1.0f, juce::Colours::transparentBlack, mareIndicator);
 
     // IR #
-    const float labelX = (indicatorX + indicatorRadius) + 12.0f;
+    const float labelX = (indicatorX + indicatorRadius) + 16.0f;
     const float labelWidth = 36.0f;
     g.setColour(Theme::Colors::textLight);
     g.setFont(Theme::Fonts::getEquestriaBoldFont(juce::FontOptions().withHeight(14.0f).withKerningFactor(0.1f)));

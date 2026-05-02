@@ -176,14 +176,20 @@ void PolarMapPanel::paint(juce::Graphics& g) {
         const float indicatorAlpha = fieldActiveStates[i].getValue();
         const float selectionAlpha = fieldSelectionStates[i].getValue();
         Paint::irIndicator(g, map(polarToCartesian(coordinate)), coordinateRadius, i, false, false,
-            (i == selectedIR), indicatorAlpha, selectionAlpha);
+            (i == selectedIR), indicatorAlpha, selectionAlpha, juce::Colours::transparentBlack,
+            &audioProcessor.guiState.mareImages[i]);
     }
 
     // Position indicator
+    g.setColour(Theme::Colors::textLight);
     positionRadius = basePositionRadius + juce::jmap(positionInteractionState.getValue(), 0.0f, 2.0f);
-    positionBounds = toBounds(currentPosition, positionRadius);
-    g.setColour(juce::Colours::lightcyan);
-    g.fillEllipse(positionBounds);
+    if (!anonIndicator.isNull()) {
+        positionBounds = toBounds(currentPosition, positionRadius + 8.0f);
+        g.drawImage(anonIndicator, positionBounds, juce::RectanglePlacement::centred);
+    } else {
+        positionBounds = toBounds(currentPosition, positionRadius);;
+        g.fillEllipse(positionBounds);
+    }
 }
 
 void PolarMapPanel::mouseMove(const juce::MouseEvent& e) {
@@ -290,10 +296,12 @@ void PolarMapPanel::notifyPositionChanged(PolarCoordinate nPosition) {
 }
 
 void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates) {
+    const float repaintRadius = baseCoordinateRadius + 6.0f;
+
     // Clear old bounds
     for (const auto& coord : fieldCoordinates) {
         auto oBounds = toBounds(coord, coordinateRadius);
-        repaint(oBounds.toNearestInt().expanded(10));
+        repaint(oBounds.expanded(repaintRadius).toNearestInt());
     }
 
     // Update animator targets
@@ -311,7 +319,7 @@ void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates
     fieldCoordinates = std::move(nCoordinates);
     for (const auto& coord : fieldCoordinates) {
         auto nBounds = toBounds(coord, coordinateRadius);
-        repaint(nBounds.toNearestInt().expanded(10));
+        repaint(nBounds.expanded(repaintRadius).toNearestInt());
     }
 }
 

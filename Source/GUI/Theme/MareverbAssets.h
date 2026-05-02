@@ -4,6 +4,9 @@
 
 namespace MareverbAssets
 {
+    extern const char*  anon_gif;
+    const int           anon_gifSize = 193;
+
     extern const char*  Derpy_Hooves_png;
     const int           Derpy_Hooves_pngSize = 297595;
 

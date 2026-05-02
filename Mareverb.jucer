@@ -210,13 +210,17 @@
             <FILE id="NXshJl" name="ScrollBarLookAndFeel.h" compile="0" resource="0"
                   file="Source/GUI/Theme/LookAndFeel/ScrollBarLookAndFeel.h"/>
           </GROUP>
-          <FILE id="sSBKWk" name="MareverbFonts.cpp" compile="1" resource="0"
-                file="Source/GUI/Theme/MareverbFonts.cpp"/>
-          <FILE id="XmA8t9" name="MareverbFonts.h" compile="0" resource="0" file="Source/GUI/Theme/MareverbFonts.h"/>
           <FILE id="PJ7lPW" name="MareverbAssets.cpp" compile="1" resource="0"
                 file="Source/GUI/Theme/MareverbAssets.cpp"/>
           <FILE id="SZwvL0" name="MareverbAssets.h" compile="0" resource="0"
                 file="Source/GUI/Theme/MareverbAssets.h"/>
+          <FILE id="sSBKWk" name="MareverbFonts.cpp" compile="1" resource="0"
+                file="Source/GUI/Theme/MareverbFonts.cpp"/>
+          <FILE id="XmA8t9" name="MareverbFonts.h" compile="0" resource="0" file="Source/GUI/Theme/MareverbFonts.h"/>
+          <FILE id="McXqk1" name="MareverbMaresMain.cpp" compile="1" resource="0"
+                file="Source/GUI/Theme/MareverbMaresMain.cpp"/>
+          <FILE id="S6VNV3" name="MareverbMaresMain.h" compile="0" resource="0"
+                file="Source/GUI/Theme/MareverbMaresMain.h"/>
           <FILE id="zNNZ6Y" name="Theme.h" compile="0" resource="0" file="Source/GUI/Theme/Theme.h"/>
         </GROUP>
         <FILE id="NLRTuz" name="GUIUtilities.h" compile="0" resource="0" file="Source/GUI/GUIUtilities.h"/>

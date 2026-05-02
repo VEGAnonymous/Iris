@@ -62,6 +62,8 @@ private:
     float positionRadius = 4.0f;
     BoundsF positionBounds {};
 
+    juce::Image anonIndicator = Theme::Icons::getAnon();
+
     // Field indicators
     std::vector<PolarCoordinate> fieldCoordinates {};
     const float baseCoordinateRadius = 6.0f;

@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Core/Defines.h"
-#include "GUI/Theme/MareverbFonts.h"
 #include "GUI/Theme/MareverbAssets.h"
+#include "GUI/Theme/MareverbFonts.h"
+#include "GUI/Theme/MareverbMaresMain.h"
 
 #include <JuceHeader.h>
 
@@ -19,6 +20,17 @@ namespace Theme {
             disabled = juce::Colour::fromRGB(82, 94, 100),
             textLight = juce::Colour::fromRGB(196, 196, 196),
             textDark = juce::Colour::fromRGB(52, 64, 76);
+
+        static const std::array<juce::Colour, MAX_IR_COUNT> irSlotColours{
+            juce::Colour::fromRGB(104, 56, 140),  // Twiggles
+            juce::Colour::fromRGB(253, 188, 95),  // Appul
+            juce::Colour::fromRGB(238, 231, 243), // Rarara
+            juce::Colour::fromRGB(255, 253, 135), // Shyhorse
+            juce::Colour::fromRGB(135, 210, 248), // plap plap
+            juce::Colour::fromRGB(237, 138, 188), // Plenka Po
+            juce::Colour::fromRGB(34, 74, 191),   // Excites me so
+            juce::Colour::fromRGB(96, 216, 169)   // Sunbutt
+        };
     }
 
     namespace Fonts {
@@ -50,6 +62,9 @@ namespace Theme {
         inline const juce::Image getRefreshIcon() {
             return juce::ImageCache::getFromMemory(MareverbAssets::Refresh_png, MareverbAssets::Refresh_pngSize);
         }
+        inline juce::Image getAnon() {
+            return juce::ImageCache::getFromMemory(MareverbAssets::anon_gif, MareverbAssets::anon_gifSize);
+        }
     }
 
     namespace Images {
@@ -57,15 +72,78 @@ namespace Theme {
             return juce::ImageCache::getFromMemory(MareverbAssets::Derpy_Hooves_png, MareverbAssets::Derpy_Hooves_pngSize);
         }
     }
-}
 
-static const std::array<juce::Colour, MAX_IR_COUNT> IR_SLOT_COLORS {
-    juce::Colours::red,
-    juce::Colours::orange,
-    juce::Colours::yellow,
-    juce::Colours::green,
-    juce::Colours::cyan,
-    juce::Colours::blue,
-    juce::Colours::purple,
-    juce::Colours::hotpink
-};
+    namespace Mares {
+        inline juce::Image getMare(juce::String mareToFind) {
+            auto normalize = [](juce::String string) -> juce::String {
+                string = string.toLowerCase();
+
+                juce::String sanitizedString;
+                sanitizedString.preallocateBytes(string.length());
+
+                for (int i = 0; i < string.length(); ++i) {
+                    juce::juce_wchar character = string[i];
+
+                    // Sanitize characters
+                    if (character == '-' || character == '_' || character == ' ')
+                        sanitizedString += '-';
+                    else if ((character >= 'a' && character <= 'z') || (character >= '0' && character <= '9'))
+                        sanitizedString += character;
+                }
+
+                // Collapse consecutive '-'
+                juce::String result;
+                result.preallocateBytes(sanitizedString.length());
+
+                bool lastWasSeparator = false;
+                for (int i = 0; i < sanitizedString.length(); ++i) {
+                    bool isSeparator = (sanitizedString[i] == '-');
+                    if (isSeparator && lastWasSeparator) continue;
+                    result += sanitizedString[i];
+                    lastWasSeparator = isSeparator;
+                }
+
+                return result;
+            };
+
+            mareToFind = normalize(mareToFind);
+
+            const int numMares = MareverbMaresMain::namedResourceListSize;
+
+            // Match by ranking: earlier index + longer match wins
+            // Index e.g, '00_00_14_Pinkie_Anxious__I can't wait another minute to find out if rainbow dash got in or not!' <- Pinkie
+            // Length e.g., 'Twilight...', 'Twilight Velvet...' <- Twilight Velvet
+            int bestIndex = -1;
+            int bestPosition = INT_MAX;
+            int bestLength = -1;
+
+            for (int i = 0; i < numMares; ++i) {
+                juce::String mareName = juce::String::fromUTF8(MareverbMaresMain::originalFilenames[i]).upToLastOccurrenceOf(".", false, false);
+                mareName = normalize(mareName);
+                if (mareName.isEmpty()) continue;
+
+                int position = mareToFind.indexOf(mareName);
+                if (position == -1) continue;
+
+                int length = mareName.length();
+                bool betterMatch = (position < bestPosition)
+                    || ((position == bestPosition) && length > bestLength);
+
+                if (betterMatch) {
+                    bestIndex = i;
+                    bestPosition = position;
+                    bestLength = length;
+                }
+            }
+
+            if (bestIndex >= 0) { // winrar!
+                int mareSize = 0;
+                const char* resourceName = MareverbMaresMain::namedResourceList[bestIndex];
+                auto mare = MareverbMaresMain::getNamedResource(resourceName, mareSize);
+                return juce::ImageCache::getFromMemory(mare, mareSize);
+            }
+
+            return juce::Image();
+        }
+    }
+}

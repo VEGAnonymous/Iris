@@ -28,8 +28,9 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
     float activeAlpha = indicatorActiveAnim.getValue();
     float indicatorAlpha = juce::jmap(activeAlpha, occupied ? 0.35f : 0.1f, occupied ? 1.0f : 0.2f);
 
-    Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius, 
-        irIndex, occupied, active, false, indicatorAlpha);
+    auto mareIndicator = &guiState.mareImages[irIndex];
+    Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius - (!mareIndicator->isNull() ? 2.0f : 0.0f),
+        irIndex, occupied, active, false, indicatorAlpha, -1.0f, juce::Colours::transparentBlack, mareIndicator);
 
     // Drag and drop indication
     const float dragAlpha = dragHover.getValue();
@@ -59,12 +60,12 @@ BoundsF IRSlotButton::getIndicatorBounds(Bounds bounds, const float radius) cons
 
 /* PUBLIC */
 
-IRSlotButton::IRSlotButton(int index, juce::AnimatorUpdater& updater) : 
-    hoverAnim(*this, updater), indicatorActiveAnim(*this, updater, ACTIVE_ANIMATION_TIME_MS),
+IRSlotButton::IRSlotButton(int index, juce::AnimatorUpdater& updater, GUIState& gState) : 
+    guiState(gState), hoverAnim(*this, updater), indicatorActiveAnim(*this, updater, ACTIVE_ANIMATION_TIME_MS),
     dragHover(*this, updater), waveformPreview(updater),
     juce::Button("IR " + juce::String(index)), irIndex(index) {
     waveformPreview.setDimensions(8.0f, 8.0f, -8.0f, 0.25f);
-    waveformPreview.setColor(Theme::Colors::highlight);
+    waveformPreview.setColor(Theme::Colors::irSlotColours[index]);
     waveformPreview.setActive(active);
     waveformPreview.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(waveformPreview, 0);

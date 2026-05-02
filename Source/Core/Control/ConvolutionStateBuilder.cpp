@@ -64,11 +64,6 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
                 }
 
                 auto buffer = irManager.applyWindow(irIndex);
-                {
-                    juce::SpinLock::ScopedLockType lock(guiState.irWaveformLock);
-                    guiState.irWaveforms[irIndex] = buffer;
-                }
-
                 auto* job = new IRFFTJob(nBank, std::move(buffer), irIndex);
                 {
                     juce::SpinLock::ScopedLockType lock(fftJobLock);

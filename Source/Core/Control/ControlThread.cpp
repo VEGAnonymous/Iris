@@ -153,7 +153,16 @@ void ControlThread::processIRCommands() {
             break;
         }
         case IRCommand::IR_LOAD_RANDOM: {
-            if (irManager.getIRDirectories().empty()) return;
+            auto irDirectories = irManager.getIRDirectories();
+            if (irDirectories.empty()) return;
+            bool canLoad = false;
+            for (const auto& dir : irDirectories) {
+                if (dir.active) {
+                    canLoad = true;
+                    break;
+                }
+            }
+            if (!canLoad) return;
 
             const int irIndex = cmd.irIndex;
             const auto randomFile = irManager.sampleRandomIR();
@@ -168,7 +177,16 @@ void ControlThread::processIRCommands() {
             break;
         }
         case IRCommand::IR_LOAD_RANDOM_ALL: {
-            if (irManager.getIRDirectories().empty()) return;
+            auto irDirectories = irManager.getIRDirectories();
+            if (irDirectories.empty()) return;
+            bool canLoad = false;
+            for (const auto& dir : irDirectories) {
+                if (dir.active) {
+                    canLoad = true;
+                    break;
+                }
+            }
+            if (!canLoad) return;
 
             for (int i = 0; i < MAX_IR_COUNT; ++i) {
                 const int irIndex = i;
@@ -248,6 +266,14 @@ void ControlThread::processIRResults() {
 
     while (resultQueue->try_dequeue(result)) {
         irManager.setIR(result.irIndex, result.file, result.buffer);
+        {
+            juce::SpinLock::ScopedLockType lock(guiState.irWaveformLock);
+            guiState.irWaveforms[result.irIndex] = irManager.getIRSlotInternal(result.irIndex).buffer;
+        }
+        {
+            juce::SpinLock::ScopedLockType lock(guiState.mareLock);
+            guiState.mareImages[result.irIndex] = Theme::Mares::getMare(result.file.getFileNameWithoutExtension());
+        }
         if ((std::chrono::steady_clock::now() - startTime) > std::chrono::milliseconds(deadlineMs)) break;
     }
 }

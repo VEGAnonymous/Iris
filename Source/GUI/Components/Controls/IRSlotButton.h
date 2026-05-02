@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Defines.h"
+#include "Core/Control/State/GUIState.h"
 #include "GUI/API/AnimatedValue.h"
 #include "GUI/API/DragAndDropMixin.h"
 #include "GUI/Components/Base/WaveformComponent.h"
@@ -9,6 +10,8 @@
 
 class IRSlotButton : public juce::Button, public DragAndDropMixin {
 private:
+    GUIState& guiState;
+
     const float indicatorRadius = 3.0f;
     int irIndex;
     bool occupied = false;
@@ -33,7 +36,7 @@ public:
 
     std::function<void(bool)> onActiveToggle;
 
-    IRSlotButton(int index, juce::AnimatorUpdater& updater);
+    IRSlotButton(int index, juce::AnimatorUpdater& updater, GUIState& gState);
     ~IRSlotButton() override = default;
 
     void setWaveform(const juce::AudioBuffer<float>* buffer, double sampleRate);
