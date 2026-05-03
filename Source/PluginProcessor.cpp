@@ -99,12 +99,6 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     irManager(&applicationProperties) {
 
     // Init properties
-    if (!apvts.state.hasProperty(PropertyID::selectedIR))
-        apvts.state.setProperty(PropertyID::selectedIR, 0, nullptr);
-
-    if (!apvts.state.hasProperty(PropertyID::randomIRMode))
-        apvts.state.setProperty(PropertyID::randomIRMode, static_cast<int>(IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES), nullptr);
-
     juce::PropertiesFile::Options options;
     options.applicationName = "Mareverb";
     options.filenameSuffix = ".amre";
@@ -112,8 +106,6 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     applicationProperties.setStorageParameters(options);
 
     // Init IR manager
-    irManager.setSamplingMode(static_cast<IRSamplingMode>(static_cast<int>(
-        apvts.state.getProperty(PropertyID::randomIRMode, static_cast<int>(IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES)))));
     irManager.prepare();
 
     // Init pattern states
@@ -390,7 +382,8 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
                 cmd.irFile = juce::File(filePath);
                 irManager.enqueueCommand(cmd);
             }
-                
+             
+            // HACK: These should enqueue commands but I don't care
             irManager.setIRActive(i, active);
             irManager.setWindow(i, windowStart, windowLength);
             irManager.setEnvelope(i, envelopeType, envelopeAttack, envelopeRelease);
@@ -400,6 +393,11 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
             irManager.setSwapActive(i, apvts.getRawParameterValue(ParamID::irSwapActive(i))->load());
         }
     }
+
+    irManager.setFileFilter(apvts.state.getProperty(PropertyID::fileFilter, ""));
+    irManager.setDirectoryFilter(apvts.state.getProperty(PropertyID::directoryFilter, ""));
+    irManager.setSamplingMode(static_cast<IRSamplingMode>(static_cast<int>(
+        apvts.state.getProperty(PropertyID::samplingMode, static_cast<int>(IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES)))));
 
     // Refresh GUI
     guiState.positionChanged.store(true, std::memory_order_release);

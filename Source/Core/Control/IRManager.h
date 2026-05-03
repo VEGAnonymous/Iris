@@ -21,7 +21,9 @@ private:
     std::shared_ptr<std::vector<IRDirectoryFiles>> irDirectoryFiles { std::make_shared<std::vector<IRDirectoryFiles>>() };
 
     juce::Random irRNG;
-    IRSamplingMode rngMode = IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES;
+    IRSamplingMode samplingMode = IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES;
+    juce::StringArray fileFilter;
+    juce::StringArray directoryFilter;
 
     std::unique_ptr<juce::FileChooser> irFileChooser;
     std::unique_ptr<juce::FileChooser> irDirectoryChooser;
@@ -31,6 +33,9 @@ private:
     void loadDirectories();
 
     // Utilities
+    static juce::StringArray parseFilter(const juce::String& filter);
+    static bool matchesKeyword(const juce::String& text, const juce::StringArray keywords);
+
     void computeEnvelope(IRSlot& slot);
 
     // Concurrency
@@ -57,6 +62,7 @@ public:
 
     // Commands
     void collectIRs();
+    void collectIRs(const juce::StringArray fileFilterKeywords, const juce::StringArray directoryFilterKeywords);
 
     void chooseIR(int irIndex);
     void chooseIRDirectory();
@@ -85,6 +91,9 @@ public:
     void setSwapActive(int irIndex, bool nActive);
     void advanceSwapTimers(float dt);
 
+    void setFileFilter(juce::String fileFilter = "");
+    void setDirectoryFilter(juce::String directoryFilter = "");
+
     void setSamplingMode(IRSamplingMode nMode);
 
     moodycamel::ConcurrentQueue<IRCommand>* getCommandQueue();
@@ -95,6 +104,7 @@ public:
     const IRSlotLite getIRSlot(int index) const;
     
     const std::vector<IRDirectory> getIRDirectories() const;
+    std::shared_ptr<std::vector<IRDirectoryFiles>> getIRDirectoryFiles() const;
 
     std::atomic<bool>& getDirectoryChanged();
     std::atomic<bool>& getBusyLoading();

@@ -4,6 +4,7 @@
 #include "GUI/Components/Controls/HoverableImageButton.h"
 #include "GUI/Components/Controls/HoverableToggleButton.h"
 #include "GUI/Components/Controls/HoverableTextButton.h"
+#include "GUI/Components/Controls/HoverableTextEditor.h"
 #include "GUI/Components/Controls/LabelledControl.h"
 #include "GUI/Theme/Theme.h"
 #include "GUI/Theme/LookAndFeel/ButtonLookAndFeel.h"
@@ -18,21 +19,27 @@ private:
                           BUTTON_COLUMN_PADDING = 12,
                           DIRECTORY_ROW_HEIGHT = 28,
                           DIRECTORY_LIST_HEIGHT = 240,
-                          CONTROL_COLUMN_HEIGHT = 40;
+                          CONTROL_COLUMN_HEIGHT = 120;
 
     MareverbAudioProcessor& audioProcessor;
     juce::AnimatorUpdater& animatorUpdater;
 
     juce::Label title;
     juce::ListBox directoryList { {}, this };
+    int selectedRow = -1;
 
     HoverableTextButton addButton, removeButton;
     HoverableImageButton refreshButton;
 
-    LabelledControl<juce::ComboBox> randomModeSelector { "Random Sampling Method" };
+    LabelledControl<HoverableTextEditor> 
+        fileFilterEditor { "File Filter", animatorUpdater },
+        directoryFilterEditor { "Directory Filter", animatorUpdater };
+    bool fileFilterChanged = false, directoryFilterChanged = false;
+
+    LabelledControl<juce::ComboBox> samplingModeSelector { "Random Sampling Method" };
     const juce::StringArray randomModes { "Uniform across all files", "Uniform across directories" };
 
-    int selectedRow = -1;
+    void prepare();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DirectoryManagerComponent)
 

@@ -73,7 +73,9 @@ namespace PropertyID {
     static constexpr auto
         selectedIR = "Selected IR",
         selectedControlTab = "Selected Control Tab",
-        randomIRMode = "Random IR Mode";
+        fileFilter = "IR File FIlter",
+        directoryFilter = "IR Directory Filter",
+        samplingMode = "IR Sampling Mode";
 
     namespace Position {
         static constexpr auto

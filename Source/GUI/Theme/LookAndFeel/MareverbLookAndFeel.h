@@ -4,6 +4,7 @@
 #include "GUI/Theme/LookAndFeel/ComboBoxLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/RotaryLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/ScrollBarLookAndFeel.h"
+#include "GUI/Theme/LookAndFeel/TextEditorLookAndFeel.h"
 
 #include <JuceHeader.h>
 
@@ -14,6 +15,7 @@ private:
 	ComboBoxLookAndFeel comboBoxLookAndFeel;
 	RotaryLookAndFeel rotaryLookAndFeel;
 	ScrollBarLookAndFeel scrollBarLookAndFeel;
+	TextEditorLookAndFeel textEditorLookAndFeel;
 
 public:
 	MareverbLookAndFeel();
@@ -55,4 +57,9 @@ public:
 	// Scrollbar
 	void drawScrollbar(juce::Graphics& g, juce::ScrollBar& scrollbar, int x, int y, int width, int height,
 		bool isScrollbarVertical, int thumbStartPosition, int thumbSize, bool isMouseOver, bool isMouseDown) override;
+
+	// TextEditor
+	void fillTextEditorBackground(juce::Graphics& g, int width, int height, juce::TextEditor& textEditor) override;
+
+	void drawTextEditorOutline(juce::Graphics& g, int width, int height, juce::TextEditor& textEditor) override;
 };

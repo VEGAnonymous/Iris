@@ -84,3 +84,13 @@ void MareverbLookAndFeel::drawScrollbar(juce::Graphics& g, juce::ScrollBar& scro
 	scrollBarLookAndFeel.drawScrollbar(g, scrollbar, x, y, width, height,
 		isScrollbarVertical, thumbStartPosition, thumbSize, isMouseOver, isMouseDown);
 }
+
+// TextEditor
+
+void MareverbLookAndFeel::fillTextEditorBackground(juce::Graphics& g, int width, int height, juce::TextEditor& textEditor) {
+	textEditorLookAndFeel.fillTextEditorBackground(g, width, height, textEditor);
+}
+
+void MareverbLookAndFeel::drawTextEditorOutline(juce::Graphics& g, int width, int height, juce::TextEditor& textEditor) {
+	textEditorLookAndFeel.drawTextEditorOutline(g, width, height, textEditor);
+}

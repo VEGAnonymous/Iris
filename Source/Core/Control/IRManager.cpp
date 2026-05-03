@@ -40,6 +40,27 @@ void IRManager::loadDirectories() {
 
 // Utilities
 
+juce::StringArray IRManager::parseFilter(const juce::String& filter) {
+    juce::StringArray keywords = juce::StringArray::fromTokens(filter.toLowerCase(), ";,", "");
+    keywords.trim();
+    keywords.removeDuplicates(true);
+    keywords.removeEmptyStrings();
+    return keywords;
+};
+
+bool IRManager::matchesKeyword(const juce::String& text, const juce::StringArray keywords) {
+    if (keywords.isEmpty()) return true;
+
+    const juce::String lowerText = text.toLowerCase();
+    for (const auto& keyword : keywords) {
+        if (keyword.isNotEmpty() && lowerText.contains(keyword)) {
+            // DBG("Matched " << lowerText << "against keyword " << keyword);
+            return true;
+        }
+    }
+    return false;
+};
+
 void IRManager::computeEnvelope(IRSlot& slot) {
     if (slot.buffer.getNumSamples() == 0) return;
     slot.window.envelope.length = juce::jlimit(1,
@@ -79,24 +100,52 @@ void IRManager::prepare() {
 
 void IRManager::enqueueCommand(IRCommand cmd) { irCommandQueue.enqueue(cmd); }
 
-void IRManager::collectIRs() {
+void IRManager::collectIRs() { collectIRs(fileFilter, directoryFilter); }
+void IRManager::collectIRs(const juce::StringArray fileKeywords, const juce::StringArray directoryKeywords) {
     collectPending.store(true, std::memory_order_release);
     if (busyCollecting.exchange(true, std::memory_order_acq_rel)) return;
-    irThreadPool.addJob([this]() {
+    directoryChanged.store(true, std::memory_order_release);
+
+    irThreadPool.addJob([this, fileKeywords, directoryKeywords]() {
+        const juce::String formatWildcard = formatManager.getWildcardForAllFormats();
         do {
             collectPending.store(false, std::memory_order_release);
-            auto newFiles = std::make_shared<std::vector<IRDirectoryFiles>>();
+            auto nFiles = std::make_shared<std::vector<IRDirectoryFiles>>();
+
             for (const auto& dir : irDirectories) {
                 if (!dir.active || !dir.irDirectory.isDirectory()) continue;
 
+                auto irFiles = dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatWildcard);
+
                 IRDirectoryFiles directoryFiles;
                 directoryFiles.dir = dir;
-                directoryFiles.files = dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats());
 
-                if (!directoryFiles.files.isEmpty()) newFiles->push_back(std::move(directoryFiles));
+                for (const auto& file : irFiles) {
+                    // Match directory filter by path components
+                    if (!directoryKeywords.isEmpty()) {
+                        const auto pathComponents = juce::StringArray::fromTokens(file.getRelativePathFrom(dir.irDirectory), "/\\", "");
+                        bool matches = false;
+                        for (int i = 0; i < pathComponents.size() - 1; ++i) { // size - 1 to exclude filename
+                            if (matchesKeyword(pathComponents[i], directoryKeywords)) {
+                                matches = true;
+                                break;
+                            }
+                        }
+                        if (!matches) continue;
+                    }
+
+                    // Match file filter
+                    if (!matchesKeyword(file.getFileNameWithoutExtension(), fileKeywords)) continue;
+
+                    directoryFiles.files.add(file);
+                }
+
+                if (!directoryFiles.files.isEmpty()) nFiles->push_back(std::move(directoryFiles));
             }
-            std::atomic_store(&irDirectoryFiles, newFiles);
+
+            std::atomic_store(&irDirectoryFiles, nFiles);
             directoryChanged.store(true, std::memory_order_release);
+
         } while (collectPending.load(std::memory_order_acquire)); // Don't drop changes
 
         DBG("Finished collecting IRs");
@@ -219,7 +268,7 @@ void IRManager::setIR(int irIndex, juce::File irFile, juce::AudioBuffer<float>& 
     irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_ACTIVE_CHANGED, irIndex });
 }
 
-juce::File IRManager::sampleRandomIR() { return sampleRandomIR(rngMode); }
+juce::File IRManager::sampleRandomIR() { return sampleRandomIR(samplingMode); }
 juce::File IRManager::sampleRandomIR(IRSamplingMode mode) {
     if ((*irDirectoryFiles).empty()) return juce::File();
 
@@ -348,7 +397,19 @@ void IRManager::advanceSwapTimers(float dt) {
         irSlots[i].autoSwap.advanceTimer(dt);
 }
 
-void IRManager::setSamplingMode(IRSamplingMode nMode) { rngMode = nMode; }
+void IRManager::setFileFilter(juce::String nFilter) {
+    fileFilter = parseFilter(nFilter);
+    DBG("Set file filter: " << fileFilter.joinIntoString(", "));
+    collectIRs();
+}
+
+void IRManager::setDirectoryFilter(juce::String nFilter) {
+    directoryFilter = parseFilter(nFilter);
+    DBG("Set directory filter: " << directoryFilter.joinIntoString(", "));
+    collectIRs();
+}
+
+void IRManager::setSamplingMode(IRSamplingMode nMode) { samplingMode = nMode; }
 
 std::atomic<bool>& IRManager::getDirectoryChanged() { return directoryChanged; }
 std::atomic<bool>& IRManager::getBusyLoading() { return busyLoading; }
@@ -379,5 +440,6 @@ const IRSlotLite IRManager::getIRSlot(int index) const {
 }
 
 const std::vector<IRDirectory> IRManager::getIRDirectories() const { return irDirectories; };
+std::shared_ptr<std::vector<IRDirectoryFiles>> IRManager::getIRDirectoryFiles () const { return irDirectoryFiles; };
 
 juce::AudioFormatManager* IRManager::getFormatManager() { return &formatManager; }

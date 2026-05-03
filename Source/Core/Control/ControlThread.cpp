@@ -153,11 +153,10 @@ void ControlThread::processIRCommands() {
             break;
         }
         case IRCommand::IR_LOAD_RANDOM: {
-            auto irDirectories = irManager.getIRDirectories();
-            if (irDirectories.empty()) return;
+            auto& irDirectoryFiles = *(irManager.getIRDirectoryFiles());
             bool canLoad = false;
-            for (const auto& dir : irDirectories) {
-                if (dir.active) {
+            for (const auto& directoryFiles : irDirectoryFiles) {
+                if (directoryFiles.dir.active && !directoryFiles.files.isEmpty()) {
                     canLoad = true;
                     break;
                 }
@@ -187,11 +186,10 @@ void ControlThread::processIRCommands() {
             break;
         }
         case IRCommand::IR_LOAD_RANDOM_ALL: {
-            auto irDirectories = irManager.getIRDirectories();
-            if (irDirectories.empty() || irManager.getBusyCollecting().load(std::memory_order_acquire)) return;
+            auto& irDirectoryFiles = *(irManager.getIRDirectoryFiles());
             bool canLoad = false;
-            for (const auto& dir : irDirectories) {
-                if (dir.active) {
+            for (const auto& directoryFiles : irDirectoryFiles) {
+                if (directoryFiles.dir.active && !directoryFiles.files.isEmpty()) {
                     canLoad = true;
                     break;
                 }
@@ -265,6 +263,14 @@ void ControlThread::processIRCommands() {
         }
         case IRCommand::IR_DIRECTORY_REFRESH: {
             irManager.collectIRs();
+            break;
+        }
+        case IRCommand::SET_FILE_FILTER: {
+            irManager.setFileFilter(cmd.fileFilter);
+            break;
+        }
+        case IRCommand::SET_DIRECTORY_FILTER: {
+            irManager.setDirectoryFilter(cmd.directoryFilter);
             break;
         }
         case IRCommand::SET_SAMPLING_MODE: {

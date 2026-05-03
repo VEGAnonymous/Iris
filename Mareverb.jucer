@@ -111,6 +111,10 @@
                   file="Source/GUI/Components/Controls/HoverableTextButton.cpp"/>
             <FILE id="XsKYik" name="HoverableTextButton.h" compile="0" resource="0"
                   file="Source/GUI/Components/Controls/HoverableTextButton.h"/>
+            <FILE id="PJj3L4" name="HoverableTextEditor.cpp" compile="1" resource="0"
+                  file="Source/GUI/Components/Controls/HoverableTextEditor.cpp"/>
+            <FILE id="tMtVXG" name="HoverableTextEditor.h" compile="0" resource="0"
+                  file="Source/GUI/Components/Controls/HoverableTextEditor.h"/>
             <FILE id="KBiYA8" name="HoverableToggleButton.cpp" compile="1" resource="0"
                   file="Source/GUI/Components/Controls/HoverableToggleButton.cpp"/>
             <FILE id="lPr0Cq" name="HoverableToggleButton.h" compile="0" resource="0"
@@ -209,6 +213,10 @@
                   file="Source/GUI/Theme/LookAndFeel/ScrollBarLookAndFeel.cpp"/>
             <FILE id="NXshJl" name="ScrollBarLookAndFeel.h" compile="0" resource="0"
                   file="Source/GUI/Theme/LookAndFeel/ScrollBarLookAndFeel.h"/>
+            <FILE id="ViJIWw" name="TextEditorLookAndFeel.cpp" compile="1" resource="0"
+                  file="Source/GUI/Theme/LookAndFeel/TextEditorLookAndFeel.cpp"/>
+            <FILE id="iwGwPe" name="TextEditorLookAndFeel.h" compile="0" resource="0"
+                  file="Source/GUI/Theme/LookAndFeel/TextEditorLookAndFeel.h"/>
           </GROUP>
           <FILE id="PJ7lPW" name="MareverbAssets.cpp" compile="1" resource="0"
                 file="Source/GUI/Theme/MareverbAssets.cpp"/>

@@ -1,5 +1,7 @@
 #include "GUI/Theme/LookAndFeel/ComboBoxLookAndFeel.h"
 
+/* PUBLIC */
+
 ComboBoxLookAndFeel::ComboBoxLookAndFeel() {}
 
 void ComboBoxLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,

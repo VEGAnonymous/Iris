@@ -97,6 +97,8 @@ struct IRCommand {
         IR_DIRECTORY_SET_ACTIVE_STATE,
         IR_DIRECTORY_REFRESH,
 
+        SET_FILE_FILTER,
+        SET_DIRECTORY_FILTER,
         SET_SAMPLING_MODE
     } type = IR_CLEAR_ALL;
 
@@ -116,6 +118,8 @@ struct IRCommand {
 
     float swapMinTime = 0.0f, swapMaxTime = 0.0f;
     bool swapActiveState = false;
+
+    juce::String fileFilter, directoryFilter;
 
     IRSamplingMode samplingMode = IRSamplingMode::UNIFORM_ACROSS_ALL_FILES;
 };
