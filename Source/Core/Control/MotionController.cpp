@@ -21,11 +21,13 @@ PolarCoordinate MotionController::randomDiscrete(PositionParameters positionPara
         float r = std::sqrt(randFloat()) * radius,
               theta = randFloat() * juce::MathConstants<float>::twoPi;
         targetPosition = polarToCartesian({ r, theta });
+        // DBG("PATTERN: Set random target (" << r << ", " << theta << ")");
         hasTarget = true;
     }
 
     // Check if arrived
-    if (cartesianDistance(currentPosition, targetPosition) < EPSILON) {
+    // DBG("PATTERN: Distance = " << cartesianDistance(currentPosition, targetPosition));
+    if (cartesianDistance(currentPosition, targetPosition) < (radius * 0.01f)) {
         hasTarget = false;
         return cartesianToPolar(currentPosition);
     }
@@ -34,7 +36,8 @@ PolarCoordinate MotionController::randomDiscrete(PositionParameters positionPara
     currentPosition = { juce::jmap(smoothing, currentPosition.x, targetPosition.x),
                         juce::jmap(smoothing, currentPosition.y, targetPosition.y) };
 
-    return cartesianToPolar(currentPosition);
+    positionState.currentPosition = cartesianToPolar(currentPosition);
+    return positionState.currentPosition;
 }
 
 PolarCoordinate MotionController::randomWalk(PositionParameters positionParameters, PositionState& positionState) {
@@ -67,7 +70,8 @@ PolarCoordinate MotionController::randomWalk(PositionParameters positionParamete
         velocity.y *= bounceBase - bounce; // boing
     }
 
-    return cartesianToPolar(p);
+    positionState.currentPosition = cartesianToPolar(p);
+    return positionState.currentPosition;
 }
 
 /* PUBLIC */
@@ -231,10 +235,9 @@ void MotionController::computeField(FieldParameters fieldParameters, FieldState&
 }
 
 void MotionController::updatePosition() {
-    PolarCoordinate currentPosition = polarMap->getPosition();
-    positionState.currentPosition = currentPosition;
-
     PolarCoordinate nextPosition = computePosition(positionParameters, positionState, *positionTime);
+
+    PolarCoordinate currentPosition = polarMap->getPosition();
 
     if (currentPosition == nextPosition) positionUpdated = false;
     else { polarMap->setPosition(nextPosition); positionUpdated = true; }
