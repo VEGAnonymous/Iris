@@ -42,6 +42,8 @@ void IRDisplayComponent::prepare() {
         windowOverlayComponent.setMouseCursor(hovering ? juce::MouseCursor::CopyingCursor : juce::MouseCursor::NormalCursor);
     };
 
+    windowOverlayComponent.setTooltip("Drag the handles or drag-select to set the convolvable range of the selected IR. For performance reasons, the range size is capped at ~6s @ 44.1kHz and the maximum IR duration is ~60s @ 44.1kHz.\n\nCan accept audio files via drag-and-drop.");
+
     addAndMakeVisible(windowOverlayComponent);
 }
 

@@ -8,7 +8,7 @@
 
 #include <JuceHeader.h>
 
-class IRHeaderComponent : public juce::Component {
+class IRHeaderComponent : public juce::Component, public juce::SettableTooltipClient {
 private:
 	MareverbAudioProcessor& audioProcessor;
 
@@ -21,7 +21,9 @@ private:
 	const float indicatorRadius = 5.0f;
 	BoundsF getIndicatorBounds(Bounds bounds, const float radius) const;
 
+	void mouseMove(const juce::MouseEvent& e) override;
 	void mouseDown(const juce::MouseEvent& e) override;
+	void mouseExit(const juce::MouseEvent& e) override;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(IRHeaderComponent)
 

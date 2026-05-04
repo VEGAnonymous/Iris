@@ -5,17 +5,18 @@
 #include "GUI/Theme/LookAndFeel/RotaryLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/ScrollBarLookAndFeel.h"
 #include "GUI/Theme/LookAndFeel/TextEditorLookAndFeel.h"
+#include "GUI/Theme/LookAndFeel/TooltipWindowLookAndFeel.h"
 
 #include <JuceHeader.h>
 
 class MareverbLookAndFeel : public juce::LookAndFeel_V4 {
 private:
-	// Could make these each interface and allow setting via subclasses?
 	ButtonLookAndFeel buttonLookAndFeel;
 	ComboBoxLookAndFeel comboBoxLookAndFeel;
 	RotaryLookAndFeel rotaryLookAndFeel;
 	ScrollBarLookAndFeel scrollBarLookAndFeel;
 	TextEditorLookAndFeel textEditorLookAndFeel;
+	TooltipWindowLookAndFeel tooltipWindowLookAndFeel;
 
 public:
 	MareverbLookAndFeel();
@@ -62,4 +63,7 @@ public:
 	void fillTextEditorBackground(juce::Graphics& g, int width, int height, juce::TextEditor& textEditor) override;
 
 	void drawTextEditorOutline(juce::Graphics& g, int width, int height, juce::TextEditor& textEditor) override;
+
+	// TooltipWindow
+	void drawTooltip(juce::Graphics& g, const juce::String& text, int width, int height) override;
 };

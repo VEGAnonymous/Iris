@@ -11,6 +11,7 @@ void TopBarPanel::prepare() {
         IRCommand cmd = { IRCommand::IR_LOAD_RANDOM_ALL };
         irManager->enqueueCommand(cmd);
     };
+    randomAllButton.setTooltip("Loads random IRs from the supplied directory list into every slot.\nAdjust settings via the directory manager in the top bar.");
     addAndMakeVisible(randomAllButton);
 
     clearAllButton.setButtonText("CLEAR ALL");
@@ -18,6 +19,7 @@ void TopBarPanel::prepare() {
         IRCommand cmd = { IRCommand::IR_CLEAR_ALL };
         irManager->enqueueCommand(cmd);
     };
+    clearAllButton.setTooltip("Clears all IR slots.");
     addAndMakeVisible(clearAllButton);
 
     // Directory manager modal
@@ -28,6 +30,7 @@ void TopBarPanel::prepare() {
         directoryManagerIcon, 1.0f, overlayColor,
         directoryManagerIcon, 1.0f, overlayColor);
     directoryManagerButton.onClick = [&]() { if (onDirectoryManagerClicked) onDirectoryManagerClicked(); };
+    directoryManagerButton.setTooltip("Opens the directory manager.");
     addAndMakeVisible(directoryManagerButton);
 
     // Settings modal
@@ -37,6 +40,7 @@ void TopBarPanel::prepare() {
         settingsIcon, 1.0f, overlayColor,
         settingsIcon, 1.0f, overlayColor);
     settingsButton.onClick = [&]() { if (onSettingsClicked) onSettingsClicked(); };
+    settingsButton.setTooltip("Opens the general settings menu.");
     addAndMakeVisible(settingsButton);
 
     // Logo

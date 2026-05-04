@@ -218,6 +218,10 @@
                   file="Source/GUI/Theme/LookAndFeel/TextEditorLookAndFeel.cpp"/>
             <FILE id="iwGwPe" name="TextEditorLookAndFeel.h" compile="0" resource="0"
                   file="Source/GUI/Theme/LookAndFeel/TextEditorLookAndFeel.h"/>
+            <FILE id="F4IjHE" name="TooltipWindowLookAndFeel.cpp" compile="1" resource="0"
+                  file="Source/GUI/Theme/LookAndFeel/TooltipWindowLookAndFeel.cpp"/>
+            <FILE id="EsxtbC" name="TooltipWindowLookAndFeel.h" compile="0" resource="0"
+                  file="Source/GUI/Theme/LookAndFeel/TooltipWindowLookAndFeel.h"/>
           </GROUP>
           <FILE id="PJ7lPW" name="MareverbAssets.cpp" compile="1" resource="0"
                 file="Source/GUI/Theme/MareverbAssets.cpp"/>

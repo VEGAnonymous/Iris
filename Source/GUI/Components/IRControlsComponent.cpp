@@ -13,6 +13,7 @@ void IRControlsComponent::prepare() {
             audioProcessor.getIRManager()->enqueueCommand(cmd);
         }
     };
+    clearIRButton.setTooltip("Clears the selected IR slot.");
     addAndMakeVisible(clearIRButton);
 
     randomIRButton.setButtonText("RANDOM");
@@ -24,6 +25,7 @@ void IRControlsComponent::prepare() {
             audioProcessor.getIRManager()->enqueueCommand(cmd);
         }
     };
+    randomIRButton.setTooltip("Loads a random IR from the supplied directory list.\nAdjust settings via the directory manager in the top bar.");
     addAndMakeVisible(randomIRButton);
 
     // Envelope control
@@ -48,11 +50,18 @@ void IRControlsComponent::prepare() {
     };
 
     envelopeControl.bindValueTooltipCallbacks(valueTooltip, parentComponent);
+
+    envelopeControl.setTooltip("Drag to set the envelope of the windowed IR range.\nDisclaimer: this has little practical use outside of potentially reducing windowing discontinuities.");
+
     addAndMakeVisible(envelopeControl);
 
     // Swap controls
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, animatorUpdater, i);
+        
+        swapControls[i]->swapActiveToggle.control.setTooltip("Enables/disables auto-swap for this slot, which will load a random IR into this slot at random intervals.");
+        swapControls[i]->swapRangeSlider.control.setTooltip("Drag the handles or drag-select to set the minimum and maximum time interval for auto-swapping.");
+
         addChildComponent(swapControls[i]->swapActiveToggle);
         addChildComponent(swapControls[i]->swapRangeSlider);
 

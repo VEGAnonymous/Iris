@@ -25,6 +25,8 @@ void DirectoryManagerComponent::prepare() {
     // Add / remove / refresh buttons
     addButton.setButtonText("+");
     removeButton.setButtonText("-");
+    addButton.setTooltip("Opens a dialog to add new directories.");
+    removeButton.setTooltip("Removes the selected IR directory from the list.\nSelect an IR directory by clicking on its row.");
     addAndMakeVisible(addButton);
     addAndMakeVisible(removeButton);
 
@@ -53,6 +55,7 @@ void DirectoryManagerComponent::prepare() {
         IRCommand cmd = { IRCommand::IR_DIRECTORY_REFRESH };
         irManager->enqueueCommand(cmd);
     };
+    refreshButton.setTooltip("Collects all valid IRs in the directory list.\nThis option is provided for pushing untracked changes, such as adding new files to an existing directory.");
     addAndMakeVisible(refreshButton);
 
     // File / directory filter editors
@@ -94,6 +97,7 @@ void DirectoryManagerComponent::prepare() {
     fileFilterTextEditor.onReturnKey = [this]() { fileFilterEditor.giveAwayKeyboardFocus(); };
     fileFilterTextEditor.onEscapeKey = [this]() { fileFilterEditor.giveAwayKeyboardFocus(); };
     fileFilterTextEditor.onFocusLost = setFileFilter;
+    fileFilterTextEditor.setTooltip("The file filter to use for the random IR selection.\nSupply keywords separated by commas (,) or semicolons (;).\n\nNote that this only checks that the keyword is naively contained within the filename, so accidents may still occur.");
     addAndMakeVisible(fileFilterEditor);
 
     auto& directoryFilterTextEditor = directoryFilterEditor.control;
@@ -108,6 +112,7 @@ void DirectoryManagerComponent::prepare() {
     directoryFilterTextEditor.onReturnKey = [this]() { directoryFilterEditor.giveAwayKeyboardFocus(); };
     directoryFilterTextEditor.onEscapeKey = [this]() { directoryFilterEditor.giveAwayKeyboardFocus(); };
     directoryFilterTextEditor.onFocusLost = setDirectoryFilter;
+    directoryFilterTextEditor.setTooltip("The directory filter to use for the random IR selection.\nSupply keywords separated by commas (,) or semicolons (;).\n\nNote that this only checks that the keyword is naively contained within any of the directory path components, so accidents may still occur.");
     addAndMakeVisible(directoryFilterEditor);
 
     // Sampling mode selector
@@ -122,6 +127,7 @@ void DirectoryManagerComponent::prepare() {
         cmd.samplingMode = static_cast<IRSamplingMode>(randomMode);
         audioProcessor.getIRManager()->enqueueCommand(cmd);
     };
+    samplingModeSelector.control.setTooltip("The algorithm to use when choosing random IRs to load.\n\n\"Uniform across all files\" collates all IRs across all directories and just selects one at random. This will intrinsically give more weighting to larger directories.\n\n\"Uniform across directories\" chooses the directory from the list first and then selects a random IR from that directory. Note that this does NOT check if the chosen directory lacks valid audio files, in which cases nothing will be loaded.");
     addAndMakeVisible(samplingModeSelector);
 }
 

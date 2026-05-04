@@ -35,4 +35,6 @@ struct GUIState {
 
     std::array<juce::Image, MAX_IR_COUNT> mareImages;
     juce::SpinLock mareLock;
+
+    std::atomic<bool> tooltipsEnabledChanged { false };
 };

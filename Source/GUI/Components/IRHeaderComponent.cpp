@@ -9,6 +9,12 @@ BoundsF IRHeaderComponent::getIndicatorBounds(Bounds bounds, const float radius)
     return { b.getX() + 12.0f - radius, b.getCentreY() - 0.5f - radius, radius * 2.0f, radius * 2.0f};
 }
 
+void IRHeaderComponent::mouseMove(const juce::MouseEvent& e) {
+    auto indicatorBounds = getIndicatorBounds(getLocalBounds(), indicatorRadius);
+    if (indicatorBounds.contains(e.position))
+        setTooltip("Enables/disables the selected IR. Disabled IRs don't contribute to the mix.");
+}
+
 void IRHeaderComponent::mouseDown(const juce::MouseEvent& e) {
     auto indicatorBounds = getIndicatorBounds(getLocalBounds(), indicatorRadius);
     if (indicatorBounds.contains(e.position)) {
@@ -19,6 +25,8 @@ void IRHeaderComponent::mouseDown(const juce::MouseEvent& e) {
         audioProcessor.guiState.updateField.store(true, std::memory_order_release);
     }
 }
+
+void IRHeaderComponent::mouseExit(const juce::MouseEvent& /*e*/) { setTooltip(""); }
 
 /* PUBLIC */
 

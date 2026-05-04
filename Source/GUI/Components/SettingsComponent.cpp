@@ -27,7 +27,9 @@ void SettingsComponent::prepare() {
     tooltipToggle.control.setToggleState(state.getProperty(PropertyID::tooltipsEnabled, false), juce::dontSendNotification);
     tooltipToggle.control.onStateChange = [this]() {
         audioProcessor.apvts.state.setProperty(PropertyID::tooltipsEnabled, tooltipToggle.control.getToggleState(), nullptr);
+        audioProcessor.guiState.tooltipsEnabledChanged.store(true, std::memory_order_release);
     };
+    tooltipToggle.control.setTooltip("Enables info tooltips on hover, like the one you're looking at right now.");
     addAndMakeVisible(tooltipToggle);
 
     // Position indicator selector
@@ -39,6 +41,7 @@ void SettingsComponent::prepare() {
         audioProcessor.apvts.state.setProperty(PropertyID::positionIndicatorStyle, positionIndicatorStyles[selectedIndex], nullptr);
         audioProcessor.guiState.indicatorStyleChanged.store(true, std::memory_order_release);
     };
+    positionIndicatorSelector.control.setTooltip("Choose your fighter!");
     addAndMakeVisible(positionIndicatorSelector);
 
     // Field indicator selector
@@ -50,6 +53,7 @@ void SettingsComponent::prepare() {
         audioProcessor.apvts.state.setProperty(PropertyID::fieldIndicatorStyle, fieldIndicatorStyles[selectedIndex - 1], nullptr);
         audioProcessor.guiState.indicatorStyleChanged.store(true, std::memory_order_release);
     };
+    fieldIndicatorSelector.control.setTooltip("How much mare do you want?\n\nMareful will attempt to match the filename of each IR to a mare (optimized for Clipper's file naming system) and fall back to Anonfilly if none match.\n\nHalf-Mared will attempt the same but fall back to lame dot indicators.\n\n>Mareless\nDYKWYA?");
     addAndMakeVisible(fieldIndicatorSelector);
 
     // Control rate selector
@@ -62,6 +66,7 @@ void SettingsComponent::prepare() {
         const float controlRate = controlRates[selectedIndex - 1].removeCharacters(" Hz").getFloatValue();
         audioProcessor.setControlRate(controlRate);
     };
+    controlRateSelector.control.setTooltip("The control rate determines how often updates to the motion and convolution state (distances, weighting, re-mixing the IRs) are polled.\n\nHigher values have higher \"resolution\" and are thus more responsive to fast and/or sudden changes in the IRs, but also run the risk of lagging out if performance deadlines are not met (e.g., @ 40 Hz, 25 ms).\n\nOn the other hoof, lower values may improve reliability (NOT audio performance) but have somewhat less responsiveness to rapid changes.");
     addAndMakeVisible(controlRateSelector);
 
     // LYRALYRALYRALYRALYRA

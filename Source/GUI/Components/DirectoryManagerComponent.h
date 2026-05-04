@@ -57,6 +57,7 @@ public:
 
         DirectoryRowComponent(juce::AnimatorUpdater& updater, std::atomic<bool>& busy) : activeToggle(updater), isBusy(busy) {
             activeToggle.setClickingTogglesState(false);
+            activeToggle.setTooltip("Enables this directory.\nDisabled directories will not be drawn from when loading random IRs.");
             addAndMakeVisible(activeToggle);
 
             pathLabel.setMinimumHorizontalScale(1.0f);

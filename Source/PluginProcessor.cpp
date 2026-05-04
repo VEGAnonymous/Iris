@@ -36,7 +36,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
 
     // Position controls
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::positionPattern, "Pattern", positionPatterns, static_cast<int>(PositionPattern::EYES)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.621f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModA, "Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModB, "Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
     
@@ -471,6 +471,8 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
     guiState.syncingPosition.store(true, std::memory_order_release);
     // guiState.syncingField.store(true, std::memory_order_release); // Crashes with vector subscript OOB
     guiState.syncingSwap.store(true, std::memory_order_release);
+
+    guiState.tooltipsEnabledChanged.store(true, std::memory_order_release);
 
     profileTime("RECALL: Sent GUI refresh flags: ", startTime);
 }

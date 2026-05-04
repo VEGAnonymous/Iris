@@ -35,6 +35,7 @@ private:
 
     // API
     juce::AnimatorUpdater animatorUpdater;
+    juce::TooltipWindow tooltipWindow;
     ValueTooltipWindow valueTooltip;
     
     // ControlDefs

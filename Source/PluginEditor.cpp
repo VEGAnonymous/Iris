@@ -111,7 +111,13 @@ void MareverbAudioProcessorEditor::timerCallback() {
     if (audioProcessor.getIRManager()->getDirectoryChanged().exchange(false, std::memory_order_acquire)) {
         if (directoryManagerModal) directoryManagerModal->refresh();
     }
-        
+
+    // Misc
+    if (audioProcessor.guiState.tooltipsEnabledChanged.exchange(false, std::memory_order_acquire)) {
+        const bool tooltipsEnabled = audioProcessor.apvts.state.getProperty(PropertyID::tooltipsEnabled, false);
+        tooltipWindow.setAlpha(tooltipsEnabled ? 1.0f : 0.0f);
+        DBG("SYNC: Set tooltips enabled: " << tooltipWindow.getAlpha());
+    }
 }
 
 // GUI state
@@ -161,6 +167,8 @@ void MareverbAudioProcessorEditor::syncPosition() {
         case PositionPattern::MANUAL: {
             positionModAControl.label.setText("Radius", juce::dontSendNotification);
             positionModBControl.label.setText("Angle", juce::dontSendNotification);
+            positionModAControl.control.setTooltip("The radius of the polar coordinate position.\nAlternatively, set the position by clicking and dragging the indicator.");
+            positionModBControl.control.setTooltip("The angle of the polar coordinate position.\nAlternatively, set the position by clicking and dragging the indicator.");
             positionRateControl.setEnabled(false);
 
             PolarCoordinate position = audioProcessor.guiState.position.load();
@@ -171,12 +179,16 @@ void MareverbAudioProcessorEditor::syncPosition() {
         case PositionPattern::EYES: {
             positionModAControl.label.setText("Angle", juce::dontSendNotification);
             positionModBControl.label.setText("-", juce::dontSendNotification);
+            positionModAControl.control.setTooltip("The derpiness of the eyes.");
+            positionModBControl.control.setTooltip("");
             positionModBControl.setEnabled(false);
             break;
         }
         case PositionPattern::ORBIT: {
             positionModAControl.label.setText("Radius", juce::dontSendNotification);
             positionModBControl.label.setText("-", juce::dontSendNotification);
+            positionModAControl.control.setTooltip("The radius of the circle to orbit.");
+            positionModBControl.control.setTooltip("");
             positionModBControl.setEnabled(false);
             break;
         }
@@ -184,22 +196,30 @@ void MareverbAudioProcessorEditor::syncPosition() {
             positionModAControl.label.setText("Swirl", juce::dontSendNotification);
             positionModBControl.label.setText("-", juce::dontSendNotification);
             positionModBControl.setEnabled(false);
+            positionModAControl.control.setTooltip("The swirliness of the swirl swirl.");
+            positionModBControl.control.setTooltip("");
             break;
         }
         case PositionPattern::FLORAL:
         case PositionPattern::LISSAJOUS: {
             positionModAControl.label.setText("P", juce::dontSendNotification);
             positionModBControl.label.setText("Q", juce::dontSendNotification);
+            positionModAControl.control.setTooltip("I wonder what this does?");
+            positionModBControl.control.setTooltip("I wonder what this does?");
             break;
         }
         case PositionPattern::RANDOM_DISCRETE: {
             positionModAControl.label.setText("Radius", juce::dontSendNotification);
             positionModBControl.label.setText("Smoothing", juce::dontSendNotification);
+            positionModAControl.control.setTooltip("The maximum range of movement away from the center.");
+            positionModBControl.control.setTooltip("How smooth (and slow!) the journey to the target position is.");
             break;
         }
         case PositionPattern::RANDOM_WALK: {
             positionModAControl.label.setText("Wander", juce::dontSendNotification);
             positionModBControl.label.setText("Bounce", juce::dontSendNotification);
+            positionModAControl.control.setTooltip("The \"impulsiveness\" of the random walk.\nHigher values create more energetic, jittery movement with frequent changes in speed and direction.");
+            positionModBControl.control.setTooltip("How much the indicator will bounce back when it hits the edge.");
             break;
         }
         default: {
@@ -250,12 +270,14 @@ void MareverbAudioProcessorEditor::syncField() {
     fieldModAControl.setEnabled(true);
     fieldModBControl.setEnabled(true);
 
-    // Set label text, enabled/disabled for each pattern
+    // Set label text, tooltip, enabled/disabled for each pattern
     switch (fieldPattern) {
         case FieldPattern::MANUAL: {
             fieldRateControl.setEnabled(false);
             fieldModAControl.label.setText("Radius", juce::dontSendNotification);
             fieldModBControl.label.setText("Angle", juce::dontSendNotification);
+            fieldModAControl.control.setTooltip("The radius of the selected indicator's polar coordinate position.\nAlternatively, set the position by clicking and dragging the indicator.");
+            fieldModBControl.control.setTooltip("The angle of the selected indicator's polar coordinate position.\nAlternatively, set the position by clicking and dragging the indicator.");
 
             PolarCoordinate coordinate;
             {
@@ -270,24 +292,31 @@ void MareverbAudioProcessorEditor::syncField() {
         case FieldPattern::RING: {
             fieldModAControl.label.setText("Radius", juce::dontSendNotification);
             fieldModBControl.label.setText("Offset", juce::dontSendNotification);
+            fieldModAControl.control.setTooltip("The radius of the circle to orbit.");
+            fieldModBControl.control.setTooltip("The phase shift of the orbit as a whole.");
             break;
         }
         case FieldPattern::ORBITS: {
             fieldModAControl.label.setText("Radius", juce::dontSendNotification);
             fieldModBControl.label.setText("Bias", juce::dontSendNotification);
+            fieldModAControl.control.setTooltip("The radius of the outermost orbit.");
+            fieldModBControl.control.setTooltip("The variation in orbital velocities between inner and outer orbits.\nHigher values bias velocity towards outer orbits, and vice versa.");
             break;
         }
         case FieldPattern::RANDOM_DISCRETE: {
             fieldModAControl.label.setText("Radius", juce::dontSendNotification);
             fieldModBControl.label.setText("Smoothing", juce::dontSendNotification);
+            fieldModAControl.control.setTooltip("The maximum range of movement away from the center.");
+            fieldModBControl.control.setTooltip("How smooth (and slow!) the journey to the target position is.");
             break;
         }
         case FieldPattern::RANDOM_WALK: {
             fieldModAControl.label.setText("Wander", juce::dontSendNotification);
             fieldModBControl.label.setText("Bounce", juce::dontSendNotification);
+            fieldModAControl.control.setTooltip("The \"impulsiveness\" of the random walk.\nHigher values create more energetic, jittery movement with frequent changes in speed and direction.");
+            fieldModBControl.control.setTooltip("How much indicators will bounce back when they hit the edge.");
             break;
         }
-    
     }
     
     fieldRateControl.repaint();
@@ -365,12 +394,29 @@ void MareverbAudioProcessorEditor::prepare() {
     audioProcessor.getIRManager()->onAlert = [this](juce::String title, juce::String message, juce::String details, juce::String buttonText) {
         MareAlert::show(animatorUpdater, &mainLookAndFeel, title, message, details, buttonText);
     };
+
+    // Set tooltips
+    tooltipWindow.setAlwaysOnTop(true);
+    globalMixControl.control.setTooltip("The blend between the dry input signal and the wet mares signal.");
+    decayControl.control.setTooltip("The reverb decay as a percentage of the current longest active IR's duration.");
+    lowCutControl.control.setTooltip("The cutoff frequency of the 12 dB/oct low-cut filter applied to the wet signal.");
+    highCutControl.control.setTooltip("The cutoff frequency of the 12 dB/oct high-cut filter applied to the wet signal.");
+
+    weightingModeControl.control.setTooltip("The method for blending IRs based on distance.\n\nAbsolute mode weights based on the true distance from the position indicator to any given active field indicator, independent of the others.\n\nRelative mode weights proportionally based on the relative distances from the position indicator to each other active field indicator.");
+    strengthControl.control.setTooltip("The amount that distance affects each IR's contribution.\nHigher values emphasize nearby IRs and reduce the influence of distant ones.");
+    spreadControl.control.setTooltip("The stereo \"width\" of the reverb, applied via weak binaural panning cues based on the angles between the position indicator and each active field indicator.");
+
+    positionPatternControl.control.setTooltip("The motion pattern to use for the position indicator.");
+    positionRateControl.control.setTooltip("The rate and direction of motion for the position indicator.\nNote that this parameter is asynchronous and thus has no consistent units.");
+
+    fieldPatternControl.control.setTooltip("The motion pattern to use for the field indicators.");
+    fieldRateControl.control.setTooltip("The rate and direction of motion for the field indicators.\nNote that this parameter is asynchronous and thus has no consistent units.");
 }
 
 /* PUBLIC */
 
 MareverbAudioProcessorEditor::MareverbAudioProcessorEditor(MareverbAudioProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p),
+    : AudioProcessorEditor(&p), audioProcessor(p), tooltipWindow(nullptr, 1261),
 
     // Attachments
     globalMixControlAttachment(audioProcessor.apvts, ParamID::globalMix, globalMixControl.control),
@@ -418,6 +464,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor(MareverbAudioProcesso
     // Init
     setLookAndFeel(&mainLookAndFeel);
 
+    tooltipWindow.setLookAndFeel(&mainLookAndFeel);
     addChildComponent(valueTooltip);
 
     addAndMakeVisible(polarMapPanel);
@@ -437,6 +484,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor(MareverbAudioProcesso
 MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
     // Detach look and feel
     setLookAndFeel(nullptr);
+    tooltipWindow.setLookAndFeel(nullptr);
 
     // Detach listeners
     for (auto& control : controls) audioProcessor.apvts.removeParameterListener(control.paramID, this);

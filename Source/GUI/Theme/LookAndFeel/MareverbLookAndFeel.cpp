@@ -94,3 +94,9 @@ void MareverbLookAndFeel::fillTextEditorBackground(juce::Graphics& g, int width,
 void MareverbLookAndFeel::drawTextEditorOutline(juce::Graphics& g, int width, int height, juce::TextEditor& textEditor) {
 	textEditorLookAndFeel.drawTextEditorOutline(g, width, height, textEditor);
 }
+
+// TooltipWindow
+
+void MareverbLookAndFeel::drawTooltip(juce::Graphics& g, const juce::String& text, int width, int height) {
+	tooltipWindowLookAndFeel.drawTooltip(g, text, width, height);
+}

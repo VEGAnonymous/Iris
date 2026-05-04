@@ -17,7 +17,7 @@ void ValueTooltipWindow::setText(const juce::String nText) {
 }
 
 void ValueTooltipWindow::updatePosition(const juce::String& tooltip, juce::Point<int> position, Bounds parentBounds) {
-    setBounds(getLookAndFeel().getTooltipBounds(tooltip, position, parentBounds));
+    setBounds(getLookAndFeel().getTooltipBounds(tooltip, position, parentBounds).expanded(2, 1));
 }
 
 void ValueTooltipWindow::paint(juce::Graphics& g) {
@@ -25,6 +25,6 @@ void ValueTooltipWindow::paint(juce::Graphics& g) {
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 4.0f);
 
     g.setColour(Theme::Colors::textLight);
-    g.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions(11.0f)));
+    g.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions(12.0f)));
     g.drawText(text, getLocalBounds(), juce::Justification::centred, false);
 }

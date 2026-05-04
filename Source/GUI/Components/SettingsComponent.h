@@ -19,7 +19,7 @@ private:
 
     juce::Label title, details;
 
-    LabelledControl<HoverableToggleButton> tooltipToggle {"Tooltips", animatorUpdater};
+    LabelledControl<HoverableToggleButton> tooltipToggle {"Info Tooltips", animatorUpdater};
 
     LabelledControl<juce::ComboBox> positionIndicatorSelector { "Position Indicator" };
     const juce::StringArray positionIndicatorStyles { 
