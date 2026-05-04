@@ -31,9 +31,12 @@ void IRHeaderComponent::setSlot(int irIndex, const IRSlotLite slot) {
     currentIndex = irIndex;
     currentIR = slot;
 
+    const int maxPathLength = 62;
+    const int maxParentLength = 21;
+
     const auto parent = slot.file.getParentDirectory();
-    const auto parentPath = formatPath(parent.getFileName(), 25, Ellipsis::FRONT);
-    auto fullPath = parentPath + "/" + formatPath(slot.file.getFileName(), 100 - parentPath.length(), Ellipsis::MIDDLE);
+    const auto parentPath = formatPath(parent.getFileName(), maxParentLength, Ellipsis::FRONT);
+    auto fullPath = parentPath + "/" + formatPath(slot.file.getFileName(), maxPathLength - parentPath.length(), Ellipsis::MIDDLE);
     currentPath = slot.occupied ? fullPath : "---";
     repaint();
 }

@@ -42,8 +42,7 @@ namespace Paint {
                 static_cast<int>(radius * 2.0f), static_cast<int>(radius * 2.0f),
                 0, 0, mare->getWidth(), mare->getHeight()
             );
-        }
-        else {
+        } else {
             g.setColour(color.withAlpha(indicatorAlpha));
             g.fillEllipse(center.x - radius, center.y - radius, radius * 2.0f, radius * 2.0f);
         }

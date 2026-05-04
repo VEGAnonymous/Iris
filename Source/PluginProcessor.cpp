@@ -29,20 +29,20 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
         juce::String minID = ParamID::irSwapMin(i);
         juce::String maxID = ParamID::irSwapMax(i);
         juce::String activeID = ParamID::irSwapActive(i);
-        layout.add(std::make_unique<juce::AudioParameterFloat>(minID, minID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 0.0f, timeFormat));
-        layout.add(std::make_unique<juce::AudioParameterFloat>(maxID, maxID, juce::NormalisableRange<float>(5.0f, 60.0f, 0.1f), 1.0f, timeFormat));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(minID, minID, juce::NormalisableRange<float>(6.2f, 62.1f, 0.1f), 12.6f, timeFormat));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(maxID, maxID, juce::NormalisableRange<float>(6.2f, 62.1f, 0.1f), 21.6f, timeFormat));
         layout.add(std::make_unique<juce::AudioParameterBool>(activeID, activeID, false));
     }
 
     // Position controls
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::positionPattern, "Pattern", positionPatterns, static_cast<int>(PositionPattern::EYES)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.0f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.621f, percentFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModA, "Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModB, "Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
     
     // Field controls
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::fieldPattern, "Pattern", fieldPatterns, static_cast<int>(FieldPattern::RING)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.0f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.621f, percentFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModA, "Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModB, "Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
 
@@ -102,6 +102,8 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     mixer(PARTITION_SIZE),
     irManager(&applicationProperties) {
 
+    auto startTime = std::chrono::steady_clock::now();
+
     // Init properties
     juce::PropertiesFile::Options options;
     options.applicationName = "Mareverb";
@@ -112,6 +114,8 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     // Init IR manager
     irManager.prepare();
 
+    profileTime("INIT: Initialized IR manager; ", startTime);
+
     // Init pattern states
     patternState.lastPositionPattern = static_cast<PositionPattern>(apvts.getParameter(ParamID::positionPattern)->getDefaultValue());
     patternState.lastFieldPattern = static_cast<FieldPattern>(apvts.getParameter(ParamID::fieldPattern)->getDefaultValue());
@@ -119,7 +123,7 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     for (int i = 0; i <= positionPatterns.size(); ++i)
         patternState.positionParamStates[static_cast<PositionPattern>(i)] = { 
             apvts.getParameter(ParamID::positionRate)->getDefaultValue(),
-            apvts.getParameter(ParamID::positionModA)->getDefaultValue(), 
+            apvts.getParameter(ParamID::positionModA)->getDefaultValue(),
             apvts.getParameter(ParamID::positionModB)->getDefaultValue()
         };
 
@@ -129,6 +133,8 @@ MareverbAudioProcessor::MareverbAudioProcessor()
             apvts.getParameter(ParamID::fieldModA)->getDefaultValue(),
             apvts.getParameter(ParamID::fieldModB)->getDefaultValue()
         };
+
+    profileTime("INIT: Initialized pattern states; ", startTime);
 
     // Init DSP state
     convolutionState = std::make_shared<ConvolutionStateHolder>();
@@ -144,8 +150,14 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     cutFilterNode = mainProcessor->addNode(std::make_unique<CutFilterAudioProcessor>());
     audioOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioOutputNode));
 
+    profileTime("INIT: Initialized DSP state; ", startTime);
+
     // Init threads
     controlThread = std::make_unique<ControlThread>(apvts, irManager, guiState, convolutionState);
+
+    profileTime("INIT: Initialized control thread; ", startTime);
+
+    profileTime("INIT: Processor initialization complete in ", startTime);
 }
 
 MareverbAudioProcessor::~MareverbAudioProcessor() { }
@@ -300,14 +312,19 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
 
     juce::MemoryOutputStream mos(destData, true);
     state.writeToStream(mos);
+
+    DBG("RECALL: Stored state information");
 }
 
 void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
+    auto startTime = std::chrono::steady_clock::now();
     auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
     if (!tree.isValid()) return;
 
     apvts.replaceState(tree);
     updateParameters();
+
+    DBG("RECALL: Restoring state information...");
 
     // Restore GUI state
     auto guiTree = tree.getChildWithName(TreeID::guiState);
@@ -332,6 +349,8 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
             }
         }
     }
+
+    profileTime("RECALL: Restored GUI (coordinates) state: ", startTime);
 
     // Restore pattern state
     patternState.lastPositionPattern = static_cast<PositionPattern>(apvts.getRawParameterValue(ParamID::positionPattern)->load());
@@ -362,6 +381,8 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
         }
     }
 
+    profileTime("RECALL: Restored pattern state: ", startTime);
+
     // Restore IR manager state
     auto irManagerTree = tree.getChildWithName(TreeID::irManagerState);
     if (irManagerTree.isValid()) {
@@ -375,8 +396,7 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
             float windowLength = slotTree.getProperty(PropertyID::IRSlot::Window::length, 1.0f);
 
             EnvelopeType envelopeType = static_cast<EnvelopeType>(
-                static_cast<int>(slotTree.getProperty(
-                    PropertyID::IRSlot::Window::Envelope::type, static_cast<int>(EnvelopeType::NONE))));
+                static_cast<int>(slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::type, static_cast<int>(EnvelopeType::NONE))));
             float envelopeAttack = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::attack, 0.0f);
             float envelopeRelease = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::release, 0.0f);
 
@@ -387,24 +407,59 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
                 irManager.enqueueCommand(cmd);
             }
              
-            // HACK: These should enqueue commands but I don't care
-            irManager.setIRActive(i, active);
-            irManager.setWindow(i, windowStart, windowLength);
-            irManager.setEnvelope(i, envelopeType, envelopeAttack, envelopeRelease);
-            irManager.setSwapInterval(i, 
-                apvts.getRawParameterValue(ParamID::irSwapMin(i))->load(), 
-                apvts.getRawParameterValue(ParamID::irSwapMax(i))->load());
-            irManager.setSwapActive(i, apvts.getRawParameterValue(ParamID::irSwapActive(i))->load());
+            // Enqueue commands
+            IRCommand cmd;
+            cmd.type = IRCommand::IR_SET_ACTIVE_STATE;
+            cmd.irIndex = i;
+            cmd.irActiveState = active;
+            irManager.enqueueCommand(cmd);
+
+            cmd.type = IRCommand::IR_SET_WINDOW;
+            cmd.irIndex = i;
+            cmd.windowStart = windowStart;
+            cmd.windowLength = windowLength;
+            irManager.enqueueCommand(cmd);
+
+            cmd.type = IRCommand::IR_SET_ENVELOPE;
+            cmd.irIndex = i;
+            cmd.envelopeType = envelopeType;
+            cmd.envelopeAttack= envelopeAttack;
+            cmd.envelopeRelease = envelopeRelease;
+            irManager.enqueueCommand(cmd);
+
+            cmd.type = IRCommand::IR_SET_SWAP_INTERVAL;
+            cmd.irIndex = i;
+            cmd.swapMaxTime = apvts.getRawParameterValue(ParamID::irSwapMin(i))->load();
+            cmd.swapMinTime = apvts.getRawParameterValue(ParamID::irSwapMax(i))->load();
+            irManager.enqueueCommand(cmd);
+
+            cmd.type = IRCommand::IR_SET_SWAP_ACTIVE;
+            cmd.irIndex = i;
+            cmd.swapActiveState = apvts.getRawParameterValue(ParamID::irSwapActive(i))->load();
+            irManager.enqueueCommand(cmd);
         }
     }
 
-    irManager.setFileFilter(apvts.state.getProperty(PropertyID::fileFilter, ""));
-    irManager.setDirectoryFilter(apvts.state.getProperty(PropertyID::directoryFilter, ""));
-    irManager.setSamplingMode(static_cast<IRSamplingMode>(static_cast<int>(
-        apvts.state.getProperty(PropertyID::samplingMode, static_cast<int>(IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES)))));
+    profileTime("RECALL: Restored IR manager state: ", startTime);
+
+    IRCommand cmd;
+    cmd.type = IRCommand::SET_FILE_FILTER;
+    cmd.fileFilter = apvts.state.getProperty(PropertyID::fileFilter);
+    irManager.enqueueCommand(cmd);
+
+    cmd.type = IRCommand::SET_DIRECTORY_FILTER;
+    cmd.directoryFilter = apvts.state.getProperty(PropertyID::directoryFilter);
+    irManager.enqueueCommand(cmd);
+
+    cmd.type = IRCommand::SET_SAMPLING_MODE;
+    cmd.samplingMode = static_cast<IRSamplingMode>(static_cast<int>(
+        apvts.state.getProperty(PropertyID::samplingMode, static_cast<int>(IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES))));;
+    irManager.enqueueCommand(cmd);
 
     const int controlRateIndex = apvts.state.getProperty(PropertyID::controlRate, 3);
     setControlRate(controlRates[controlRateIndex - 1].removeCharacters(" Hz").getFloatValue());
+
+    profileTime("RECALL: Restored general settings: ", startTime);
 
     // Refresh GUI
     guiState.positionChanged.store(true, std::memory_order_release);
@@ -416,6 +471,8 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
     guiState.syncingPosition.store(true, std::memory_order_release);
     // guiState.syncingField.store(true, std::memory_order_release); // Crashes with vector subscript OOB
     guiState.syncingSwap.store(true, std::memory_order_release);
+
+    profileTime("RECALL: Sent GUI refresh flags: ", startTime);
 }
 
 IRManager* MareverbAudioProcessor::getIRManager() { return &irManager; }

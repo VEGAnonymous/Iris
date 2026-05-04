@@ -58,14 +58,19 @@ void MareverbAudioProcessorEditor::timerCallback() {
         polarMapPanel.notifyFieldChanged(std::move(coordinates));
     }
 
-    if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire)) 
+    if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire)) {
         syncPosition();
+        DBG("SYNC: Position sync complete");
+    }
 
-    if (audioProcessor.guiState.syncingField.load(std::memory_order_acquire)) 
+    if (audioProcessor.guiState.syncingField.load(std::memory_order_acquire)) {
         syncField();
-
-    if (audioProcessor.guiState.indicatorStyleChanged.exchange(false, std::memory_order_acquire))
+        DBG("SYNC: Field sync complete");
+    }
+        
+    if (audioProcessor.guiState.indicatorStyleChanged.exchange(false, std::memory_order_acquire)) {
         polarMapPanel.notifyIndicatorStyleChanged();
+    }
 
     // IRs
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
@@ -83,10 +88,12 @@ void MareverbAudioProcessorEditor::timerCallback() {
         }
 
         updateIRSlot(true);
+        DBG("SYNC: IR sync complete");
     }
 
-    if (audioProcessor.guiState.selectedIRChanged.exchange(false, std::memory_order_acquire))
+    if (audioProcessor.guiState.selectedIRChanged.exchange(false, std::memory_order_acquire)) {
         updateIRSlot(false);
+    }
         
     if (polarMapPanel.getIRSwitched().exchange(false, std::memory_order_acquire)) {
         audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
@@ -97,6 +104,7 @@ void MareverbAudioProcessorEditor::timerCallback() {
         audioProcessor.guiState.syncingSwap.store(true, std::memory_order_release);
         for (int i = 0; i < MAX_IR_COUNT; ++i) selectedIRPanel.getIRControlsComponent()->updateSwapState(i);
         audioProcessor.guiState.syncingSwap.store(false, std::memory_order_release);
+        DBG("SYNC: Swap sync complete");
     }
 
     // Directory manager modal
@@ -119,6 +127,7 @@ void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
 
     selectedIRPanel.updateIRSlot(selectedIR, animate);
     audioProcessor.guiState.updateField.store(true, std::memory_order_release);
+    DBG("SYNC: IR slot updated");
 };
 
 void MareverbAudioProcessorEditor::syncPosition() {

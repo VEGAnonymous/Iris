@@ -8,8 +8,7 @@
 bool IRManager::validateIRDirectory(const juce::File& dir) const {
     return (dir.isDirectory()
         && !dir.isRoot()
-        && dir.hasReadAccess()
-        && !dir.findChildFiles(juce::File::findFiles, true, formatManager.getWildcardForAllFormats()).isEmpty());
+        && dir.hasReadAccess());
 }
 
 void IRManager::saveDirectories() {
@@ -35,7 +34,8 @@ void IRManager::loadDirectories() {
         bool active = properties->getBoolValue("irDirectoryActive_" + juce::String(i), true);
         if (validateIRDirectory(dir)) irDirectories.push_back({ dir, active });
     }
-    collectIRs();
+    IRCommand cmd = { IRCommand::IR_DIRECTORY_REFRESH };
+    enqueueCommand(cmd);
 }
 
 // Utilities
@@ -52,12 +52,8 @@ bool IRManager::matchesKeyword(const juce::String& text, const juce::StringArray
     if (keywords.isEmpty()) return true;
 
     const juce::String lowerText = text.toLowerCase();
-    for (const auto& keyword : keywords) {
-        if (keyword.isNotEmpty() && lowerText.contains(keyword)) {
-            // DBG("Matched " << lowerText << "against keyword " << keyword);
-            return true;
-        }
-    }
+    for (const auto& keyword : keywords)
+        if (keyword.isNotEmpty() && lowerText.contains(keyword)) return true;
     return false;
 };
 
@@ -90,12 +86,11 @@ void IRManager::prepare() {
     for (int i = 0; i < irSlots.size(); ++i) {
         computeEnvelope(irSlots[i]);
         irSlots[i].autoSwap.callback = [&, i]() {
+            DBG("IR: Swapped slot " << i);
             enqueueCommand(IRCommand{ IRCommand::IR_LOAD_RANDOM, i });
             irSlots[i].autoSwap.resetCountdown(irRNG);
         };
     }
-
-    collectIRs();
 }
 
 void IRManager::enqueueCommand(IRCommand cmd) { irCommandQueue.enqueue(cmd); }
@@ -103,12 +98,13 @@ void IRManager::enqueueCommand(IRCommand cmd) { irCommandQueue.enqueue(cmd); }
 void IRManager::collectIRs() { collectIRs(fileFilter, directoryFilter); }
 void IRManager::collectIRs(const juce::StringArray fileKeywords, const juce::StringArray directoryKeywords) {
     collectPending.store(true, std::memory_order_release);
-    if (busyCollecting.exchange(true, std::memory_order_acq_rel)) return;
+    busyCollecting.store(true, std::memory_order_release);
     directoryChanged.store(true, std::memory_order_release);
 
     irThreadPool.addJob([this, fileKeywords, directoryKeywords]() {
         const juce::String formatWildcard = formatManager.getWildcardForAllFormats();
         do {
+            DBG("IR: Collecting IRs with file filter (" << fileKeywords.joinIntoString(", ") << "); directory filter (" << directoryKeywords.joinIntoString(", ") << ")");
             collectPending.store(false, std::memory_order_release);
             auto nFiles = std::make_shared<std::vector<IRDirectoryFiles>>();
 
@@ -148,7 +144,7 @@ void IRManager::collectIRs(const juce::StringArray fileKeywords, const juce::Str
 
         } while (collectPending.load(std::memory_order_acquire)); // Don't drop changes
 
-        DBG("Finished collecting IRs");
+        DBG("IR: Finished collecting IRs");
         busyCollecting.store(false, std::memory_order_release);
     });
 }
@@ -399,13 +395,11 @@ void IRManager::advanceSwapTimers(float dt) {
 
 void IRManager::setFileFilter(juce::String nFilter) {
     fileFilter = parseFilter(nFilter);
-    DBG("Set file filter: " << fileFilter.joinIntoString(", "));
     collectIRs();
 }
 
 void IRManager::setDirectoryFilter(juce::String nFilter) {
     directoryFilter = parseFilter(nFilter);
-    DBG("Set directory filter: " << directoryFilter.joinIntoString(", "));
     collectIRs();
 }
 

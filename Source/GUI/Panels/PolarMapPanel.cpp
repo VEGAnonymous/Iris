@@ -341,6 +341,8 @@ void PolarMapPanel::notifyIndicatorStyleChanged() {
     }
     positionIndicatorIcon = positionIcon;
 
+    DBG("SYNC: Updated position indicator style: " << positionIndicatorStyle);
+
     // Update field indicator style
     const juce::String fieldIndicatorStyle =
         audioProcessor.apvts.state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful);
@@ -359,6 +361,8 @@ void PolarMapPanel::notifyIndicatorStyleChanged() {
         }
         fieldIndicatorIcons[i] = fieldIcon;
     }
+
+    DBG("SYNC: Updated field indicator style: " << fieldIndicatorStyle);
 }
 
 std::atomic<bool>& PolarMapPanel::getIRSwitched() { return switchedIR; }

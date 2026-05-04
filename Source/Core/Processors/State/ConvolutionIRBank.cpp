@@ -26,13 +26,13 @@ void ConvolutionIRBank::updateMaxPartitionCount() {
 	for (int ir = 0; ir < MAX_IR_COUNT; ++ir)
 		maxPartitionCount = std::max(maxPartitionCount, irPartitionCounts[ir]);
 
-	DBG("Max partition count: " << maxPartitionCount);
+	DBG("CONV: Computed max partition count: " << maxPartitionCount);
 }
 
 void ConvolutionIRBank::setIR(int irIndex, const juce::AudioBuffer<float>& irBuffer) {
 	if (!validateIRIndex(irIndex)) return;
 
-	DBG("Updating IRFFT: " << irIndex);
+	DBG("CONV: Begin updating FFT for buffer " << irIndex);
 
 	std::array<float, FFT_SIZE*2> irPartition {0};
 	auto nSpectra = std::make_shared<SpectraData>();
@@ -66,7 +66,7 @@ void ConvolutionIRBank::setIR(int irIndex, const juce::AudioBuffer<float>& irBuf
 		}
 	}
 	irSpectra[irIndex] = nSpectra;
-	DBG("Computed FFT for buffer " << irIndex);
+	DBG("CONV: Computed FFT for buffer " << irIndex);
 }
 
 void ConvolutionIRBank::clearIR(int irIndex) {

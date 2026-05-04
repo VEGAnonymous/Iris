@@ -23,10 +23,10 @@ void ControlThread::advancePhase(float dt) {
 // Parameters
 
 void ControlThread::updateSwapParameters() {
-    for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
-        float nMin = apvts.getRawParameterValue(ParamID::irSwapMin(ir))->load();
-        float nMax = apvts.getRawParameterValue(ParamID::irSwapMax(ir))->load();
-        irManager.setSwapInterval(ir, nMin, nMax);
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        float nMin = apvts.getRawParameterValue(ParamID::irSwapMin(i))->load();
+        float nMax = apvts.getRawParameterValue(ParamID::irSwapMax(i))->load();
+        irManager.setSwapInterval(i, nMin, nMax);
     }
 }
 
@@ -165,6 +165,7 @@ void ControlThread::processIRCommands() {
 
             const int irIndex = cmd.irIndex;
             const auto randomFile = irManager.sampleRandomIR();
+            if (!randomFile.existsAsFile()) return;
             irManager.irThreadPool.addJob(
                 [this, irIndex, randomFile]() {
                     juce::AudioBuffer<float> irBuffer = irManager.readIR(randomFile);
@@ -202,6 +203,7 @@ void ControlThread::processIRCommands() {
             for (int i = 0; i < MAX_IR_COUNT; ++i) {
                 const int irIndex = i;
                 const auto randomFile = irManager.sampleRandomIR();
+                if (!randomFile.existsAsFile()) return;
                 irManager.getBusyLoading().store(true, std::memory_order_release);
                 irManager.irThreadPool.addJob(
                     [this, irIndex, randomFile]() {
@@ -374,7 +376,7 @@ ControlThread::ControlThread(const juce::AudioProcessorValueTreeState& apvts, IR
     motionController(&polarMap, &positionTime, &fieldTime),
     convolutionStateBuilder(irManager, guiState) {}
 
-void ControlThread::setControlRate(float nRate) { controlRate = nRate; DBG("Set control rate to " << nRate); }
+void ControlThread::setControlRate(float nRate) { controlRate = nRate; DBG("SYNC: Set control rate to " << nRate); }
 
 void ControlThread::run() {
     lastTick = std::chrono::steady_clock::now();
@@ -395,7 +397,7 @@ void ControlThread::run() {
             remainingTime = std::chrono::duration<double>(1.0f / controlRate) - elapsedTime;
         }
         auto headroomMs = std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count();
-        if (headroomMs < 0) DBG("Control deadline(s) missed: " << headroomMs << " ms");
+        if (headroomMs < 0) DBG("WARNING: Control deadline(s) missed: " << headroomMs << " ms");
 
         // eepy
         if (remainingTime > std::chrono::duration<double>::zero()) 
