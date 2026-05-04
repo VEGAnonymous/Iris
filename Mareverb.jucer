@@ -3,7 +3,8 @@
 <JUCERPROJECT id="Zdvz2w" name="Mareverb" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" defines="JUCE_USE_FLAC=1&#10;JUCE_USE_MP3AUDIOFORMAT=1&#10;JUCE_USE_OGGVORBIS=1"
               bundleIdentifier="lyra.mare.Mareverb" companyEmail="lyranonymous@protonmail.com"
-              companyName="Eponymous DSP" pluginManufacturerCode="Mare" headerPath="..\..\Source&#10;..\..\lib">
+              companyName="Eponymous DSP" pluginManufacturerCode="Mare" headerPath="..\..\Source&#10;..\..\lib"
+              version="0.6.2.1" companyWebsite="TBD">
   <MAINGROUP id="uSBxoM" name="Mareverb">
     <GROUP id="{52C29717-2BB5-4F62-25D3-FC09807A17AA}" name="Source">
       <GROUP id="{E8E09355-96DE-4999-837E-A4DC15ED52BC}" name="Core">
@@ -225,6 +226,9 @@
           <FILE id="sSBKWk" name="MareverbFonts.cpp" compile="1" resource="0"
                 file="Source/GUI/Theme/MareverbFonts.cpp"/>
           <FILE id="XmA8t9" name="MareverbFonts.h" compile="0" resource="0" file="Source/GUI/Theme/MareverbFonts.h"/>
+          <FILE id="vVTQoK" name="MareverbLyras.cpp" compile="1" resource="0"
+                file="Source/GUI/Theme/MareverbLyras.cpp"/>
+          <FILE id="Txbf86" name="MareverbLyras.h" compile="0" resource="0" file="Source/GUI/Theme/MareverbLyras.h"/>
           <FILE id="xo9zyE" name="MareverbMaresAlt.cpp" compile="1" resource="0"
                 file="Source/GUI/Theme/MareverbMaresAlt.cpp"/>
           <FILE id="Alpwmr" name="MareverbMaresAlt.h" compile="0" resource="0"

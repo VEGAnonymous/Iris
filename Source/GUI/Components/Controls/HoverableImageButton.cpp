@@ -16,5 +16,7 @@ void HoverableImageButton::mouseUp(const juce::MouseEvent& e) {
     juce::ImageButton::mouseUp(e);
     hoverAnim.setValue(1.0f);
 }
+void HoverableImageButton::setColorOnHover(juce::Colour nColor) { colorOnHover = nColor; }
 
 float HoverableImageButton::getHoverAlpha() const { return hoverAnim.getValue(); }
+juce::Colour HoverableImageButton::getColoronHover() const { return colorOnHover; }

@@ -67,6 +67,10 @@ void MareverbAudioProcessor::updateParameters() {
     }
 }
 
+// Concurrency
+
+void MareverbAudioProcessor::setControlRate(float nRate) { if (controlThread) controlThread->setControlRate(nRate); }
+
 // Processor graph
 
 void MareverbAudioProcessor::connectAudioNodes() {
@@ -399,14 +403,18 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
     irManager.setSamplingMode(static_cast<IRSamplingMode>(static_cast<int>(
         apvts.state.getProperty(PropertyID::samplingMode, static_cast<int>(IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES)))));
 
+    const int controlRateIndex = apvts.state.getProperty(PropertyID::controlRate, 3);
+    setControlRate(controlRates[controlRateIndex - 1].removeCharacters(" Hz").getFloatValue());
+
     // Refresh GUI
     guiState.positionChanged.store(true, std::memory_order_release);
     guiState.fieldChanged.store(true, std::memory_order_release);
+    guiState.indicatorStyleChanged.store(true, std::memory_order_release);
     guiState.irChanged.store(true, std::memory_order_release);
     guiState.swapChanged.store(true, std::memory_order_release);
 
     guiState.syncingPosition.store(true, std::memory_order_release);
-    // guiState.syncingField.store(true, std::memory_order_release); // BUG: Crashes with vector subscript OOB
+    // guiState.syncingField.store(true, std::memory_order_release); // Crashes with vector subscript OOB
     guiState.syncingSwap.store(true, std::memory_order_release);
 }
 

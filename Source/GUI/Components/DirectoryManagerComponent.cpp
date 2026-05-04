@@ -1,12 +1,7 @@
 #include "GUI/GUIUtilities.h"
 #include "GUI/Components/DirectoryManagerComponent.h"
 
-/* PUBLIC */
-
-DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater)
-    : audioProcessor(processor), animatorUpdater(updater), addButton(updater), removeButton(updater), refreshButton(updater) {
-    prepare();
-}
+/* PRIVATE */
 
 void DirectoryManagerComponent::prepare() {
     setWantsKeyboardFocus(true);
@@ -116,7 +111,7 @@ void DirectoryManagerComponent::prepare() {
     addAndMakeVisible(directoryFilterEditor);
 
     // Sampling mode selector
-    samplingModeSelector.control.addItemList(randomModes, 1);
+    samplingModeSelector.control.addItemList(samplingModes, 1);
     samplingModeSelector.control.setSelectedId(
         static_cast<int>(audioProcessor.apvts.state.getProperty(PropertyID::samplingMode)) + 1, juce::dontSendNotification);
     samplingModeSelector.control.onChange = [this]() {
@@ -130,11 +125,27 @@ void DirectoryManagerComponent::prepare() {
     addAndMakeVisible(samplingModeSelector);
 }
 
+/* PUBLIC */
+
+DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater)
+    : audioProcessor(processor), animatorUpdater(updater), addButton(updater), removeButton(updater), refreshButton(updater) {
+    prepare();
+}
+
 void DirectoryManagerComponent::paint(juce::Graphics& g) {
+    auto bounds = getLocalBounds().toFloat();
+    const float cornerSize = 12.0f;
+
+    g.setColour(Theme::Colors::outline);
+    g.drawRoundedRectangle(bounds, cornerSize, 4.0f);
+
+    g.setColour(Theme::Colors::background);
+    g.fillRoundedRectangle(bounds.reduced(1.0f), cornerSize);
+
     g.setColour(Theme::Colors::section);
-    auto bounds = getLocalBounds();
     auto listBounds = bounds
-        .withTrimmedTop(TITLE_ROW_HEIGHT)
+        .reduced(CONTENT_INSET)
+        .withTrimmedTop(CONTENT_TOP_TRIM + TITLE_ROW_HEIGHT)
         .withTrimmedRight(BUTTON_COLUMN_WIDTH + BUTTON_COLUMN_PADDING)
         .withHeight(DIRECTORY_LIST_HEIGHT);
 
@@ -142,7 +153,7 @@ void DirectoryManagerComponent::paint(juce::Graphics& g) {
 }
 
 void DirectoryManagerComponent::resized() {
-    auto bounds = getLocalBounds();
+    auto bounds = getLocalBounds().reduced(CONTENT_INSET).withTrimmedTop(CONTENT_TOP_TRIM);
 
     const int titleLabelHeight = 16;
     auto titleBounds = bounds.removeFromTop(titleLabelHeight);

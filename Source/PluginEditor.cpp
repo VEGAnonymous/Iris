@@ -64,6 +64,9 @@ void MareverbAudioProcessorEditor::timerCallback() {
     if (audioProcessor.guiState.syncingField.load(std::memory_order_acquire)) 
         syncField();
 
+    if (audioProcessor.guiState.indicatorStyleChanged.exchange(false, std::memory_order_acquire))
+        polarMapPanel.notifyIndicatorStyleChanged();
+
     // IRs
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
         {
@@ -96,9 +99,9 @@ void MareverbAudioProcessorEditor::timerCallback() {
         audioProcessor.guiState.syncingSwap.store(false, std::memory_order_release);
     }
 
-    // Settings modal
+    // Directory manager modal
     if (audioProcessor.getIRManager()->getDirectoryChanged().exchange(false, std::memory_order_acquire)) {
-        if (settingsModal) settingsModal->refreshDirectories();
+        if (directoryManagerModal) directoryManagerModal->refresh();
     }
         
 }
@@ -326,13 +329,25 @@ void MareverbAudioProcessorEditor::prepare() {
     }
 
     // Modals
+    topBarPanel.onDirectoryManagerClicked = [this]() {
+        if (settingsModal) settingsModal.reset();
+        if (directoryManagerModal) directoryManagerModal.reset();
+        else {
+            directoryManagerModal = std::make_unique<DirectoryManagerComponent>(audioProcessor, animatorUpdater);
+            directoryManagerModal->onCloseRequested = [this]() { juce::MessageManager::callAsync([this]() { directoryManagerModal.reset(); }); };
+            directoryManagerModal->setBounds(getLocalBounds().withSizeKeepingCentre(462, 480));
+            addAndMakeVisible(*directoryManagerModal);
+        }
+        repaint();
+    };
+
     topBarPanel.onSettingsClicked = [this]() {
-        if (settingsModal) {
-            settingsModal.reset();
-        } else {
+        if (directoryManagerModal) directoryManagerModal.reset();
+        if (settingsModal) settingsModal.reset();
+        else {
             settingsModal = std::make_unique<SettingsComponent>(audioProcessor, animatorUpdater);
             settingsModal->onCloseRequested = [this]() { juce::MessageManager::callAsync([this]() { settingsModal.reset(); }); };
-            settingsModal->setBounds(getLocalBounds().withSizeKeepingCentre(462, 462));
+            settingsModal->setBounds(getLocalBounds().withSizeKeepingCentre(346, 444));
             addAndMakeVisible(*settingsModal);
         }
         repaint();
@@ -444,11 +459,15 @@ void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
 }
 
 void MareverbAudioProcessorEditor::paintOverChildren(juce::Graphics& g) {
-    if (!settingsModal) return;
-
+    if (!directoryManagerModal && !settingsModal) return;
     juce::Path path;
     path.addRectangle(getLocalBounds());
-    path.addRoundedRectangle(settingsModal->getBounds().toFloat(), 12.0f);
+
+    BoundsF modalBounds {};
+    if (directoryManagerModal) modalBounds = directoryManagerModal->getBounds().toFloat();
+    else if (settingsModal) modalBounds = settingsModal->getBounds().toFloat();
+
+    path.addRoundedRectangle(modalBounds, 12.0f);
     path.addRectangle(topBarPanel.getBounds().toFloat());
     path.setUsingNonZeroWinding(false);
 

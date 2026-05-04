@@ -3,6 +3,7 @@
 #include "Core/Defines.h"
 #include "GUI/Theme/MareverbAssets.h"
 #include "GUI/Theme/MareverbFonts.h"
+#include "GUI/Theme/MareverbLyras.h"
 #include "GUI/Theme/MareverbMaresAlt.h"
 #include "GUI/Theme/MareverbMaresMain.h"
 
@@ -57,8 +58,11 @@ namespace Theme {
         inline const juce::Image getLogo() {
             return juce::ImageCache::getFromMemory(MareverbAssets::LYRAnonymous_png, MareverbAssets::LYRAnonymous_pngSize);
         }
-        inline const juce::Image getBurgerMenuIcon() {
+        inline const juce::Image getMenuIcon() {
             return juce::ImageCache::getFromMemory(MareverbAssets::Menu_png, MareverbAssets::Menu_pngSize);
+        }
+        inline const juce::Image getSettingsIcon() {
+            return juce::ImageCache::getFromMemory(MareverbAssets::Settings_png, MareverbAssets::Settings_pngSize);
         }
         inline const juce::Image getRefreshIcon() {
             return juce::ImageCache::getFromMemory(MareverbAssets::Refresh_png, MareverbAssets::Refresh_pngSize);
@@ -69,12 +73,38 @@ namespace Theme {
     }
 
     namespace Images {
+        inline const juce::Image getLyra(int index) {
+            if (index < 0 || index >= MareverbLyras::namedResourceListSize) return juce::Image();
+
+            int lyraSize = 0;
+            const char* lyra = MareverbLyras::getNamedResource(MareverbLyras::namedResourceList[index], lyraSize);
+            return juce::ImageCache::getFromMemory(lyra, lyraSize);
+        }
         inline const juce::Image getDerpyHooves() {
             return juce::ImageCache::getFromMemory(MareverbAssets::Derpy_Hooves_png, MareverbAssets::Derpy_Hooves_pngSize);
         }
     }
 
     namespace Mares {
+        struct MainMares {
+            static constexpr int namedResourceListSize = MareverbMaresMain::namedResourceListSize;
+            static constexpr auto originalFilenames = MareverbMaresMain::originalFilenames;
+            static constexpr auto namedResourceList = MareverbMaresMain::namedResourceList;
+            static const void* getNamedResource(const char* name, int& size) { return MareverbMaresMain::getNamedResource(name, size); }
+        };
+
+        struct AltMares {
+            static constexpr int namedResourceListSize = MareverbMaresAlt::namedResourceListSize;
+            static constexpr auto originalFilenames = MareverbMaresAlt::originalFilenames;
+            static constexpr auto namedResourceList = MareverbMaresAlt::namedResourceList;
+            static const void* getNamedResource(const char* name, int& size) { return MareverbMaresAlt::getNamedResource(name, size); }
+        };
+
+        inline juce::Image getAnonfilly() {
+            return juce::ImageCache::getFromMemory(MareverbMaresAlt::anonfilly_gif, MareverbMaresAlt::anonfilly_gifSize);
+        }
+
+        template <typename MareSet>
         inline juce::Image getMare(juce::String mareToFind) {
             auto normalize = [](juce::String string) -> juce::String {
                 string = string.toLowerCase();
@@ -109,7 +139,7 @@ namespace Theme {
 
             mareToFind = normalize(mareToFind);
 
-            const int numMares = MareverbMaresMain::namedResourceListSize;
+            const int numMares = MareSet::namedResourceListSize;
 
             // Match by ranking: earlier index + longer match wins
             // Index e.g, '00_00_14_Pinkie_Anxious__I can't wait another minute to find out if rainbow dash got in or not!' <- Pinkie
@@ -119,9 +149,14 @@ namespace Theme {
             int bestLength = -1;
 
             for (int i = 0; i < numMares; ++i) {
-                juce::String mareName = juce::String::fromUTF8(MareverbMaresMain::originalFilenames[i]).upToLastOccurrenceOf(".", false, false);
+                juce::String mareName = juce::String::fromUTF8(MareSet::originalFilenames[i]).upToLastOccurrenceOf(".", false, false);
                 mareName = normalize(mareName);
                 if (mareName.isEmpty()) continue;
+
+                if (mareName == mareToFind) {
+                    bestIndex = i;
+                    break;
+                }
 
                 int position = mareToFind.indexOf(mareName);
                 if (position == -1) continue;
@@ -139,12 +174,12 @@ namespace Theme {
 
             if (bestIndex >= 0) { // winrar!
                 int mareSize = 0;
-                const char* resourceName = MareverbMaresMain::namedResourceList[bestIndex];
-                auto mare = MareverbMaresMain::getNamedResource(resourceName, mareSize);
+                const char* resourceName = MareSet::namedResourceList[bestIndex];
+                auto mare = MareSet::getNamedResource(resourceName, mareSize);
                 return juce::ImageCache::getFromMemory(mare, mareSize);
             }
 
-            return juce::ImageCache::getFromMemory(MareverbMaresAlt::anonfilly_gif, MareverbMaresAlt::anonfilly_gifSize);
+            return juce::Image(); // failed, return the lil shid
         }
     }
 }

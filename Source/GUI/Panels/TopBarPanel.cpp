@@ -20,15 +20,44 @@ void TopBarPanel::prepare() {
     };
     addAndMakeVisible(clearAllButton);
 
+    // Directory manager modal
+    const juce::Image directoryManagerIcon = Theme::Icons::getMenuIcon();
+   juce::Colour overlayColor = Theme::Colors::highlight;
+    directoryManagerButton.setImages(true, true, true,
+        directoryManagerIcon, 1.0f, overlayColor,
+        directoryManagerIcon, 1.0f, overlayColor,
+        directoryManagerIcon, 1.0f, overlayColor);
+    directoryManagerButton.onClick = [&]() { if (onDirectoryManagerClicked) onDirectoryManagerClicked(); };
+    addAndMakeVisible(directoryManagerButton);
+
     // Settings modal
-    const juce::Image settingsIcon = Theme::Icons::getBurgerMenuIcon();
-    const juce::Colour overlayColor = Theme::Colors::highlight;
+    const juce::Image settingsIcon = Theme::Icons::getSettingsIcon();
     settingsButton.setImages(true, true, true,
         settingsIcon, 1.0f, overlayColor,
         settingsIcon, 1.0f, overlayColor,
         settingsIcon, 1.0f, overlayColor);
     settingsButton.onClick = [&]() { if (onSettingsClicked) onSettingsClicked(); };
     addAndMakeVisible(settingsButton);
+
+    // Logo
+    sourceRNG = juce::Random();
+    sourceRNG.setSeedRandomly();
+
+    const juce::Image logoIcon = Theme::Icons::getLogo();
+    overlayColor = Theme::Colors::disabled;
+    logo.setColorOnHover(overlayColor.brighter(0.1f));
+    logo.setImages(true, true, true,
+        logoIcon, 1.0f, overlayColor,
+        logoIcon, 1.0f, overlayColor,
+        logoIcon, 1.0f, overlayColor);
+    logo.onClick = [&]() {
+        const juce::String source = sources[sourceRNG.nextInt(sources.size())];
+        juce::URL pageURL(source);
+        if (pageURL.isWellFormed() && juce::URL::isProbablyAWebsiteURL(source)) {
+            pageURL.launchInDefaultBrowser();
+        }
+    };
+    addAndMakeVisible(logo);
 }
 
 /* PUBLIC */
@@ -58,16 +87,26 @@ void TopBarPanel::resized() {
         .withHeight(h * 0.8f)
         .withMargin(22.5f));
 
+    topBarRow.items.add(juce::FlexItem(directoryManagerButton)
+        .withFlex(0.0f)
+        .withWidth(w * 0.075f)
+        .withHeight(h * 0.8f)
+        .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 0.0f, 10.0f)));
+
     topBarRow.items.add(juce::FlexItem(settingsButton)
         .withFlex(0.0f)
         .withWidth(w * 0.075f)
-        .withHeight(h * 0.6f)
-        .withMargin(8.0f));
+        .withHeight(h * 0.3f)
+        .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 0.0f, 20.0f)));
 
-    topBarRow.performLayout(bounds.removeFromLeft(static_cast<int>(w * 0.4f)));
+    topBarRow.performLayout(bounds.removeFromLeft(static_cast<int>(w * 0.6f)));
+    
+    bounds.removeFromRight(10);
+    logo.setBounds(bounds.removeFromRight(80));
 }
 
 void TopBarPanel::paint(juce::Graphics& g) {
+    auto bounds = getLocalBounds();
     g.setColour(Theme::Colors::background);
     g.fillRect(getLocalBounds());
 }

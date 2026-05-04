@@ -55,11 +55,15 @@ void ButtonLookAndFeel::drawImageButton(juce::Graphics& g, juce::Image* image, i
         .getTransformToFit(image->getBounds().toFloat(), Bounds(imageX, imageY, imageW, imageH).toFloat());
 
     juce::Colour baseColor = overlayColour;
+    juce::Colour hoverColor = Theme::Colors::textLight;
 
     float hoverAlpha = 0.0f;
-    if (auto* hoverable = dynamic_cast<HoverableImageButton*>(&button)) hoverAlpha = hoverable->getHoverAlpha();
+    if (auto* hoverable = dynamic_cast<HoverableImageButton*>(&button)) {
+        hoverAlpha = hoverable->getHoverAlpha();
+        hoverColor = hoverable->getColoronHover();
+    }
 
-    auto overlayColor = baseColor.interpolatedWith(Theme::Colors::textLight, hoverAlpha);
+    auto overlayColor = baseColor.interpolatedWith(hoverColor, hoverAlpha);
     g.setOpacity(imageOpacity);
     g.setColour(overlayColor);
     g.drawImageTransformed(*image, transform, true);

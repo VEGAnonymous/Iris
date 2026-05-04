@@ -7,19 +7,21 @@
 #include "GUI/Components/Controls/HoverableTextEditor.h"
 #include "GUI/Components/Controls/LabelledControl.h"
 #include "GUI/Theme/Theme.h"
-#include "GUI/Theme/LookAndFeel/ButtonLookAndFeel.h"
 #include "PluginProcessor.h"
 
 #include <JuceHeader.h>
 
 class DirectoryManagerComponent : public juce::Component, public juce::ListBoxModel {
 private:
-    static constexpr auto TITLE_ROW_HEIGHT = 36,
-                          BUTTON_COLUMN_WIDTH = 20,
-                          BUTTON_COLUMN_PADDING = 12,
-                          DIRECTORY_ROW_HEIGHT = 28,
-                          DIRECTORY_LIST_HEIGHT = 240,
-                          CONTROL_COLUMN_HEIGHT = 120;
+    static constexpr auto 
+        CONTENT_INSET = 24,
+        CONTENT_TOP_TRIM = 14,
+        TITLE_ROW_HEIGHT = 40,
+        BUTTON_COLUMN_WIDTH = 20,
+        BUTTON_COLUMN_PADDING = 12,
+        DIRECTORY_ROW_HEIGHT = 28,
+        DIRECTORY_LIST_HEIGHT = 240,
+        CONTROL_COLUMN_HEIGHT = 120;
 
     MareverbAudioProcessor& audioProcessor;
     juce::AnimatorUpdater& animatorUpdater;
@@ -37,7 +39,7 @@ private:
     bool fileFilterChanged = false, directoryFilterChanged = false;
 
     LabelledControl<juce::ComboBox> samplingModeSelector { "Random Sampling Method" };
-    const juce::StringArray randomModes { "Uniform across all files", "Uniform across directories" };
+    const juce::StringArray samplingModes { "Uniform across all files", "Uniform across directories" };
 
     void prepare();
 
@@ -86,6 +88,8 @@ public:
             pathLabel.setBounds(bounds);
         }
     };
+
+    std::function<void()> onCloseRequested;
 
     DirectoryManagerComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater);
     ~DirectoryManagerComponent() override = default;

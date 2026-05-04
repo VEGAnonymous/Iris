@@ -29,7 +29,7 @@ private:
     // IR management
     IRManager irManager;
 
-    // Threads
+    // Concurrency
     std::unique_ptr<ControlThread> controlThread;
 
     // Processor graph
@@ -75,6 +75,9 @@ public:
 
     // Parameters
     juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
+
+    // Concurrency
+    void setControlRate(float nRate);
 
     // State
     std::shared_ptr<ConvolutionStateHolder> convolutionState;

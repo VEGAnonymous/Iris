@@ -169,6 +169,8 @@ void PolarMapPanel::paint(juce::Graphics& g) {
     g.setOpacity(1.0f);
 
     // Field indicators
+
+
     for (int i = 0; i < fieldCoordinates.size(); ++i) {
         coordinateRadius = baseCoordinateRadius + juce::jmap(fieldInteractionStates[i].getValue(), 0.0f, 2.0f);
         const int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
@@ -176,16 +178,20 @@ void PolarMapPanel::paint(juce::Graphics& g) {
         const float indicatorAlpha = fieldActiveStates[i].getValue();
         const float selectionAlpha = fieldSelectionStates[i].getValue();
         Paint::irIndicator(g, map(polarToCartesian(coordinate)), coordinateRadius, i, false, false,
-            (i == selectedIR), indicatorAlpha, selectionAlpha, juce::Colours::transparentBlack,
-            &audioProcessor.guiState.mareImages[i]);
+            (i == selectedIR), 
+            indicatorAlpha, 
+            selectionAlpha, 
+            juce::Colours::transparentBlack,
+            &fieldIndicatorIcons[i]
+        );
     }
 
     // Position indicator
     g.setColour(Theme::Colors::textLight);
     positionRadius = basePositionRadius + juce::jmap(positionInteractionState.getValue(), 0.0f, 2.0f);
-    if (!anonIndicator.isNull()) {
+    if (!positionIndicatorIcon.isNull()) {
         positionBounds = toBounds(currentPosition, positionRadius + 8.0f);
-        g.drawImage(anonIndicator, positionBounds, juce::RectanglePlacement::centred);
+        g.drawImage(positionIndicatorIcon, positionBounds, juce::RectanglePlacement::centred);
     } else {
         positionBounds = toBounds(currentPosition, positionRadius);;
         g.fillEllipse(positionBounds);
@@ -320,6 +326,38 @@ void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates
     for (const auto& coord : fieldCoordinates) {
         auto nBounds = toBounds(coord, coordinateRadius);
         repaint(nBounds.expanded(repaintRadius).toNearestInt());
+    }
+}
+
+void PolarMapPanel::notifyIndicatorStyleChanged() {
+    // Update position indicator style
+    const juce::String positionIndicatorStyle =
+        audioProcessor.apvts.state.getProperty(PropertyID::positionIndicatorStyle, PositionIndicatorStyle::Anon);
+
+    juce::Image positionIcon {};
+    if (positionIndicatorStyle != PositionIndicatorStyle::Mareless) {
+        if (positionIndicatorStyle == PositionIndicatorStyle::Anon) positionIcon = Theme::Icons::getAnon();
+        else positionIcon = Theme::Mares::getMare<Theme::Mares::AltMares>(positionIndicatorStyle);
+    }
+    positionIndicatorIcon = positionIcon;
+
+    // Update field indicator style
+    const juce::String fieldIndicatorStyle =
+        audioProcessor.apvts.state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful);
+
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        juce::Image fieldIcon{};
+        if (fieldIndicatorStyle != FieldIndicatorStyle::Mareless) {
+            if (fieldIndicatorStyle == FieldIndicatorStyle::Half_Mared) {
+                auto& icon = audioProcessor.guiState.mareImages[i];
+                if (!icon.isNull()) fieldIcon = icon;
+            }
+            else if (fieldIndicatorStyle == FieldIndicatorStyle::Mareful) {
+                auto& icon = audioProcessor.guiState.mareImages[i];
+                fieldIcon = icon.isNull() ? fallbackFieldIcon : icon;
+            }
+        }
+        fieldIndicatorIcons[i] = fieldIcon;
     }
 }
 

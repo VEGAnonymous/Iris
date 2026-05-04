@@ -8,15 +8,18 @@ namespace MareverbAssets
     const int           anon_gifSize = 193;
 
     extern const char*  Derpy_Hooves_png;
-    const int           Derpy_Hooves_pngSize = 297595;
+    const int           Derpy_Hooves_pngSize = 34113;
 
     extern const char*  LYRAnonymous_png;
-    const int           LYRAnonymous_pngSize = 92269;
+    const int           LYRAnonymous_pngSize = 14037;
 
     extern const char*  Menu_png;
     const int           Menu_pngSize = 3763;
 
     extern const char*  Refresh_png;
     const int           Refresh_pngSize = 10444;
+
+    extern const char*  Settings_png;
+    const int           Settings_pngSize = 11707;
 
 }

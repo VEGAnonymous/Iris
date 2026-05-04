@@ -62,12 +62,15 @@ private:
     float positionRadius = 4.0f;
     BoundsF positionBounds {};
 
-    juce::Image anonIndicator = Theme::Icons::getAnon();
+    juce::Image positionIndicatorIcon {};
+    const juce::Image fallbackFieldIcon = Theme::Mares::getAnonfilly();
 
     // Field indicators
     std::vector<PolarCoordinate> fieldCoordinates {};
     const float baseCoordinateRadius = 6.0f;
     float coordinateRadius = 6.0f;
+
+    std::array<juce::Image, MAX_IR_COUNT> fieldIndicatorIcons {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PolarMapPanel)
 
@@ -87,6 +90,7 @@ public:
     void notifyPathChanged();
     void notifyPositionChanged(PolarCoordinate nPosition);
     void notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates);
+    void notifyIndicatorStyleChanged();
 
     std::atomic<bool>& getIRSwitched();
 };

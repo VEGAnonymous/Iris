@@ -51,12 +51,17 @@ private:
     void processIRUpdates();
 
     // Control cycle
+    float controlRate = 30.0f;
+    juce::SpinLock controlLock;
+
     void runControlCycle(float dt);
 
 public:
     ControlThread(const juce::AudioProcessorValueTreeState& apvts, IRManager& manager, 
         GUIState& gState, std::shared_ptr<ConvolutionStateHolder> cState);
     ~ControlThread() override = default;
+
+    void setControlRate(float nRate);
 
     void run() override;
 };

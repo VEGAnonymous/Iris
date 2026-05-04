@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GUI/API/ValueTooltipWindow.h"
+#include "GUI/Components/DirectoryManagerComponent.h"
 #include "GUI/Components/SettingsComponent.h"
 
 #include "GUI/Panels/GlobalControlsPanel.h"
@@ -111,6 +112,7 @@ private:
     GlobalControlsPanel globalControlsPanel;
 
     std::unique_ptr<SettingsComponent> settingsModal;
+    std::unique_ptr<DirectoryManagerComponent> directoryManagerModal;
 
     // Listeners and callbacks
     void parameterChanged(const juce::String& parameterID, float newValue) override;

@@ -176,8 +176,11 @@ void ControlThread::processIRCommands() {
                     }
                     {
                         juce::SpinLock::ScopedLockType lock(guiState.mareLock);
-                        guiState.mareImages[irIndex] = Theme::Mares::getMare(randomFile.getFileNameWithoutExtension());
+                        guiState.mareImages[irIndex] = 
+                            Theme::Mares::getMare<Theme::Mares::MainMares>(randomFile.getFileNameWithoutExtension());
                     }
+
+                    guiState.indicatorStyleChanged.store(true, std::memory_order_release);
                     irManager.getResultQueue()->enqueue(
                         IRResult{ irIndex, randomFile, std::move(irBuffer) }
                     );
@@ -211,8 +214,11 @@ void ControlThread::processIRCommands() {
                         }
                         {
                             juce::SpinLock::ScopedLockType lock(guiState.mareLock);
-                            guiState.mareImages[irIndex] = Theme::Mares::getMare(randomFile.getFileNameWithoutExtension());
+                            guiState.mareImages[irIndex] = 
+                                Theme::Mares::getMare<Theme::Mares::MainMares>(randomFile.getFileNameWithoutExtension());
                         }
+
+                        guiState.indicatorStyleChanged.store(true, std::memory_order_release);
                         irManager.getResultQueue()->enqueue(
                             IRResult{ irIndex, randomFile, std::move(irBuffer) }
                         );
@@ -368,6 +374,8 @@ ControlThread::ControlThread(const juce::AudioProcessorValueTreeState& apvts, IR
     motionController(&polarMap, &positionTime, &fieldTime),
     convolutionStateBuilder(irManager, guiState) {}
 
+void ControlThread::setControlRate(float nRate) { controlRate = nRate; DBG("Set control rate to " << nRate); }
+
 void ControlThread::run() {
     lastTick = std::chrono::steady_clock::now();
     while (!threadShouldExit()) {
@@ -380,7 +388,12 @@ void ControlThread::run() {
 
         auto elapsedTime = std::chrono::steady_clock::now() - startTime;
         // DBG("Control cycle: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count() << " ms");
-        auto remainingTime = std::chrono::duration<double>(1.0f / CONTROL_RATE) - elapsedTime;
+
+        std::chrono::duration<double, std::nano> remainingTime {};
+        {
+            juce::SpinLock::ScopedLockType lock(controlLock);
+            remainingTime = std::chrono::duration<double>(1.0f / controlRate) - elapsedTime;
+        }
         auto headroomMs = std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count();
         if (headroomMs < 0) DBG("Control deadline(s) missed: " << headroomMs << " ms");
 

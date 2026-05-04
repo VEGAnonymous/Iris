@@ -6,20 +6,16 @@
 
 void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*isButtonDown*/) {
     auto bounds = getLocalBounds().toFloat().reduced(2.0f);
-
-    // const auto& color = IR_SLOT_COLORS[irIndex];
-    // const auto& color = Theme::Colors::main;
-
     const bool selected = getToggleState();
 
     // Background
-    g.setColour(selected ? juce::Colours::white.withAlpha(0.1f)
-          : juce::Colours::white.withAlpha(0.05f).interpolatedWith(juce::Colours::transparentBlack, hoverAnim.getValue()));
+    g.setColour(selected ? Theme::Colors::background.brighter(0.126f)
+          : Theme::Colors::background.brighter(0.0612f).interpolatedWith(juce::Colours::transparentBlack, hoverAnim.getValue()));
     g.fillRoundedRectangle(bounds, 3.0f);
 
     // Selection ring
     g.setColour(selected ? Theme::Colors::textLight : juce::Colours::darkgrey);
-    g.drawRoundedRectangle(bounds, 3.0f, selected ? 1.5f : 0.5f);
+    g.drawRoundedRectangle(bounds, 3.0f, selected ? 2.0f : 1.0f);
 
     // Indicator dot
     const float indicatorX = bounds.getX() + 6.0f;
