@@ -301,7 +301,7 @@ void PolarMapPanel::notifyPositionChanged(PolarCoordinate nPosition) {
     repaint(toBounds(nPosition, positionRadius).toNearestInt().expanded(10)); // Repaint at new bounds
 }
 
-void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates) {
+void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates, bool animate) {
     const float repaintRadius = baseCoordinateRadius + 6.0f;
 
     // Clear old bounds
@@ -314,8 +314,8 @@ void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates
     const int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
-        fieldActiveStates[i].setValue(getIRIndicatorAlpha(slot.occupied, slot.active));
-        fieldSelectionStates[i].setValue((i == selectedIR) ? 1.0f : 0.0f);
+        fieldActiveStates[i].setValue(getIRIndicatorAlpha(slot.occupied, slot.active), animate);
+        fieldSelectionStates[i].setValue((i == selectedIR) ? 1.0f : 0.0f, animate);
     }
 
     const auto& p = getMouseXYRelative().toFloat();
@@ -341,28 +341,14 @@ void PolarMapPanel::notifyIndicatorStyleChanged() {
     }
     positionIndicatorIcon = positionIcon;
 
-    DBG("SYNC: Updated position indicator style: " << positionIndicatorStyle);
-
-    // Update field indicator style
-    const juce::String fieldIndicatorStyle =
-        audioProcessor.apvts.state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful);
-
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        juce::Image fieldIcon{};
-        if (fieldIndicatorStyle != FieldIndicatorStyle::Mareless) {
-            if (fieldIndicatorStyle == FieldIndicatorStyle::Half_Mared) {
-                auto& icon = audioProcessor.guiState.mareImages[i];
-                if (!icon.isNull()) fieldIcon = icon;
-            }
-            else if (fieldIndicatorStyle == FieldIndicatorStyle::Mareful) {
-                auto& icon = audioProcessor.guiState.mareImages[i];
-                fieldIcon = icon.isNull() ? fallbackFieldIcon : icon;
-            }
-        }
-        fieldIndicatorIcons[i] = fieldIcon;
+        juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.mareLock);
+        updateFieldIndicatorStyle(
+            fieldIndicatorIcons[i],
+            audioProcessor.guiState.mareImages[i],
+            audioProcessor.apvts.state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful)
+        );
     }
-
-    DBG("SYNC: Updated field indicator style: " << fieldIndicatorStyle);
 }
 
 std::atomic<bool>& PolarMapPanel::getIRSwitched() { return switchedIR; }

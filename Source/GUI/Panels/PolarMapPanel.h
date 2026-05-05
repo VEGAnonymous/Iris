@@ -63,7 +63,6 @@ private:
     BoundsF positionBounds {};
 
     juce::Image positionIndicatorIcon {};
-    const juce::Image fallbackFieldIcon = Theme::Mares::getAnonfilly();
 
     // Field indicators
     std::vector<PolarCoordinate> fieldCoordinates {};
@@ -89,7 +88,7 @@ public:
     // Updates
     void notifyPathChanged();
     void notifyPositionChanged(PolarCoordinate nPosition);
-    void notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates);
+    void notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates, bool animate = true);
     void notifyIndicatorStyleChanged();
 
     std::atomic<bool>& getIRSwitched();

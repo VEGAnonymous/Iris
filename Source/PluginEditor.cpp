@@ -60,35 +60,19 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
     if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire)) {
         syncPosition();
-        DBG("SYNC: Position sync complete");
     }
 
     if (audioProcessor.guiState.syncingField.load(std::memory_order_acquire)) {
         syncField();
-        DBG("SYNC: Field sync complete");
     }
         
     if (audioProcessor.guiState.indicatorStyleChanged.exchange(false, std::memory_order_acquire)) {
-        polarMapPanel.notifyIndicatorStyleChanged();
+        syncIndicatorStyles();
     }
 
     // IRs
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
-        {
-            juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.irWaveformLock);
-            for (int i = 0; i < MAX_IR_COUNT; ++i) {
-                const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
-                const auto& waveform = audioProcessor.guiState.irWaveforms[i];
-                auto* slotButton = irSelectorPanel.getIRSlotButton(i);
-
-                slotButton->setOccupied(slot.occupied);
-                slotButton->setActive(slot.active);
-                slotButton->setWaveform(slot.occupied ? waveform.get()  : nullptr, audioProcessor.getSampleRate());
-            }
-        }
-
-        updateIRSlot(true);
-        DBG("SYNC: IR sync complete");
+        syncIRs();
     }
 
     if (audioProcessor.guiState.selectedIRChanged.exchange(false, std::memory_order_acquire)) {
@@ -101,10 +85,7 @@ void MareverbAudioProcessorEditor::timerCallback() {
     }
 
     if (audioProcessor.guiState.swapChanged.exchange(false, std::memory_order_acquire)) {
-        audioProcessor.guiState.syncingSwap.store(true, std::memory_order_release);
-        for (int i = 0; i < MAX_IR_COUNT; ++i) selectedIRPanel.getIRControlsComponent()->updateSwapState(i);
-        audioProcessor.guiState.syncingSwap.store(false, std::memory_order_release);
-        DBG("SYNC: Swap sync complete");
+        syncSwap();
     }
 
     // Directory manager modal
@@ -114,9 +95,7 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
     // Misc
     if (audioProcessor.guiState.tooltipsEnabledChanged.exchange(false, std::memory_order_acquire)) {
-        const bool tooltipsEnabled = audioProcessor.apvts.state.getProperty(PropertyID::tooltipsEnabled, false);
-        tooltipWindow.setAlpha(tooltipsEnabled ? 1.0f : 0.0f);
-        DBG("SYNC: Set tooltips enabled: " << tooltipWindow.getAlpha());
+        syncSettings();
     }
 }
 
@@ -242,6 +221,7 @@ void MareverbAudioProcessorEditor::syncPosition() {
     }
 
     audioProcessor.guiState.syncingPosition.store(false, std::memory_order_release);
+    DBG("SYNC: Position sync complete");
 }
 
 void MareverbAudioProcessorEditor::syncField() {
@@ -279,11 +259,11 @@ void MareverbAudioProcessorEditor::syncField() {
             fieldModAControl.control.setTooltip("The radius of the selected indicator's polar coordinate position.\nAlternatively, set the position by clicking and dragging the indicator.");
             fieldModBControl.control.setTooltip("The angle of the selected indicator's polar coordinate position.\nAlternatively, set the position by clicking and dragging the indicator.");
 
-            PolarCoordinate coordinate;
+            PolarCoordinate coordinate {};
             {
                 juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
                 const int& selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-                coordinate = audioProcessor.guiState.fieldCoordinates[selectedIR];
+                if (validateIRIndex(selectedIR)) coordinate = audioProcessor.guiState.fieldCoordinates[selectedIR];
             }
             nModA = fieldModA->convertTo0to1(coordinate.r);
             nModB = fieldModB->convertTo0to1(coordinate.theta / juce::MathConstants<float>::twoPi);
@@ -333,6 +313,56 @@ void MareverbAudioProcessorEditor::syncField() {
     }
 
     audioProcessor.guiState.syncingField.store(false, std::memory_order_release);
+    DBG("SYNC: Field sync complete");
+}
+
+void MareverbAudioProcessorEditor::syncIRs() {
+    {
+        juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.irWaveformLock);
+        for (int i = 0; i < MAX_IR_COUNT; ++i) {
+            const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
+            const auto& waveform = audioProcessor.guiState.irWaveforms[i];
+            auto* slotButton = irSelectorPanel.getIRSlotButton(i);
+
+            slotButton->setOccupied(slot.occupied);
+            slotButton->setActive(slot.active);
+            slotButton->setWaveform(slot.occupied ? waveform.get() : nullptr, audioProcessor.getSampleRate());
+        }
+    }
+
+    updateIRSlot(true);
+    DBG("SYNC: IR sync complete");
+}
+
+void MareverbAudioProcessorEditor::syncSwap() {
+    audioProcessor.guiState.syncingSwap.store(true, std::memory_order_release);
+    for (int i = 0; i < MAX_IR_COUNT; ++i) selectedIRPanel.getIRControlsComponent()->updateSwapState(i);
+    audioProcessor.guiState.syncingSwap.store(false, std::memory_order_release);
+    DBG("SYNC: Swap sync complete");
+}
+
+void MareverbAudioProcessorEditor::syncIndicatorStyles() {
+    polarMapPanel.notifyIndicatorStyleChanged();
+    irSelectorPanel.updateIndicatorStyle();
+    selectedIRPanel.updateIndicatorStyle();
+
+    audioProcessor.storePersistentState();
+
+    DBG("SYNC: Updated indicator styles");
+}
+
+void MareverbAudioProcessorEditor::syncSettings() {
+    const bool tooltipsEnabled = audioProcessor.apvts.state.getProperty(PropertyID::tooltipsEnabled, true);
+    tooltipWindow.setAlpha(tooltipsEnabled ? 1.0f : 0.0f);
+    DBG("SYNC: Set tooltips enabled: " << tooltipWindow.getAlpha());
+
+    const int controlRateIndex = audioProcessor.apvts.state.getProperty(PropertyID::controlRate, 3);
+    const float controlRate = controlRates[controlRateIndex - 1].removeCharacters(" Hz").getFloatValue();
+    audioProcessor.setControlRate(controlRate);
+
+    audioProcessor.storePersistentState();
+
+    DBG("SYNC: Settings sync complete");
 }
 
 // Initialization
@@ -411,6 +441,9 @@ void MareverbAudioProcessorEditor::prepare() {
 
     fieldPatternControl.control.setTooltip("The motion pattern to use for the field indicators.");
     fieldRateControl.control.setTooltip("The rate and direction of motion for the field indicators.\nNote that this parameter is asynchronous and thus has no consistent units.");
+    
+    // Ponies, at the ready!
+    initState();
 }
 
 /* PUBLIC */
@@ -475,10 +508,11 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor(MareverbAudioProcesso
     addAndMakeVisible(interactionControlsPanel);
     addAndMakeVisible(globalControlsPanel);
 
+    setVisible(false);
     prepare();
-
-    startTimerHz(REFRESH_RATE);
     setSize(1046, 721);
+    setVisible(true);
+    startTimerHz(REFRESH_RATE);
 }
 
 MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
@@ -548,4 +582,24 @@ void MareverbAudioProcessorEditor::resized() {
     selectedIRPanel.setBounds(rightBounds.removeFromTop(280));
     interactionControlsPanel.setBounds(rightBounds.removeFromTop(100).reduced(PANEL_INSET));
     globalControlsPanel.setBounds(rightBounds.removeFromTop(100).reduced(PANEL_INSET));
+}
+
+void MareverbAudioProcessorEditor::initState() {
+    syncPosition();
+    syncField();
+    syncIRs();
+    syncSwap();
+    syncSettings();
+    syncIndicatorStyles();
+
+    polarMapPanel.notifyPathChanged();
+    polarMapPanel.notifyPositionChanged(audioProcessor.guiState.position.load(std::memory_order_relaxed));
+    {
+        std::vector<PolarCoordinate> coordinates;
+        juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
+        coordinates = audioProcessor.guiState.fieldCoordinates;
+        polarMapPanel.notifyFieldChanged(std::move(coordinates), false);
+    }
+
+    DBG("INIT: Init editor state");
 }

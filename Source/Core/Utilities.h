@@ -63,5 +63,6 @@ inline float wrapAngle(float angle) {
 /* DEBUGGING */
 
 inline void profileTime(juce::String desc, std::chrono::steady_clock::time_point startTime) {
+    desc; startTime; // """Use""" the parameters
     DBG(desc << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count() << " ms");
 }

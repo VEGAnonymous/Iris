@@ -30,6 +30,7 @@ public:
     void resized() override;
 
     void updateIRSlot(int selectedIR, bool animate);
+    void updateIndicatorStyle();
 
     IRControlsComponent* getIRControlsComponent();
 };

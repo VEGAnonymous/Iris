@@ -135,6 +135,39 @@ void ControlThread::updateConvolutionState() {
 // Concurrency
 
 void ControlThread::processIRCommands() {
+    auto canLoad = [this]() {
+        auto& irDirectoryFiles = *(irManager.getIRDirectoryFiles());
+        bool anyLoadable = false;
+        for (const auto& directoryFiles : irDirectoryFiles) {
+            if (directoryFiles.dir.active && !directoryFiles.files.isEmpty()) {
+                anyLoadable = true;
+                break;
+            }
+        }
+        return anyLoadable;
+    };
+
+    auto loadIR = [this](int irIndex, const juce::File file) {
+        juce::AudioBuffer<float> irBuffer = irManager.readIR(file);
+
+        auto waveformBuffer = std::make_shared<juce::AudioBuffer<float>>(irBuffer);
+        {
+            juce::SpinLock::ScopedLockType lock(guiState.irWaveformLock);
+            guiState.irWaveforms[irIndex] = std::move(waveformBuffer);
+        }
+        {
+            juce::SpinLock::ScopedLockType lock(guiState.mareLock);
+            guiState.mareImages[irIndex] =
+                Theme::Mares::getMare<Theme::Mares::MainMares>(file.getFileNameWithoutExtension());
+        }
+
+        guiState.indicatorStyleChanged.store(true, std::memory_order_release);
+        irManager.getResultQueue()->enqueue(
+            IRResult{ irIndex, file, std::move(irBuffer) }
+        );
+    };
+
+
     IRCommand cmd;
     auto* commandQueue = irManager.getCommandQueue();
     while (commandQueue->try_dequeue(cmd)) {
@@ -142,90 +175,25 @@ void ControlThread::processIRCommands() {
         case IRCommand::IR_LOAD: {
             const int irIndex = cmd.irIndex;
             const juce::File file = cmd.irFile;
-            irManager.irThreadPool.addJob(
-                [this, irIndex, file]() {
-                    juce::AudioBuffer<float> irBuffer = irManager.readIR(file);
-                    irManager.getResultQueue()->enqueue(
-                        IRResult{ irIndex, file, std::move(irBuffer) }
-                    );
-                }
-            );
+            irManager.irThreadPool.addJob([this, loadIR, irIndex, file]() { loadIR(irIndex, file); });
             break;
         }
         case IRCommand::IR_LOAD_RANDOM: {
-            auto& irDirectoryFiles = *(irManager.getIRDirectoryFiles());
-            bool canLoad = false;
-            for (const auto& directoryFiles : irDirectoryFiles) {
-                if (directoryFiles.dir.active && !directoryFiles.files.isEmpty()) {
-                    canLoad = true;
-                    break;
-                }
-            }
-            if (!canLoad) return;
-
+            if (!canLoad()) return;
             const int irIndex = cmd.irIndex;
             const auto randomFile = irManager.sampleRandomIR();
             if (!randomFile.existsAsFile()) return;
-            irManager.irThreadPool.addJob(
-                [this, irIndex, randomFile]() {
-                    juce::AudioBuffer<float> irBuffer = irManager.readIR(randomFile);
-
-                    auto waveformBuffer = std::make_shared<juce::AudioBuffer<float>>(irBuffer);
-                    {
-                        juce::SpinLock::ScopedLockType lock(guiState.irWaveformLock);
-                        guiState.irWaveforms[irIndex] = std::move(waveformBuffer);
-                    }
-                    {
-                        juce::SpinLock::ScopedLockType lock(guiState.mareLock);
-                        guiState.mareImages[irIndex] = 
-                            Theme::Mares::getMare<Theme::Mares::MainMares>(randomFile.getFileNameWithoutExtension());
-                    }
-
-                    guiState.indicatorStyleChanged.store(true, std::memory_order_release);
-                    irManager.getResultQueue()->enqueue(
-                        IRResult{ irIndex, randomFile, std::move(irBuffer) }
-                    );
-                }
-            );
+            irManager.irThreadPool.addJob([this, loadIR, irIndex, randomFile]() { loadIR(irIndex, randomFile); });
             break;
         }
         case IRCommand::IR_LOAD_RANDOM_ALL: {
-            auto& irDirectoryFiles = *(irManager.getIRDirectoryFiles());
-            bool canLoad = false;
-            for (const auto& directoryFiles : irDirectoryFiles) {
-                if (directoryFiles.dir.active && !directoryFiles.files.isEmpty()) {
-                    canLoad = true;
-                    break;
-                }
-            }
-            if (!canLoad) return;
-
+            if (!canLoad()) return;
             for (int i = 0; i < MAX_IR_COUNT; ++i) {
                 const int irIndex = i;
                 const auto randomFile = irManager.sampleRandomIR();
                 if (!randomFile.existsAsFile()) return;
                 irManager.getBusyLoading().store(true, std::memory_order_release);
-                irManager.irThreadPool.addJob(
-                    [this, irIndex, randomFile]() {
-                        juce::AudioBuffer<float> irBuffer = irManager.readIR(randomFile);
-
-                        auto waveformBuffer = std::make_shared<juce::AudioBuffer<float>>(irBuffer);
-                        {
-                            juce::SpinLock::ScopedLockType lock(guiState.irWaveformLock);
-                            guiState.irWaveforms[irIndex] = std::move(waveformBuffer);
-                        }
-                        {
-                            juce::SpinLock::ScopedLockType lock(guiState.mareLock);
-                            guiState.mareImages[irIndex] = 
-                                Theme::Mares::getMare<Theme::Mares::MainMares>(randomFile.getFileNameWithoutExtension());
-                        }
-
-                        guiState.indicatorStyleChanged.store(true, std::memory_order_release);
-                        irManager.getResultQueue()->enqueue(
-                            IRResult{ irIndex, randomFile, std::move(irBuffer) }
-                        );
-                    }
-                );
+                irManager.irThreadPool.addJob([this, loadIR, irIndex, randomFile]() { loadIR(irIndex, randomFile); });
             }
             break;
         }
@@ -396,8 +364,8 @@ void ControlThread::run() {
             juce::SpinLock::ScopedLockType lock(controlLock);
             remainingTime = std::chrono::duration<double>(1.0f / controlRate) - elapsedTime;
         }
-        auto headroomMs = std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count();
-        if (headroomMs < 0) DBG("WARNING: Control deadline(s) missed: " << headroomMs << " ms");
+        // auto headroomMs = std::chrono::duration_cast<std::chrono::milliseconds>(remainingTime).count();
+        // if (headroomMs < 0) DBG("WARNING: Control deadline(s) missed: " << headroomMs << " ms");
 
         // eepy
         if (remainingTime > std::chrono::duration<double>::zero()) 

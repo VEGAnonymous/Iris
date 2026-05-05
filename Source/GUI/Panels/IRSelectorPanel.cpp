@@ -94,6 +94,17 @@ void IRSelectorPanel::paint(juce::Graphics& g) {
     g.fillRect(getLocalBounds());
 }
 
+void IRSelectorPanel::updateIndicatorStyle() {
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        auto* slotButton = irSlotButtons[i].get();
+        juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.mareLock);
+        slotButton->setIndicatorStyle(
+            audioProcessor.guiState.mareImages[i],
+            audioProcessor.apvts.state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful)
+        );
+    }
+}
+
 IRSlotButton* IRSelectorPanel::getIRSlotButton(int irIndex) {
     jassert(validateIRIndex(irIndex));
     return irSlotButtons[irIndex].get();

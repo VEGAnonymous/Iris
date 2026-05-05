@@ -127,7 +127,7 @@ void DirectoryManagerComponent::prepare() {
         cmd.samplingMode = static_cast<IRSamplingMode>(randomMode);
         audioProcessor.getIRManager()->enqueueCommand(cmd);
     };
-    samplingModeSelector.control.setTooltip("The algorithm to use when choosing random IRs to load.\n\n\"Uniform across all files\" collates all IRs across all directories and just selects one at random. This will intrinsically give more weighting to larger directories.\n\n\"Uniform across directories\" chooses the directory from the list first and then selects a random IR from that directory. Note that this does NOT check if the chosen directory lacks valid audio files, in which cases nothing will be loaded.");
+    samplingModeSelector.control.setTooltip("The algorithm to use when choosing random IRs to load.\n\n\"Uniform across all files\" collates all IRs across all directories and just selects one at random. This will intrinsically give more weighting to larger directories.\n\n\"Uniform across directories\" chooses the directory from the list first and then selects a random IR from that directory, provided there is at least one valid audio file to select.");
     addAndMakeVisible(samplingModeSelector);
 }
 

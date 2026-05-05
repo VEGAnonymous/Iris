@@ -22,7 +22,25 @@ inline juce::String formatPath(juce::String path, int maxLength, Ellipsis ellips
     } else return path;
 }
 
+// IR indicators
 inline float getIRIndicatorAlpha(bool occupied, bool active) { return occupied ? (active ? 1.0f : 0.25f) : 0.0f; }
+
+inline void updateFieldIndicatorStyle(juce::Image& fieldIndicatorIcon, const juce::Image& iconToTry, const juce::String& fieldIndicatorStyle) {
+    const juce::Image fallbackFieldIcon = Theme::Mares::getAnonfilly();
+    // Update field indicator style
+    juce::Image fieldIcon{};
+    if (fieldIndicatorStyle != FieldIndicatorStyle::Mareless) {
+        if (fieldIndicatorStyle == FieldIndicatorStyle::Half_Mared) {
+            auto& icon = iconToTry;
+            if (!icon.isNull()) fieldIcon = icon;
+        }
+        else if (fieldIndicatorStyle == FieldIndicatorStyle::Mareful) {
+            auto& icon = iconToTry;
+            fieldIcon = icon.isNull() ? fallbackFieldIcon : icon;
+        }
+    }
+    fieldIndicatorIcon = fieldIcon;
+}
 
 namespace Paint {
     inline void irIndicator(juce::Graphics& g, CartesianCoordinate center, float radius, 

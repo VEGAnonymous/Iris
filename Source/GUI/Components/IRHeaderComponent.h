@@ -15,6 +15,7 @@ private:
 	int currentIndex = 0;
 	IRSlotLite currentIR {};
 	juce::String currentPath = "";
+	juce::Image currentIcon {};
 
 	AnimatedValue indicatorActiveAnim;
 
@@ -33,6 +34,7 @@ public:
 
 	void setSlot(int irIndex, const IRSlotLite slot);
 	void setActive(bool nActive, bool animate = false);
+	void setIndicatorStyle(const juce::String nStyle);
 
 	void paint(juce::Graphics& g) override;
 };

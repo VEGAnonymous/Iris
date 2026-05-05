@@ -277,9 +277,9 @@
   <EXPORTFORMATS>
     <VS2022 targetFolder="Builds/VisualStudio2022">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="Mareverb" extraCompilerFlags="/W4&#10;/RTC1&#10;/MDd&#10;/D_DEBUG"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="Mareverb_Debug" extraCompilerFlags="/W4&#10;/RTC1&#10;/MDd&#10;/D_DEBUG"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="Mareverb" extraLinkerFlags="/LTCG&#10;/OPT:REF&#10;/OPT:ICF"
-                       extraCompilerFlags="/O2&#10;/Ob2&#10;/Oi&#10;/GL&#10;/Gy&#10;/MD&#10;/DNDEBUG&#10;/fp:fast"/>
+                       extraCompilerFlags="/O2&#10;/Ob2&#10;/Oi&#10;/GL&#10;/Gy&#10;/MD&#10;/DNDEBUG"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_animation" path="../../../../../../../Program Files/JUCE/modules"/>

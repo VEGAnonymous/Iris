@@ -24,9 +24,8 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
     float activeAlpha = indicatorActiveAnim.getValue();
     float indicatorAlpha = juce::jmap(activeAlpha, occupied ? 0.35f : 0.1f, occupied ? 1.0f : 0.2f);
 
-    auto mareIndicator = &guiState.mareImages[irIndex];
-    Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius - (!mareIndicator->isNull() ? 2.0f : 0.0f),
-        irIndex, occupied, active, false, indicatorAlpha, -1.0f, juce::Colours::transparentBlack, mareIndicator);
+    Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius - (!icon.isNull() ? 2.0f : 0.0f),
+        irIndex, occupied, active, false, indicatorAlpha, -1.0f, juce::Colours::transparentBlack, &icon);
 
     // Drag and drop indication
     const float dragAlpha = dragHover.getValue();
@@ -89,6 +88,11 @@ void IRSlotButton::setActive(bool nActive) {
     indicatorActiveAnim.setValue(nActive ? 1.0f : 0.0f);
     active = nActive;
     waveformPreview.setActive(nActive, true);
+    repaint();
+}
+
+void IRSlotButton::setIndicatorStyle(const juce::Image& iconToTry, const juce::String nStyle) {
+    updateFieldIndicatorStyle(icon, iconToTry, nStyle);
     repaint();
 }
 

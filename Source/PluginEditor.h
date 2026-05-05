@@ -123,6 +123,10 @@ private:
     void updateIRSlot(bool animate = false);
     void syncPosition();
     void syncField();
+    void syncIRs();
+    void syncSwap();
+    void syncIndicatorStyles();
+    void syncSettings();
 
     // Initialization
     void prepare();
@@ -136,4 +140,6 @@ public:
     void paint(juce::Graphics& g) override;
     void paintOverChildren(juce::Graphics& g) override;
     void resized() override;
+
+    void initState();
 };

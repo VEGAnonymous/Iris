@@ -26,5 +26,7 @@ public:
     void resized() override;
     void paint(juce::Graphics& g) override;
 
+    void updateIndicatorStyle();
+
     IRSlotButton* getIRSlotButton(int irIndex);
 };

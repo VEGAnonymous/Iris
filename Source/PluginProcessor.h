@@ -39,9 +39,6 @@ private:
 
     void connectAudioNodes();
 
-    ConvolutionReverbAudioProcessor* getConvolutionReverbProcessor() const;
-    CutFilterAudioProcessor* getCutFilterProcessor() const;
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MareverbAudioProcessor)
 
 public:
@@ -83,6 +80,9 @@ public:
     std::shared_ptr<ConvolutionStateHolder> convolutionState;
     GUIState guiState;
     PatternState patternState;
+
+    void storePersistentState();
+    void initState();
 
     IRManager* getIRManager();
 };

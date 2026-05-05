@@ -68,4 +68,9 @@ void SelectedIRPanel::updateIRSlot(int selectedIR, bool animate) {
     }
 }
 
+void SelectedIRPanel::updateIndicatorStyle() {
+    irHeaderComponent.setIndicatorStyle(
+        audioProcessor.apvts.state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful));
+}
+
 IRControlsComponent* SelectedIRPanel::getIRControlsComponent() { return &irControlsComponent; }

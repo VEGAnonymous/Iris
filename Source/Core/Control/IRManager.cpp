@@ -243,8 +243,7 @@ juce::AudioBuffer<float> IRManager::readIR(juce::File irFile) {
 
     juce::AudioBuffer<float> buffer;
     buffer.setSize(numChannels, numSamples);
-    bool readSuccess = reader->read(&buffer, 0, numSamples, 0, true, true);
-    jassert(readSuccess);
+    reader->read(&buffer, 0, numSamples, 0, true, true);
     return buffer;
 }
 
