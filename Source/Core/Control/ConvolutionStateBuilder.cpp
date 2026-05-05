@@ -149,6 +149,13 @@ ConvolutionStateBuilder::~ConvolutionStateBuilder() {
     fftThreadPool.removeAllJobs(false, 1000); 
 }
 
+void ConvolutionStateBuilder::prepare() {
+    for (int i = 0; i < 2; ++i) {
+        statePool[i] = std::make_shared<ConvolutionState>();
+        statePool[i]->mixState.resize(MAX_IR_PARTITIONS);
+    }
+}
+
 void ConvolutionStateBuilder::pushIRUpdate(const IRUpdate& update) {
     switch (update.type) {
         case IRUpdate::IR_SET: {
@@ -180,7 +187,9 @@ std::shared_ptr<ConvolutionState> ConvolutionStateBuilder::build(const std::shar
 
     jassert(currentState && currentState->irBank);
 
-    auto nextState = std::make_shared<ConvolutionState>();
+    auto& nextState = statePool[stateIndex];
+    stateIndex ^= 1; // (stateIndex + 1) % 2
+
     bool irChanged = updateIRBank(currentState, nextState);
     jassert(nextState->irBank);
     nextState->prepare();

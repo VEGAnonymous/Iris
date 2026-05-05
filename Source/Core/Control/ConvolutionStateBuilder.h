@@ -13,6 +13,9 @@ class ConvolutionStateBuilder {
 private:
 	IRManager& irManager;
     GUIState& guiState;
+    // State pool
+    std::array<std::shared_ptr<ConvolutionState>, 2> statePool {};
+    int stateIndex = 0;
 
     // Diffs
     bool decayChanged = false;
@@ -44,6 +47,8 @@ private:
 public:
     ConvolutionStateBuilder(IRManager& irManager, GUIState& guiState);
     ~ConvolutionStateBuilder();
+
+    void prepare();
 
     void pushIRUpdate(const IRUpdate& update);
     void clearUpdates();

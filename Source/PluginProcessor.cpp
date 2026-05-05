@@ -212,13 +212,16 @@ void MareverbAudioProcessor::releaseResources() {
 
 void MareverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
+    const int totalNumInputChannels = getTotalNumInputChannels();
+    const int totalNumOutputChannels = getTotalNumOutputChannels();
+    const int numSamples = buffer.getNumSamples();
+    
+    updateParameters();
+
+    if (numSamples == 0) return;
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
-
-    updateParameters();
+        buffer.clear(i, 0, numSamples);  
 
     // Process + mix chain
     mixer.pushDrySamples(buffer);

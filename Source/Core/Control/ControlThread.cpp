@@ -342,7 +342,9 @@ ControlThread::ControlThread(const juce::AudioProcessorValueTreeState& apvts, IR
     apvts(apvts), irManager(manager), 
     guiState(gState), convolutionState(cState),
     motionController(&polarMap, &positionTime, &fieldTime),
-    convolutionStateBuilder(irManager, guiState) {}
+    convolutionStateBuilder(irManager, guiState) {
+    convolutionStateBuilder.prepare();
+}
 
 void ControlThread::setControlRate(float nRate) { controlRate = nRate; DBG("SYNC: Set control rate to " << nRate); }
 
