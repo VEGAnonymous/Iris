@@ -76,7 +76,7 @@ IRManager::IRManager(juce::ApplicationProperties* p) : applicationProperties(p) 
 }
 
 IRManager::~IRManager() { 
-    irThreadPool.removeAllJobs(false, 1000);
+    irThreadPool.removeAllJobs(true, 6210);
 }
 
 void IRManager::prepare() {
@@ -97,6 +97,7 @@ void IRManager::enqueueCommand(IRCommand cmd) { irCommandQueue.enqueue(cmd); }
 
 void IRManager::collectIRs() { collectIRs(fileFilter, directoryFilter); }
 void IRManager::collectIRs(const juce::StringArray fileKeywords, const juce::StringArray directoryKeywords) {
+    DBG("IR: Collecting IRs with file filter (" << fileKeywords.joinIntoString(", ") << "); directory filter (" << directoryKeywords.joinIntoString(", ") << ")");
     collectPending.store(true, std::memory_order_release);
     busyCollecting.store(true, std::memory_order_release);
     directoryChanged.store(true, std::memory_order_release);
@@ -104,7 +105,7 @@ void IRManager::collectIRs(const juce::StringArray fileKeywords, const juce::Str
     irThreadPool.addJob([this, fileKeywords, directoryKeywords]() {
         const juce::String formatWildcard = formatManager.getWildcardForAllFormats();
         do {
-            DBG("IR: Collecting IRs with file filter (" << fileKeywords.joinIntoString(", ") << "); directory filter (" << directoryKeywords.joinIntoString(", ") << ")");
+            DBG("IR: Running collection pass");
             collectPending.store(false, std::memory_order_release);
             auto nFiles = std::make_shared<std::vector<IRDirectoryFiles>>();
 

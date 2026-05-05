@@ -9,6 +9,8 @@
 
 class ConvolutionReverb {
 private:
+    const bool useSSE;
+
     // State
     std::shared_ptr<ConvolutionStateHolder> convolutionState;
     

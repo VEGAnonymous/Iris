@@ -2,6 +2,7 @@
 #include "Core/Processors/DSP/ConvolutionReverb.h"
 
 #include <algorithm>
+#include <xmmintrin.h>
 
 /* PRIVATE */
 
@@ -20,10 +21,17 @@ void ConvolutionReverb::accumulateSpectra(ConvolutionState* state, const int cha
 	// Each partition
 	for (int partition = 0; partition < partitionCount; ++partition) {
 		// Multiply every *second* past input spectrum with mixedSpectra
-		int pastIndex = (spectraIndex[channel] - (2 * partition) + (2 * MAX_IR_PARTITIONS)) & (historySize - 1);
+		const int historyMask = historySize - 1;
+		int pastIndex = (spectraIndex[channel] - (2 * partition) + (2 * MAX_IR_PARTITIONS)) & historyMask;
 
-		auto& pastSpectra = inputSpectra[channel][pastIndex];
-		auto& mixSpectra = state->mixState.mixedSpectra[channel][partition];
+		if (useSSE && (partition + 1 < partitionCount)) {
+			const int nextIndex = (spectraIndex[channel] - (2 * (partition + 1)) + (2 * MAX_IR_PARTITIONS)) & historyMask;
+			_mm_prefetch(reinterpret_cast<const char*>(inputSpectra[channel][nextIndex].data()), _MM_HINT_T1);
+			_mm_prefetch(reinterpret_cast<const char*>(state->mixState.mixedSpectra[channel][partition + 1].data()), _MM_HINT_T1);
+		}
+
+		const float* pastSpectra = inputSpectra[channel][pastIndex].data();
+		const float* mixSpectra = state->mixState.mixedSpectra[channel][partition].data();
 
 		// Complex multiply Re-Im pairs
 		for (int k = 0; k < 2; ++k) accumulator[k] += pastSpectra[k] * mixSpectra[k]; // DC & Nyquist
@@ -112,7 +120,8 @@ void ConvolutionReverb::processHop(ConvolutionState* state, const int channel) {
 /* PUBLIC */
 
 ConvolutionReverb::ConvolutionReverb(std::shared_ptr<ConvolutionStateHolder> stateHolder) : convolutionState(stateHolder), 
-	fft(FFT_ORDER), hannWindow(PARTITION_SIZE, juce::dsp::WindowingFunction<float>::WindowingMethod::hann, false) {
+	fft(FFT_ORDER), hannWindow(PARTITION_SIZE, juce::dsp::WindowingFunction<float>::WindowingMethod::hann, false),
+	useSSE(juce::SystemStats::hasSSE()) {
 	for (int ch = 0; ch < N_CHANNELS; ++ch) inputSpectra[ch].resize(2 * MAX_IR_PARTITIONS);
 }
 
