@@ -9,10 +9,10 @@ static constexpr auto EPSILON = 1e-3f,
                       sqrt2_2 = juce::MathConstants<float>::sqrt2 / 2.0f;       
 
 // Convolution
-static constexpr auto L = 512,
+static constexpr auto L = 1024,
                       PARTITION_SIZE = 2 * L,
-                      FFT_SIZE = 4 * L, // 2048
-                      FFT_ORDER = 11, // 2^11, hardcoded
+                      FFT_SIZE = 4 * L, // 4096
+                      FFT_ORDER = 12, // 2^12, hardcoded
                       HOP_SIZE = FFT_SIZE / 4, // L
                       OUTPUT_SIZE = 4 * L;
 

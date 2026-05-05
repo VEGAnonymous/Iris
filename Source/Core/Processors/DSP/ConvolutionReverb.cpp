@@ -42,11 +42,11 @@ void ConvolutionReverb::overlapAdd(const int channel) {
 	/* Partition overlap */
 	// OLA IFFT block (4L samples) with previous IFFT block -> produces intermediate block (2L samples) per hop (every L samples)
 	juce::FloatVectorOperations::add(outputFrame.data(), 
-									 overlapBuffersA[channel][convSaveCount].data(), 
+									 overlapBuffersA[channel][convSaveCount[channel]].data(), 
 									 PARTITION_SIZE); // 2L
 
 	// Save upper half
-	juce::FloatVectorOperations::copy(overlapBuffersA[channel][convSaveCount].data(), 
+	juce::FloatVectorOperations::copy(overlapBuffersA[channel][convSaveCount[channel]].data(), 
 									  outputFrame.data() + PARTITION_SIZE,
 									  PARTITION_SIZE);
 	
@@ -74,11 +74,7 @@ void ConvolutionReverb::processHop(ConvolutionState* state, const int channel) {
 
 	// Passthrough case (no IRs loaded)
 	if (state->irBank->getMaxPartitionCount() == 0) {
-		int& writeIndex = outputWriteIndex[channel];
-		for (int j = 0; j < HOP_SIZE; ++j) {
-			outputBuffers[channel][writeIndex] = 0.0f;
-			writeIndex = (writeIndex + 1) & (OUTPUT_SIZE - 1);
-		} if (channel == 0) hopCounter++;
+		juce::FloatVectorOperations::fill(outputBuffers[channel].data(), 0.0f, HOP_SIZE);
 		return;
 	}
 
@@ -110,7 +106,7 @@ void ConvolutionReverb::processHop(ConvolutionState* state, const int channel) {
 	// Overlap-add and output
 	overlapAdd(channel);
 
-	if (channel == 0) hopCounter++;
+	convSaveCount[channel] = (convSaveCount[channel] + 1) % 2;
 }
 
 /* PUBLIC */
@@ -118,11 +114,6 @@ void ConvolutionReverb::processHop(ConvolutionState* state, const int channel) {
 ConvolutionReverb::ConvolutionReverb(std::shared_ptr<ConvolutionStateHolder> stateHolder) : convolutionState(stateHolder), 
 	fft(FFT_ORDER), hannWindow(PARTITION_SIZE, juce::dsp::WindowingFunction<float>::WindowingMethod::hann, false) {
 	for (int ch = 0; ch < N_CHANNELS; ++ch) inputSpectra[ch].resize(2 * MAX_IR_PARTITIONS);
-}
-
-int ConvolutionReverb::wrapIndex(int index, int size) {
-	if (index < 0) index += size * ((-index / size) + 1);
-	return index % size;
 }
 
 void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {
@@ -140,22 +131,19 @@ void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {
 			inputWriteIndex[channel] = (inputWriteIndex[channel] + 1) & (PARTITION_SIZE - 1);
 
 			// Process a hop every L samples
-			if ((inputWriteIndex[channel] & (HOP_SIZE - 1)) == 0) processHop(state.get(), channel);
+			if ((inputWriteIndex[channel] & (HOP_SIZE - 1)) == 0) 
+				processHop(state.get(), channel);
 		}
 
 		// Write output
 		auto* outPtr = in.getWritePointer(channel);
 		int& writeIndex = outputWriteIndex[channel];
 		int& readIndex = outputReadIndex[channel];
-		for (int i = 0; i < blockSize; ++i)
+		for (int i = 0; i < blockSize; ++i) {
 			if (readIndex != writeIndex) {
 				outPtr[i] = outputBuffers[channel][readIndex];
 				readIndex = (readIndex + 1) & (OUTPUT_SIZE - 1);
 			} else outPtr[i] = 0.0f;
-
+		}
 	}
-
-	// Flip OLA state
-	convSaveCount = (convSaveCount + hopCounter) % 2;
-	hopCounter = 0;
 }

@@ -302,7 +302,7 @@ void PolarMapPanel::notifyPositionChanged(PolarCoordinate nPosition) {
 }
 
 void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates, bool animate) {
-    const float repaintRadius = baseCoordinateRadius + 6.0f;
+    const float repaintRadius = baseCoordinateRadius + 10.0f;
 
     // Clear old bounds
     for (const auto& coord : fieldCoordinates) {

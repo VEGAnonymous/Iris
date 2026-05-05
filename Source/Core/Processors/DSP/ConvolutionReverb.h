@@ -20,8 +20,7 @@ private:
 
     std::array<std::array<std::array<float, PARTITION_SIZE>, 2>, N_CHANNELS> overlapBuffersA {};
     std::array<std::array<float, HOP_SIZE>, N_CHANNELS> overlapBuffersB {};
-    int convSaveCount = 0;
-    int hopCounter = 0;
+    std::array<int, N_CHANNELS> convSaveCount = {0};
 
     std::array<std::array<float, OUTPUT_SIZE>, N_CHANNELS> outputBuffers {};
     std::array<int, N_CHANNELS> outputWriteIndex = {0};
@@ -45,8 +44,6 @@ private:
 public:
     ConvolutionReverb(std::shared_ptr<ConvolutionStateHolder> stateHolder);
     ~ConvolutionReverb() = default;
-
-    static int wrapIndex(int index, int size);
 
     void process(juce::AudioBuffer<float>& in);
 };
