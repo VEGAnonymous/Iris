@@ -5,7 +5,7 @@
 
 /* PRIVATE */
 
-void ConvolutionReverb::accumulateSpectra(ConvolutionState* state, int channel) {
+void ConvolutionReverb::accumulateSpectra(ConvolutionState* state, const int channel) {
 	// Store input spectra in circular buffer
 	const int partitionCount = state->irBank->getMaxPartitionCount();
 	const int historySize = 2 * MAX_IR_PARTITIONS;
@@ -20,14 +20,12 @@ void ConvolutionReverb::accumulateSpectra(ConvolutionState* state, int channel) 
 	// Each partition
 	for (int partition = 0; partition < partitionCount; ++partition) {
 		// Multiply every *second* past input spectrum with mixedSpectra
-		int pastIndex = spectraIndex[channel] - (2 * partition);
-		pastIndex = wrapIndex(pastIndex, historySize);
+		int pastIndex = (spectraIndex[channel] - (2 * partition) + (2 * MAX_IR_PARTITIONS)) & (historySize - 1);
 
 		auto& pastSpectra = inputSpectra[channel][pastIndex];
 		auto& mixSpectra = state->mixState.mixedSpectra[channel][partition];
 
 		// Complex multiply Re-Im pairs
-		// TODO: Optimize with SIMD
 		for (int k = 0; k < 2; ++k) accumulator[k] += pastSpectra[k] * mixSpectra[k]; // DC & Nyquist
 		for (int k = 2; k < FFT_SIZE; k += 2) {
 			float reX = pastSpectra[k], imX = pastSpectra[k + 1];
@@ -36,10 +34,10 @@ void ConvolutionReverb::accumulateSpectra(ConvolutionState* state, int channel) 
 			accumulator[k + 1] += (reX * imH) + (imX * reH);
 		}
 	} 
-	spectraIndex[channel] = (spectraIndex[channel] + 1) % historySize;
+	spectraIndex[channel] = (spectraIndex[channel] + 1) & (historySize - 1);
 }
 
-void ConvolutionReverb::overlapAdd(int channel) {
+void ConvolutionReverb::overlapAdd(const int channel) {
 	auto& outputFrame = accumulators[channel];
 	/* Partition overlap */
 	// OLA IFFT block (4L samples) with previous IFFT block -> produces intermediate block (2L samples) per hop (every L samples)
@@ -65,15 +63,14 @@ void ConvolutionReverb::overlapAdd(int channel) {
 
 	// Emit finalized HOP_SIZE (L) samples to output
 	int& writeIndex = outputWriteIndex[channel];
-	for (int i = 0; i < HOP_SIZE; ++i) {
-		outputBuffers[channel][writeIndex] = outputFrame[i];
-		writeIndex = (writeIndex + 1) & (OUTPUT_SIZE - 1);
-	}
+	const int tailStart = std::min(HOP_SIZE, OUTPUT_SIZE - writeIndex), headStart = HOP_SIZE - tailStart;
+	if (headStart > 0) juce::FloatVectorOperations::copy(outputBuffers[channel].data(), outputFrame.data() + tailStart, headStart);
+	juce::FloatVectorOperations::copy(outputBuffers[channel].data() + writeIndex, outputFrame.data(), tailStart);
+	writeIndex = (writeIndex + HOP_SIZE) & (OUTPUT_SIZE - 1);
 }
 
-void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
-	auto state = std::atomic_load(&convolutionState->state);
-	// DBG("Processing a hop");
+void ConvolutionReverb::processHop(ConvolutionState* state, const int channel) { /* TVOLAP fast convolution */
+	// DBG("CONV: Processing a hop");
 
 	// Passthrough case (no IRs loaded)
 	if (state->irBank->getMaxPartitionCount() == 0) {
@@ -87,9 +84,9 @@ void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
 
 	// Copy 2L samples from input buffer to partition buffer
 	auto& partition = inputPartitions[channel];
-	std::fill(partition.begin(), partition.end(), 0.0f);
+	std::fill(partition.begin() + PARTITION_SIZE, partition.end(), 0.0f);
 	int tailStart = inputWriteIndex[channel], headStart = PARTITION_SIZE - tailStart;
-	juce::FloatVectorOperations::copy(partition.data(), inputBuffers[channel].data() + tailStart, headStart);
+	if (headStart > 0) juce::FloatVectorOperations::copy(partition.data(), inputBuffers[channel].data() + tailStart, headStart);
 	juce::FloatVectorOperations::copy(partition.data() + headStart, inputBuffers[channel].data(), tailStart);
 
 	// Analysis windowing
@@ -99,9 +96,9 @@ void ConvolutionReverb::processHop(int channel) { /* TVOLAP fast convolution */
 	fft.performRealOnlyForwardTransform(partition.data());
 
 	// Accumulate convolution
-	accumulateSpectra(state.get(), channel);
+	accumulateSpectra(state, channel);
 
-	// DBG("Accumulated spectra");
+	// DBG("CONV: Accumulated spectra");
 
 	// IFFT in-place
 	fft.performRealOnlyInverseTransform(accumulators[channel].data());
@@ -129,6 +126,7 @@ int ConvolutionReverb::wrapIndex(int index, int size) {
 }
 
 void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {
+	auto state = std::atomic_load(&convolutionState->state);
 	const int blockSize = in.getNumSamples();
 
 	// Each channel
@@ -139,10 +137,10 @@ void ConvolutionReverb::process(juce::AudioBuffer<float>& in) {
 		for (int i = 0; i < blockSize; ++i) { 
 			// Write to input buffer
 			inputBuffers[channel][inputWriteIndex[channel]] = *start++;
-			inputWriteIndex[channel] = (inputWriteIndex[channel] + 1) % PARTITION_SIZE;
+			inputWriteIndex[channel] = (inputWriteIndex[channel] + 1) & (PARTITION_SIZE - 1);
 
 			// Process a hop every L samples
-			if (inputWriteIndex[channel] % HOP_SIZE == 0) processHop(channel);
+			if ((inputWriteIndex[channel] & (HOP_SIZE - 1)) == 0) processHop(state.get(), channel);
 		}
 
 		// Write output

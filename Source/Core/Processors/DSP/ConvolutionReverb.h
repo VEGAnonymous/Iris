@@ -37,9 +37,10 @@ private:
     std::array<std::array<float, FFT_SIZE*2>, N_CHANNELS> accumulators {0};
 
     // Hot path
-    void accumulateSpectra(ConvolutionState* state, int channel);
-    void overlapAdd(int channel);
-    void processHop(int channel);
+    void accumulateSpectra(ConvolutionState* state, const int channel);
+    void overlapAdd(const int channel);
+
+    void processHop(ConvolutionState* state, const int channel);
 
 public:
     ConvolutionReverb(std::shared_ptr<ConvolutionStateHolder> stateHolder);
