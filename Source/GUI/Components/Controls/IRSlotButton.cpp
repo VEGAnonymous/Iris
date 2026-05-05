@@ -84,10 +84,10 @@ void IRSlotButton::setOccupied(bool nOccupied) {
     repaint();
 }
 
-void IRSlotButton::setActive(bool nActive) {
-    indicatorActiveAnim.setValue(nActive ? 1.0f : 0.0f);
+void IRSlotButton::setActive(bool nActive, bool animate) {
+    indicatorActiveAnim.setValue(nActive ? 1.0f : 0.0f, animate);
     active = nActive;
-    waveformPreview.setActive(nActive, true);
+    waveformPreview.setActive(nActive, animate);
     repaint();
 }
 

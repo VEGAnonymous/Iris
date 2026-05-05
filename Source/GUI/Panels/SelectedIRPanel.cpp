@@ -35,6 +35,7 @@ void SelectedIRPanel::updateIRSlot(int selectedIR, bool animate) {
 
             irHeaderComponent.setActive(slot.active, animate);
             irHeaderComponent.setSlot(selectedIR, slot);
+            irHeaderComponent.updateIndicator();
 
             auto* waveformComponent = irDisplayComponent.getWaveformComponent();
             jassert(waveformComponent);

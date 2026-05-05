@@ -123,7 +123,7 @@ private:
     void updateIRSlot(bool animate = false);
     void syncPosition();
     void syncField();
-    void syncIRs();
+    void syncIRs(bool animate = true);
     void syncSwap();
     void syncIndicatorStyles();
     void syncSettings();

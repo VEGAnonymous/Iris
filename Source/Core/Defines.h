@@ -122,6 +122,14 @@ namespace PropertyID {
             }
         }
     }
+
+    namespace IRDirectory {
+        static constexpr auto
+            irDirectoryCount = "IR Directory Count";
+
+        inline juce::String irDirectoryActive(int i) { return "IR Directory " + juce::String(i) + " Active"; }
+        inline juce::String irDirectoryPath(int i) { return "IR Directory " + juce::String(i) + " Path"; }
+    }
 }
 
 namespace TreeID {

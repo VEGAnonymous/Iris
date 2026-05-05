@@ -26,6 +26,7 @@ struct RandomTimer {
     }
     void resetCountdown(juce::Random& rng) {
         countdown = active ? juce::jmap(rng.nextFloat(), minTime, maxTime) : 0.0f;
+        DBG("SWAP: Reset countdown to " << countdown);
     }
 };
 

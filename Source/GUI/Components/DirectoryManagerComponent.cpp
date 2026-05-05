@@ -117,8 +117,9 @@ void DirectoryManagerComponent::prepare() {
 
     // Sampling mode selector
     samplingModeSelector.control.addItemList(samplingModes, 1);
-    samplingModeSelector.control.setSelectedId(
-        static_cast<int>(audioProcessor.apvts.state.getProperty(PropertyID::samplingMode)) + 1, juce::dontSendNotification);
+    samplingModeSelector.control.setSelectedId(static_cast<int>(audioProcessor.apvts.state.getProperty(
+        PropertyID::samplingMode, static_cast<int>(IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES))) + 1, juce::dontSendNotification);
+
     samplingModeSelector.control.onChange = [this]() {
         const int randomMode = samplingModeSelector.control.getSelectedId() - 1;
         audioProcessor.apvts.state.setProperty(PropertyID::samplingMode, randomMode, nullptr);

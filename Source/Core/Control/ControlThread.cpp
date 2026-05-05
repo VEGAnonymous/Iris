@@ -26,7 +26,9 @@ void ControlThread::updateSwapParameters() {
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         float nMin = apvts.getRawParameterValue(ParamID::irSwapMin(i))->load();
         float nMax = apvts.getRawParameterValue(ParamID::irSwapMax(i))->load();
+        bool nActive = apvts.getRawParameterValue(ParamID::irSwapActive(i))->load();
         irManager.setSwapInterval(i, nMin, nMax);
+        irManager.setSwapActive(i, nActive);
     }
 }
 
@@ -255,6 +257,9 @@ void ControlThread::processIRCommands() {
         }
         case IRCommand::SET_SAMPLING_MODE: {
             irManager.setSamplingMode(cmd.samplingMode);
+
+            juce::String samplingMode = (cmd.samplingMode == IRSamplingMode::UNIFORM_ACROSS_ALL_FILES) ? "uniform across all files" : "uniform across directories";
+            DBG("IR: Set sampling mode to " << samplingMode);
             break;
         }
         default:

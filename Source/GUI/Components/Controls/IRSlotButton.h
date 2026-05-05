@@ -42,7 +42,7 @@ public:
 
     void setWaveform(const juce::AudioBuffer<float>* buffer, double sampleRate);
     void setOccupied(bool nOccupied);
-    void setActive(bool nActive);
+    void setActive(bool nActive, bool animate = true);
     void setIndicatorStyle(const juce::Image& iconToTry, const juce::String nStyle);
 
     int getIndex() const;

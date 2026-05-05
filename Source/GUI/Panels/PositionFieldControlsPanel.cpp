@@ -27,20 +27,23 @@ void PositionFieldControlsPanel::prepare() {
                 rotary->setVisible(visible);
         }
         resized();
-
-        audioProcessor.apvts.state.setProperty(PropertyID::selectedControlTab, nActiveTab, nullptr);
-
-        audioProcessor.guiState.syncingPosition.store(activeTab == ControlTabID::POSITION);
-        audioProcessor.guiState.syncingField.store(activeTab == ControlTabID::FIELD);
     };
 
     positionTabButton.setButtonText("POSITION");
     positionTabButton.setToggleable(true);
-    positionTabButton.onClick = [selectTab]() { selectTab(ControlTabID::POSITION); };
+    positionTabButton.onClick = [this, selectTab]() {
+        selectTab(ControlTabID::POSITION); 
+        audioProcessor.apvts.state.setProperty(PropertyID::selectedControlTab, ControlTabID::POSITION, nullptr);
+        audioProcessor.guiState.syncingPosition.store(true, std::memory_order_release);
+    };
 
     fieldTabButton.setButtonText("FIELD");
     fieldTabButton.setToggleable(true);
-    fieldTabButton.onClick = [selectTab]() { selectTab(ControlTabID::FIELD); };
+    fieldTabButton.onClick = [this, selectTab]() { 
+        selectTab(ControlTabID::FIELD); 
+        audioProcessor.apvts.state.setProperty(PropertyID::selectedControlTab, ControlTabID::FIELD, nullptr);
+        audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
+    };
 
     selectTab(static_cast<ControlTabID>(static_cast<int>(audioProcessor.apvts.state.getProperty(PropertyID::selectedControlTab))));
 

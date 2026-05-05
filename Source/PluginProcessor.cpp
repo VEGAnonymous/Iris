@@ -476,9 +476,12 @@ void MareverbAudioProcessor::initState() {
     cmd.directoryFilter = apvts.state.getProperty(PropertyID::directoryFilter);
     irManager.enqueueCommand(cmd);
 
+    DBG("RECALL: Has sampling mode property: " << (int)apvts.state.hasProperty(PropertyID::samplingMode));
+
     cmd.type = IRCommand::SET_SAMPLING_MODE;
     cmd.samplingMode = static_cast<IRSamplingMode>(static_cast<int>(
         apvts.state.getProperty(PropertyID::samplingMode, static_cast<int>(IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES))));;
+    DBG("RECALL: Retrieved sampling mode property: " << (int)cmd.samplingMode);
     irManager.enqueueCommand(cmd);
 
     const int controlRateIndex = apvts.state.getProperty(PropertyID::controlRate, 3 /* 30 Hz */);

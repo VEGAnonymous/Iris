@@ -72,7 +72,7 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
     // IRs
     if (audioProcessor.guiState.irChanged.exchange(false, std::memory_order_acquire)) {
-        syncIRs();
+        syncIRs(true);
     }
 
     if (audioProcessor.guiState.selectedIRChanged.exchange(false, std::memory_order_acquire)) {
@@ -316,7 +316,7 @@ void MareverbAudioProcessorEditor::syncField() {
     DBG("SYNC: Field sync complete");
 }
 
-void MareverbAudioProcessorEditor::syncIRs() {
+void MareverbAudioProcessorEditor::syncIRs(bool animate) {
     {
         juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.irWaveformLock);
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
@@ -325,12 +325,12 @@ void MareverbAudioProcessorEditor::syncIRs() {
             auto* slotButton = irSelectorPanel.getIRSlotButton(i);
 
             slotButton->setOccupied(slot.occupied);
-            slotButton->setActive(slot.active);
+            slotButton->setActive(slot.active, animate);
             slotButton->setWaveform(slot.occupied ? waveform.get() : nullptr, audioProcessor.getSampleRate());
         }
     }
 
-    updateIRSlot(true);
+    updateIRSlot(animate);
     DBG("SYNC: IR sync complete");
 }
 
@@ -587,7 +587,7 @@ void MareverbAudioProcessorEditor::resized() {
 void MareverbAudioProcessorEditor::initState() {
     syncPosition();
     syncField();
-    syncIRs();
+    syncIRs(false);
     syncSwap();
     syncSettings();
     syncIndicatorStyles();

@@ -73,18 +73,18 @@ void IRManager::saveDirectories() {
     if (!properties) return;
     if (!properties->isValidFile()) return;
 
-    int oldCount = properties->getIntValue("irDirectoryCount");
+    int oldCount = properties->getIntValue(PropertyID::IRDirectory::irDirectoryCount);
     int newCount = static_cast<int>(irDirectories.size());
-    properties->setValue("irDirectoryCount", newCount);
+    properties->setValue(PropertyID::IRDirectory::irDirectoryCount, newCount);
     for (int i = 0; i < newCount; ++i) {
-        properties->setValue("irDirectory_" + juce::String(i), irDirectories[i].irDirectory.getFullPathName());
-        properties->setValue("irDirectoryActive_" + juce::String(i), irDirectories[i].active);
+        properties->setValue(PropertyID::IRDirectory::irDirectoryPath(i), irDirectories[i].irDirectory.getFullPathName());
+        properties->setValue(PropertyID::IRDirectory::irDirectoryActive(i), irDirectories[i].active);
     }
 
     // Cleanup leftover entries
     for (int i = newCount; i < oldCount; ++i) {
-        properties->removeValue("irDirectory_" + juce::String(i));
-        properties->removeValue("irDirectoryActive_" + juce::String(i));
+        properties->removeValue(PropertyID::IRDirectory::irDirectoryPath(i));
+        properties->removeValue(PropertyID::IRDirectory::irDirectoryActive(i));
     }
 
     properties->saveIfNeeded();
@@ -99,10 +99,10 @@ void IRManager::loadDirectories() {
 
     irDirectories.clear();
 
-    int dirCount = properties->getIntValue("irDirectoryCount", 0);
+    int dirCount = properties->getIntValue(PropertyID::IRDirectory::irDirectoryCount, 0);
     for (int i = 0; i < dirCount; ++i) {
-        juce::File dir(properties->getValue("irDirectory_" + juce::String(i)));
-        bool active = properties->getBoolValue("irDirectoryActive_" + juce::String(i), true);
+        juce::File dir(properties->getValue(PropertyID::IRDirectory::irDirectoryPath(i)));
+        bool active = properties->getBoolValue(PropertyID::IRDirectory::irDirectoryActive(i), true);
         if (validateIRDirectory(dir)) irDirectories.push_back({ dir, active });
     }
 
@@ -413,8 +413,10 @@ void IRManager::setSwapInterval(int irIndex, float nMin, float nMax) {
 
 void IRManager::setSwapActive(int irIndex, bool nActive) {
     auto& slotSwap = irSlots[irIndex].autoSwap;
-    slotSwap.active = nActive;
-    if (nActive) slotSwap.resetCountdown(irRNG);
+    if (nActive != slotSwap.active) {
+        slotSwap.active = nActive;
+        slotSwap.resetCountdown(irRNG);
+    }
 }
 
 void IRManager::advanceSwapTimers(float dt) {

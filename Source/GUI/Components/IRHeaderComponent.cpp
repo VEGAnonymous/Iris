@@ -56,12 +56,17 @@ void IRHeaderComponent::setActive(bool nActive, bool animate) {
 }
 
 void IRHeaderComponent::setIndicatorStyle(const juce::String nStyle) {
+    indicatorStyle = nStyle;
+    updateIndicator();
+}
+
+void IRHeaderComponent::updateIndicator() {
     {
         juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.mareLock);
         updateFieldIndicatorStyle(
-            currentIcon,
+            currentIndicator,
             audioProcessor.guiState.mareImages[currentIndex],
-            nStyle
+            indicatorStyle
         );
     }
     repaint();
@@ -79,8 +84,10 @@ void IRHeaderComponent::paint(juce::Graphics& g) {
     float activeAlpha = indicatorActiveAnim.getValue();
     float indicatorAlpha = juce::jmap(activeAlpha, currentIR.occupied ? 0.35f : 0.1f, currentIR.occupied ? 1.0f : 0.2f);
 
-    Paint::irIndicator(g, { indicatorX, indicatorY }, indicatorRadius - (!currentIcon.isNull() ? 1.0f : 0.0f),
-        currentIndex, currentIR.occupied, currentIR.active, false, indicatorAlpha, -1.0f, juce::Colours::transparentBlack, &currentIcon);
+    Paint::irIndicator(g, { indicatorX, indicatorY }, indicatorRadius - (!currentIndicator.isNull() ? 1.0f : 0.0f),
+        currentIndex, currentIR.occupied, currentIR.active, false, 
+        indicatorAlpha, -1.0f, juce::Colours::transparentBlack, 
+        &currentIndicator);
 
     // IR #
     const float labelX = (indicatorX + indicatorRadius) + 16.0f;
