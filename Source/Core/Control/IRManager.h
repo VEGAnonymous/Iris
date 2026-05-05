@@ -50,7 +50,7 @@ private:
     moodycamel::ConcurrentQueue<IRUpdate> irUpdateQueue; // Forward updates
 
 public:
-    juce::ThreadPool irThreadPool {2};
+    juce::ThreadPool irThreadPool { juce::jmax(1, juce::SystemStats::getNumCpus() / 3) };
 
     std::function<void(juce::String title, juce::String message, juce::String details, juce::String buttonText)> onAlert;
 

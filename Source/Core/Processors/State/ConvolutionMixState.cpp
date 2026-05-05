@@ -63,8 +63,14 @@ void ConvolutionMixState::mixSpectrum(const ConvolutionIRBank& irBank) {
 	};
 
 	// Parallelize
-	auto future = std::async(std::launch::async, mixChannel, 0);
-	mixChannel(1);
-	future.wait();
-	// DBG("Mixed spectrum");
+	if (juce::SystemStats::getNumCpus() >= 6) {
+		auto future = std::async(std::launch::async, mixChannel, 0);
+		mixChannel(1);
+		future.wait();
+	} else {
+		mixChannel(0);
+		mixChannel(1);
+	}
+
+	// DBG("CONV: Mixed spectrum");
 }

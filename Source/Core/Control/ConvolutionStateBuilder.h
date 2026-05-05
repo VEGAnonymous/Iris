@@ -30,7 +30,7 @@ private:
         juce::ThreadPoolJob* job;
     };
 
-    juce::ThreadPool fftThreadPool {2};
+    juce::ThreadPool fftThreadPool { juce::jmax(1, juce::SystemStats::getNumCpus() / 3) };
     std::shared_ptr<ConvolutionIRBank> nextBank;
 
     std::vector<FFTJob> pendingJobs;

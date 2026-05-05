@@ -95,6 +95,8 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     mixer(PARTITION_SIZE),
     irManager(&applicationProperties) {
 
+    DBG("INIT: Found " << juce::SystemStats::getNumCpus() << " cores");
+
     auto startTime = std::chrono::steady_clock::now();
 
     // Init properties
