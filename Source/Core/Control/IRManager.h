@@ -28,11 +28,9 @@ private:
     std::unique_ptr<juce::FileChooser> irFileChooser;
     std::unique_ptr<juce::FileChooser> irDirectoryChooser;
 
-    inline bool validateIRDirectory(const juce::File& dir) const;
-    void saveDirectories();
-    void loadDirectories();
-
     // Utilities
+    inline bool validateIRDirectory(const juce::File& dir) const;
+
     static juce::StringArray parseFilter(const juce::String& filter);
     static bool matchesKeyword(const juce::String& text, const juce::StringArray keywords);
 
@@ -40,6 +38,7 @@ private:
 
     // Concurrency
     juce::SpinLock irLock;
+    juce::SpinLock dirLock;
     std::atomic<bool> directoryChanged{ false };
     std::atomic<bool> busyLoading { false };
     std::atomic<bool> busyCollecting { false };
@@ -60,7 +59,9 @@ public:
     void prepare();
     void enqueueCommand(IRCommand cmd);
 
-    // Commands
+    void saveDirectories();
+    void loadDirectories();
+
     void collectIRs();
     void collectIRs(const juce::StringArray fileFilterKeywords, const juce::StringArray directoryFilterKeywords);
 

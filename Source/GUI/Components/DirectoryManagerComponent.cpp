@@ -55,7 +55,7 @@ void DirectoryManagerComponent::prepare() {
         IRCommand cmd = { IRCommand::IR_DIRECTORY_REFRESH };
         irManager->enqueueCommand(cmd);
     };
-    refreshButton.setTooltip("Collects all valid IRs in the directory list.\nThis option is provided for pushing untracked changes, such as adding new files to an existing directory.");
+    refreshButton.setTooltip("Retrieves the directory list state and collects all valid IRs.\nCan be used to synchronize changes made from another Mareverb instance as well as changes to the directory contents themselves.");
     addAndMakeVisible(refreshButton);
 
     // File / directory filter editors
@@ -249,7 +249,6 @@ void DirectoryManagerComponent::listBoxItemClicked(int row, const juce::MouseEve
 
 juce::Component* DirectoryManagerComponent::refreshComponentForRow(int rowNumber, 
     bool /*isRowSelected*/, juce::Component* existingComponentToUpdate) {
-    // Probably UNSAFE
     auto* directoryRow = dynamic_cast<DirectoryRowComponent*>(existingComponentToUpdate);
     if (!directoryRow) directoryRow = new DirectoryRowComponent(animatorUpdater, audioProcessor.getIRManager()->getBusyCollecting());
 
@@ -287,4 +286,5 @@ void DirectoryManagerComponent::refresh() {
 
     directoryList.updateContent();
     repaint();
+    DBG("SYNC: Refreshed directory list");
 }

@@ -11,33 +11,6 @@ bool IRManager::validateIRDirectory(const juce::File& dir) const {
         && dir.hasReadAccess());
 }
 
-void IRManager::saveDirectories() {
-    auto* properties = applicationProperties->getUserSettings();
-    if (!properties) return;
-
-    int dirCount = static_cast<int>(irDirectories.size());
-    properties->setValue("irDirectoryCount", dirCount);
-    for (int i = 0; i < dirCount; ++i) {
-        properties->setValue("irDirectory_" + juce::String(i), irDirectories[i].irDirectory.getFullPathName());
-        properties->setValue("irDirectoryActive_" + juce::String(i), irDirectories[i].active);
-    }
-    properties->saveIfNeeded();
-}
-
-void IRManager::loadDirectories() {
-    auto* properties = applicationProperties->getUserSettings();
-    if (!properties) return;
-
-    int dirCount = properties->getIntValue("irDirectoryCount", 0);
-    for (int i = 0; i < dirCount; ++i) {
-        juce::File dir(properties->getValue("irDirectory_" + juce::String(i)));
-        bool active = properties->getBoolValue("irDirectoryActive_" + juce::String(i), true);
-        if (validateIRDirectory(dir)) irDirectories.push_back({ dir, active });
-    }
-    IRCommand cmd = { IRCommand::IR_DIRECTORY_REFRESH };
-    enqueueCommand(cmd);
-}
-
 // Utilities
 
 juce::StringArray IRManager::parseFilter(const juce::String& filter) {
@@ -95,6 +68,48 @@ void IRManager::prepare() {
 
 void IRManager::enqueueCommand(IRCommand cmd) { irCommandQueue.enqueue(cmd); }
 
+void IRManager::saveDirectories() {
+    auto* properties = applicationProperties->getUserSettings();
+    if (!properties) return;
+    if (!properties->isValidFile()) return;
+
+    int oldCount = properties->getIntValue("irDirectoryCount");
+    int newCount = static_cast<int>(irDirectories.size());
+    properties->setValue("irDirectoryCount", newCount);
+    for (int i = 0; i < newCount; ++i) {
+        properties->setValue("irDirectory_" + juce::String(i), irDirectories[i].irDirectory.getFullPathName());
+        properties->setValue("irDirectoryActive_" + juce::String(i), irDirectories[i].active);
+    }
+
+    // Cleanup leftover entries
+    for (int i = newCount; i < oldCount; ++i) {
+        properties->removeValue("irDirectory_" + juce::String(i));
+        properties->removeValue("irDirectoryActive_" + juce::String(i));
+    }
+
+    properties->saveIfNeeded();
+}
+
+void IRManager::loadDirectories() {
+    auto* properties = applicationProperties->getUserSettings();
+    if (!properties) return;
+    if (!properties->isValidFile()) return;
+
+    properties->reload();
+
+    irDirectories.clear();
+
+    int dirCount = properties->getIntValue("irDirectoryCount", 0);
+    for (int i = 0; i < dirCount; ++i) {
+        juce::File dir(properties->getValue("irDirectory_" + juce::String(i)));
+        bool active = properties->getBoolValue("irDirectoryActive_" + juce::String(i), true);
+        if (validateIRDirectory(dir)) irDirectories.push_back({ dir, active });
+    }
+
+    IRCommand cmd = { IRCommand::IR_DIRECTORY_COLLECT };
+    enqueueCommand(cmd);
+}
+
 void IRManager::collectIRs() { collectIRs(fileFilter, directoryFilter); }
 void IRManager::collectIRs(const juce::StringArray fileKeywords, const juce::StringArray directoryKeywords) {
     DBG("IR: Collecting IRs with file filter (" << fileKeywords.joinIntoString(", ") << "); directory filter (" << directoryKeywords.joinIntoString(", ") << ")");
@@ -105,11 +120,25 @@ void IRManager::collectIRs(const juce::StringArray fileKeywords, const juce::Str
     irThreadPool.addJob([this, fileKeywords, directoryKeywords]() {
         const juce::String formatWildcard = formatManager.getWildcardForAllFormats();
         do {
-            DBG("IR: Running collection pass");
             collectPending.store(false, std::memory_order_release);
             auto nFiles = std::make_shared<std::vector<IRDirectoryFiles>>();
 
-            for (const auto& dir : irDirectories) {
+            int directoryListSize;
+            {
+                juce::SpinLock::ScopedLockType lock(irLock);
+                directoryListSize = static_cast<int>(irDirectories.size());
+            }
+
+            DBG("IR: Running collection pass; found " << directoryListSize << " directories");
+
+            for (int i = 0; i < directoryListSize; ++i) {
+                IRDirectory dir {};
+                {
+                    juce::SpinLock::ScopedLockType lock(irLock);
+                    if (i >= irDirectories.size()) break;
+                    else dir = irDirectories[i];
+                }
+
                 if (!dir.active || !dir.irDirectory.isDirectory()) continue;
 
                 auto irFiles = dir.irDirectory.findChildFiles(juce::File::findFiles, true, formatWildcard);
@@ -122,8 +151,8 @@ void IRManager::collectIRs(const juce::StringArray fileKeywords, const juce::Str
                     if (!directoryKeywords.isEmpty()) {
                         const auto pathComponents = juce::StringArray::fromTokens(file.getRelativePathFrom(dir.irDirectory), "/\\", "");
                         bool matches = false;
-                        for (int i = 0; i < pathComponents.size() - 1; ++i) { // size - 1 to exclude filename
-                            if (matchesKeyword(pathComponents[i], directoryKeywords)) {
+                        for (int j = 0; j < pathComponents.size() - 1; ++j) { // size - 1 to exclude filename
+                            if (matchesKeyword(pathComponents[j], directoryKeywords)) {
                                 matches = true;
                                 break;
                             }
@@ -276,7 +305,7 @@ juce::File IRManager::sampleRandomIR(IRSamplingMode mode) {
 
             int fileIndex = -1;
             {
-                juce::SpinLock::ScopedLockType lock(irLock);
+                juce::SpinLock::ScopedLockType lock(dirLock);
                 fileIndex = irRNG.nextInt(dir.files.size());
                 jassert(fileIndex >= 0);
             }
@@ -290,7 +319,7 @@ juce::File IRManager::sampleRandomIR(IRSamplingMode mode) {
 
             int fileIndex = -1;
             {
-                juce::SpinLock::ScopedLockType lock(irLock);
+                juce::SpinLock::ScopedLockType lock(dirLock);
                 fileIndex = irRNG.nextInt(totalFiles);
                 jassert(fileIndex >= 0);
             }

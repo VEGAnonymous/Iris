@@ -237,8 +237,12 @@ void ControlThread::processIRCommands() {
             irManager.setIRDirectoryActive(cmd.irDirectoryIndex, cmd.irDirectoryActiveState);
             break;
         }
-        case IRCommand::IR_DIRECTORY_REFRESH: {
+        case IRCommand::IR_DIRECTORY_COLLECT: {
             irManager.collectIRs();
+            break;
+        }
+        case IRCommand::IR_DIRECTORY_REFRESH: {
+            irManager.loadDirectories();
             break;
         }
         case IRCommand::SET_FILE_FILTER: {
