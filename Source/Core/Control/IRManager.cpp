@@ -286,11 +286,13 @@ void IRManager::setIR(int irIndex, juce::File irFile, juce::AudioBuffer<float>& 
     slot.buffer = std::move(irBuffer);
     slot.file = irFile;
     slot.occupied = true;
+    slot.gain = 1.0f;
     slot.window.start = 0.0f;
     slot.window.length = juce::jlimit(0.0f, 1.0f, static_cast<float>(MAX_IR_SAMPLES) / static_cast<float>(numSamples));
 
     irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex });
     irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_ACTIVE_CHANGED, irIndex });
+    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_GAIN_CHANGED, irIndex });
 }
 
 juce::File IRManager::sampleRandomIR() { return sampleRandomIR(samplingMode); }
@@ -402,6 +404,14 @@ juce::AudioBuffer<float> IRManager::applyWindow(int irIndex) const {
     return out;
 }
 
+void IRManager::setGain(int irIndex, float gainDB) { 
+    const float nGain = juce::Decibels::decibelsToGain(gainDB);
+    if (nGain != irSlots[irIndex].gain) {
+        irSlots[irIndex].gain = nGain;
+        irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_GAIN_CHANGED, irIndex });
+    }
+}
+
 void IRManager::setSwapInterval(int irIndex, float nMin, float nMax) {
     auto& slotSwap = irSlots[irIndex].autoSwap;
     if (nMin != slotSwap.minTime || nMax != slotSwap.maxTime) {
@@ -458,6 +468,7 @@ const IRSlotLite IRManager::getIRSlot(int index) const {
         slot.file,
         slot.occupied,
         slot.active,
+        slot.gain,
         slot.window,
         slot.getMaxWindowLength(),
         slot.buffer.getNumSamples()

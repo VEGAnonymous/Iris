@@ -64,6 +64,8 @@ namespace ParamID {
         fieldModA = "Field Mod A",
         fieldModB = "Field Mod B";
 
+    inline juce::String irGain(int i) { return "IR " + juce::String(i) + " Gain"; }
+
     inline juce::String irSwapMin(int i) { return "IR " + juce::String(i) + " Swap Min"; }
     inline juce::String irSwapMax(int i) { return "IR " + juce::String(i) + " Swap Max"; }
     inline juce::String irSwapActive(int i) { return "IR " + juce::String(i) + " Swap Active"; }

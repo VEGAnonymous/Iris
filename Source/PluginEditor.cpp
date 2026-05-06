@@ -33,6 +33,10 @@ void MareverbAudioProcessorEditor::parameterChanged(const juce::String& paramete
     }
 
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        if (parameterID == ParamID::irGain(i)) {
+            audioProcessor.guiState.irChanged.store(true, std::memory_order_release);
+        }
+
         if (parameterID == ParamID::irSwapActive(i) /*|| parameterID == ParamID::irSwapMin(i) || parameterID == ParamID::irSwapMax(i)*/) {
             audioProcessor.guiState.swapChanged.store(true, std::memory_order_release);
         }
@@ -317,16 +321,20 @@ void MareverbAudioProcessorEditor::syncField() {
 }
 
 void MareverbAudioProcessorEditor::syncIRs(bool animate) {
+    // TODO: Make this selective instead of all at once
     {
         juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.irWaveformLock);
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
             const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
+
+            // audioProcessor.apvts.getParameter(ParamID::irGain(i))->setValueNotifyingHost(slot.gain);
+
             const auto& waveform = audioProcessor.guiState.irWaveforms[i];
             auto* slotButton = irSelectorPanel.getIRSlotButton(i);
 
             slotButton->setOccupied(slot.occupied);
             slotButton->setActive(slot.active, animate);
-            slotButton->setWaveform(slot.occupied ? waveform.get() : nullptr, audioProcessor.getSampleRate());
+            slotButton->setWaveform(slot.occupied ? waveform.get() : nullptr, audioProcessor.getSampleRate(), slot.gain);
         }
     }
 
@@ -391,6 +399,8 @@ void MareverbAudioProcessorEditor::prepare() {
 
     // Attach swap control listeners
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        audioProcessor.apvts.addParameterListener(ParamID::irGain(i), this);
+
         audioProcessor.apvts.addParameterListener(ParamID::irSwapMin(i), this);
         audioProcessor.apvts.addParameterListener(ParamID::irSwapMax(i), this);
         audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
@@ -523,6 +533,8 @@ MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
     // Detach listeners
     for (auto& control : controls) audioProcessor.apvts.removeParameterListener(control.paramID, this);
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        audioProcessor.apvts.removeParameterListener(ParamID::irGain(i), this);
+
         audioProcessor.apvts.removeParameterListener(ParamID::irSwapMin(i), this);
         audioProcessor.apvts.removeParameterListener(ParamID::irSwapMax(i), this);
         audioProcessor.apvts.removeParameterListener(ParamID::irSwapActive(i), this);

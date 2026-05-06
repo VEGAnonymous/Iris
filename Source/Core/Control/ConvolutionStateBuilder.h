@@ -24,6 +24,7 @@ private:
     std::vector<int> setIRs;
     std::vector<int> clearedIRs;
     std::vector<int> activeChangedIRs;
+    std::vector<int> gainedIRs;
 
     // Concurrency
     juce::SpinLock fftJobLock;

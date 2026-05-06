@@ -20,6 +20,8 @@ void WaveformComponent::paint(juce::Graphics& g) {
             const double t = (p / static_cast<double>(numPoints - 1)) * duration;
             float minValue, maxValue;
             thumbnail.getApproximateMinMax(t, t + (duration / static_cast<double>(numPoints)), channel, minValue, maxValue);
+            maxValue *= gain;
+            minValue *= gain;
 
             float x = waveformX + ((p / static_cast<float>(numPoints - 1)) * waveformWidth);
             float y = waveformY - (maxValue * waveformHeight);
@@ -32,6 +34,8 @@ void WaveformComponent::paint(juce::Graphics& g) {
             const double t = (p / static_cast<double>(numPoints - 1)) * duration;
             float minValue, maxValue;
             thumbnail.getApproximateMinMax(t, t + (duration / static_cast<double>(numPoints)), channel, minValue, maxValue);
+            maxValue *= gain;
+            minValue *= gain;
             
             float x = waveformX + ((p / static_cast<float>(numPoints - 1)) * waveformWidth);
             float y = waveformY + (maxValue * waveformHeight);
@@ -66,6 +70,11 @@ void WaveformComponent::setWaveform(const juce::AudioBuffer<float>* buffer, doub
     if (buffer) {
         thumbnail.reset(buffer->getNumChannels(), sampleRate, buffer->getNumSamples());
         thumbnail.addBlock(0, *buffer, 0, buffer->getNumSamples()); }
+    repaint();
+}
+
+void WaveformComponent::setGain(float nGain) { 
+    gain = nGain;
     repaint();
 }
 

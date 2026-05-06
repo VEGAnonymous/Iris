@@ -88,6 +88,8 @@ public:
 
     juce::AudioBuffer<float> applyWindow(int irIndex) const;
 
+    void setGain(int irIndex, float gainDB);
+
     void setSwapInterval(int irIndex, float minTime, float maxTime);
     void setSwapActive(int irIndex, bool nActive);
     void advanceSwapTimers(float dt);

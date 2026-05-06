@@ -33,6 +33,10 @@ namespace Format {
              return juce::String(value * 1000.0f).substring(0, digits + 1) + " ms";
         else return juce::String(value).substring(0, digits + 1) + " s";
     }
+
+    inline juce::String decibels(float value, int digits = 4) {
+        return juce::String(value).substring(0, digits + 1) + " dB";
+    }
 }
 
 /* MATH */

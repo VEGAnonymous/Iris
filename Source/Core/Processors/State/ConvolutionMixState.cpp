@@ -56,7 +56,7 @@ void ConvolutionMixState::mixSpectrum(const ConvolutionIRBank& irBank) {
 				// Store weighted sum of IRs in irSpectra to mixedSpectra
 				const float* irSrc = (irBank.getSpectra(ir))[irChannel][partition].data();
 				float* irMix = mixedSpectra[channel][partition].data();
-				float weight = irWeights[channel][ir] * envelope;
+				float weight = irWeights[channel][ir] * envelope * irBank.getGain(ir);
 				juce::FloatVectorOperations::addWithMultiply(irMix, irSrc, weight, FFT_SIZE);
 			}
 		}

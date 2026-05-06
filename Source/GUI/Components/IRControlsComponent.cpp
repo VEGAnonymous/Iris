@@ -28,6 +28,26 @@ void IRControlsComponent::prepare() {
     randomIRButton.setTooltip("Loads a random IR from the supplied directory list.\nAdjust settings via the directory manager in the top bar.");
     addAndMakeVisible(randomIRButton);
 
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        irControls[i] = std::make_unique<IRControl>(audioProcessor.apvts, animatorUpdater, i);
+
+        IRControl* irControl = nullptr;
+        if (irControls[i]) irControl = irControls[i].get();
+
+        // Bind control formatting to apvts parameter formatting
+        if (auto* param = dynamic_cast<juce::RangedAudioParameter*>(audioProcessor.apvts.getParameter(ParamID::irGain(i)))) {
+            irControls[i]->sendControl.control.formatTextFromValueFunction = [param, i](double value) {
+                return param->getText(static_cast<float>(value), 0);
+            };
+        }
+
+        if (irControl) {
+            irControl->sendControl.control.bindValueTooltipCallbacks(valueTooltip, parentComponent);
+            irControl->sendControl.control.setTooltip("The gain to apply to this IR.");
+            addChildComponent(irControl->sendControl);
+        }
+    }
+
     // Envelope control
     envelopeControl.onEnvelopeChanged = [this](EnvelopeType type, float attack, float release) {
         int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
@@ -50,21 +70,16 @@ void IRControlsComponent::prepare() {
     };
 
     envelopeControl.bindValueTooltipCallbacks(valueTooltip, parentComponent);
-
     envelopeControl.setTooltip("Drag to set the envelope of the windowed IR range.\nDisclaimer: this has little practical use outside of potentially reducing windowing discontinuities.");
-
     addAndMakeVisible(envelopeControl);
 
     // Swap controls
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         swapControls[i] = std::make_unique<SwapControl>(audioProcessor.apvts, animatorUpdater, i);
+
+        SwapControl* swapControl = nullptr;
+        if (swapControls[i]) swapControl = swapControls[i].get();
         
-        swapControls[i]->swapActiveToggle.control.setTooltip("Enables/disables auto-swap for this slot, which will load a random IR into this slot at random intervals.");
-        swapControls[i]->swapRangeSlider.control.setTooltip("Drag the handles or drag-select to set the minimum and maximum time interval for auto-swapping.");
-
-        addChildComponent(swapControls[i]->swapActiveToggle);
-        addChildComponent(swapControls[i]->swapRangeSlider);
-
         // Bind control formatting to apvts parameter formatting
         if (auto* param = dynamic_cast<juce::RangedAudioParameter*>(audioProcessor.apvts.getParameter(ParamID::irSwapMin(i)))) {
             swapControls[i]->swapRangeSlider.control.formatTextFromValueFunction = [param, i](double value) {
@@ -72,7 +87,13 @@ void IRControlsComponent::prepare() {
             };
         }
 
-        swapControls[i]->swapRangeSlider.control.bindValueTooltipCallbacks(valueTooltip, parentComponent);
+        if (swapControl) {
+            swapControl->swapRangeSlider.control.bindValueTooltipCallbacks(valueTooltip, parentComponent);
+            swapControl->swapActiveToggle.control.setTooltip("Enables/disables auto-swap for this slot, which will load a random IR into this slot at random intervals.");
+            swapControl->swapRangeSlider.control.setTooltip("Drag the handles or drag-select to set the minimum and maximum time interval for auto-swapping.");
+            addChildComponent(swapControl->swapActiveToggle);
+            addChildComponent(swapControl->swapRangeSlider);
+        }
     }
 }
 
@@ -89,46 +110,53 @@ void IRControlsComponent::paint(juce::Graphics& g) {
 }
 
 void IRControlsComponent::resized() {
+    // This layout is absolutely disgusting by the way
     Bounds bounds = getLocalBounds();
-    const auto w = bounds.getWidth(),
-               h = bounds.getHeight();
-
-    juce::FlexBox irControlRow(juce::FlexBox::JustifyContent::flexStart);
-    irControlRow.alignItems = juce::FlexBox::AlignItems::center;
 
     // 'Random' / 'Clear' button
-    juce::FlexBox irControlColumn(juce::FlexBox::JustifyContent::center);
-    irControlColumn.flexDirection = juce::FlexBox::Direction::column;
+    juce::FlexBox irButtonColumn(juce::FlexBox::JustifyContent::center);
+    irButtonColumn.flexDirection = juce::FlexBox::Direction::column;
+    irButtonColumn.alignItems = juce::FlexBox::AlignItems::center;
 
-    irControlColumn.items.add(juce::FlexItem(randomIRButton)
+    irButtonColumn.items.add(juce::FlexItem(randomIRButton)
         .withFlex(0.0f)
-        .withWidth(w * 0.15f)
-        .withHeight(h * 0.3f)
+        .withWidth(62.1f)
+        .withHeight(30.0f)
         .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 4.0f, 0.0f)));
 
-    irControlColumn.items.add(juce::FlexItem(clearIRButton)
+    irButtonColumn.items.add(juce::FlexItem(clearIRButton)
         .withFlex(0.0f)
-        .withWidth(w * 0.15f)
-        .withHeight(h * 0.3f)
+        .withWidth(62.1f)
+        .withHeight(30.0f)
         .withMargin(juce::FlexItem::Margin(4.0f, 0.0f, 0.0f, 0.0f)));
 
-    // Layout
-    irControlRow.items.add(juce::FlexItem(irControlColumn)
-        .withFlex(0.0f)
-        .withWidth(w * 0.15f)
-        .withHeight(h * 0.75f)
-        .withMargin(22.5f));
+    irButtonColumn.performLayout(bounds.removeFromLeft(100).reduced(12).withTrimmedLeft(6));
 
-    irControlRow.items.add(juce::FlexItem(envelopeControl) // Window envelope
-        .withFlex(1.0f)
-        .withWidth(w * 0.25f)
-        .withHeight(h * 0.8f)
-        .withMargin(10.0f));
+    bounds.removeFromLeft(20);
 
-    irControlRow.performLayout(bounds.removeFromLeft(static_cast<int>(w * 0.6f)));
+    // IR controls
+    Bounds irControlColumn = bounds.removeFromLeft(116);
+    Bounds irControlsBounds = irControlColumn.removeFromTop(56);
+
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        auto& sendControl = irControls[i]->sendControl;
+
+        sendControl.setBounds(irControlsBounds);
+        sendControl.setLabelPosition(LabelledControl<Rotary>::LabelPosition::LEFT);
+        sendControl.setLabelDimensions(40.0f, 12.0f);
+        sendControl.setControlDimensions(50.0f, 50.0f);
+        sendControl.setLabelMargin(juce::FlexItem::Margin(5.0f, 0.0f, 5.0f, 10.0f));
+        sendControl.setControlMargin(juce::FlexItem::Margin(5.0f, 5.0f, 5.0f, 8.0f));
+        sendControl.resized();
+    }
+
+    envelopeControl.setBounds(irControlColumn.withSizeKeepingCentre(116, 36).withTrimmedBottom(10));
+
+    bounds.removeFromLeft(28);
+    bounds.removeFromRight(20);
 
     // Swap controls
-    Bounds swapToggleBounds = bounds.removeFromTop(30);
+    Bounds swapToggleBounds = bounds.removeFromTop(34);
     Bounds swapSliderBounds = bounds;
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         auto& activeToggle = swapControls[i]->swapActiveToggle;
@@ -136,17 +164,17 @@ void IRControlsComponent::resized() {
 
         activeToggle.setBounds(swapToggleBounds.reduced(4));
         activeToggle.setLabelPosition(LabelledControl<HoverableToggleButton>::LabelPosition::LEFT);
-        activeToggle.setLabelDimensions(66.0f, 14.0f);
+        activeToggle.setLabelDimensions(66.0f, 12.0f);
         activeToggle.setControlDimensions(12.0f, 12.0f);
         activeToggle.setLabelMargin(juce::FlexItem::Margin(15.0f, 0.0f, 5.0f, 0.0f));
         activeToggle.setControlMargin(juce::FlexItem::Margin(15.0f, 5.0f, 5.0f, 8.0f));
         activeToggle.resized();
 
         rangeSlider.setBounds(swapSliderBounds.reduced(4));
-        rangeSlider.setLabelDimensions(92.0f, 14.0f);
-        rangeSlider.setControlDimensions(130.0f, 30.0f);
-        rangeSlider.setLabelMargin(juce::FlexItem::Margin(0.0f, 0.0f, 2.0f, 0.0f));
-        rangeSlider.setControlMargin(juce::FlexItem::Margin(5.0f, 0.0f, 5.0f, 0.0f));
+        rangeSlider.setLabelDimensions(92.0f, 12.0f);
+        rangeSlider.setControlDimensions(116.0f, 20.0f);
+        rangeSlider.setLabelMargin(juce::FlexItem::Margin(0.0f, 0.0f, 6.0f, 0.0f));
+        rangeSlider.setControlMargin(juce::FlexItem::Margin(5.0f, 0.0f, 10.0f, 0.0f));
         rangeSlider.resized();
     }
 }
@@ -163,6 +191,12 @@ void IRControlsComponent::updateSwapState(int irIndex) {
 }
 
 EnvelopeControl* IRControlsComponent::getEnvelopeControl() { return &envelopeControl; }
+
+IRControlsComponent::IRControl* IRControlsComponent::getIRControl(int irIndex) {
+    jassert(validateIRIndex(irIndex));
+    return irControls[irIndex].get();
+}
+
 IRControlsComponent::SwapControl* IRControlsComponent::getSwapControl(int irIndex) { 
     jassert(validateIRIndex(irIndex));
     return swapControls[irIndex].get(); 

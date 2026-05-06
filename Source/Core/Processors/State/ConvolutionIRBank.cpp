@@ -4,6 +4,8 @@
 /* PUBLIC */
 
 ConvolutionIRBank::ConvolutionIRBank() : fft(FFT_ORDER) {
+	irGains.fill(1.0f);
+
 	// Preallocate spectra storage
 	for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
 		irSpectra[ir] = std::make_shared<SpectraData>();
@@ -15,6 +17,7 @@ ConvolutionIRBank::ConvolutionIRBank() : fft(FFT_ORDER) {
 ConvolutionIRBank::ConvolutionIRBank(const ConvolutionIRBank& other) : fft(FFT_ORDER) {
 	this->irSpectra = other.irSpectra;
 	this->irActiveStates = other.irActiveStates;
+	this->irGains = other.irGains;
 	this->irPartitionCounts = other.irPartitionCounts;
 	this->irChannelCounts = other.irChannelCounts;
 	this->maxPartitionCount = other.maxPartitionCount;
@@ -80,6 +83,12 @@ void ConvolutionIRBank::setIRActive(int irIndex, bool nState) {
 	irActiveStates[irIndex] = nState;
 }
 
+void ConvolutionIRBank::setIRGain(int irIndex, float nGain) {
+	if (!validateIRIndex(irIndex)) return;
+	irGains[irIndex] = nGain;
+	DBG("CONV: Set IR gain " << irIndex << " to " << nGain);
+}
+
 const SpectraData& ConvolutionIRBank::getSpectra(int irIndex) const { 
 	jassert(validateIRIndex(irIndex)); 
 	return *irSpectra[irIndex];
@@ -100,4 +109,9 @@ int ConvolutionIRBank::getChannelCount(int irIndex) const {
 bool ConvolutionIRBank::isActive(int irIndex) const {
 	if (!validateIRIndex(irIndex)) return false;
 	return irActiveStates[irIndex];
+}
+
+float ConvolutionIRBank::getGain(int irIndex) const {
+	if (!validateIRIndex(irIndex)) return 1.0f;
+	return irGains[irIndex];
 }

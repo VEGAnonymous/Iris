@@ -42,6 +42,7 @@ void SelectedIRPanel::updateIRSlot(int selectedIR, bool animate) {
             if (waveformComponent) {
                 waveformComponent->setNumPoints(WAVEFORM_POINTS);
                 waveformComponent->setWaveform(slot.occupied ? waveform.get() : nullptr, audioProcessor.getSampleRate());
+                waveformComponent->setGain(slot.gain);
                 waveformComponent->setColor(Theme::Colors::irSlotColours[selectedIR]);
                 waveformComponent->setActive(slot.active, animate);
             }
@@ -59,6 +60,13 @@ void SelectedIRPanel::updateIRSlot(int selectedIR, bool animate) {
         if (envelopeControl) envelopeControl->setSlot(slot);
 
         for (int i = 0; i < MAX_IR_COUNT; ++i) {
+            auto* irControl = irControlsComponent.getIRControl(i);
+            jassert(irControl);
+            if (irControl) {
+                irControl->sendControl.setVisible(i == selectedIR);
+                // ...
+            }
+
             auto* swapControl = irControlsComponent.getSwapControl(i);
             jassert(swapControl);
             if (swapControl) {

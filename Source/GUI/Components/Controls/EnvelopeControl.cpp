@@ -66,6 +66,7 @@ void EnvelopeControl::updateCurve() {
 /* PUBLIC */
 
 EnvelopeControl::EnvelopeControl() {
+    /*
     typeSelector.addItemList(envelopeTypes, 1);
     typeSelector.setLookAndFeel(&comboBoxLookAndFeel);
     typeSelector.onChange = [&]() {
@@ -78,7 +79,7 @@ EnvelopeControl::EnvelopeControl() {
         repaint();
     };
     addAndMakeVisible(typeSelector);
-    repaint();
+    */
 }
 
 EnvelopeControl::~EnvelopeControl() {
@@ -102,8 +103,8 @@ void EnvelopeControl::paint(juce::Graphics& g) {
 
 void EnvelopeControl::resized() {
     auto bounds = getLocalBounds();
-    curveBounds = bounds.removeFromTop(bounds.getHeight() - 20);
-    typeSelector.setBounds(bounds.withSizeKeepingCentre(static_cast<int>(bounds.getWidth() * 0.7f), bounds.getHeight()));
+    curveBounds = bounds.removeFromTop(bounds.getHeight());
+    // typeSelector.setBounds(bounds.withSizeKeepingCentre(static_cast<int>(bounds.getWidth() * 0.7f), bounds.getHeight()));
 }
 
 void EnvelopeControl::mouseMove(const juce::MouseEvent& e) {

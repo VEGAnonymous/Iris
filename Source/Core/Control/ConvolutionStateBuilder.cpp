@@ -29,7 +29,7 @@ public:
 
 bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState) {
     std::shared_ptr<const ConvolutionIRBank> irBank = currentState->irBank;
-    bool irChanged = !(setIRs.empty() && clearedIRs.empty() && activeChangedIRs.empty());
+    bool irChanged = !(setIRs.empty() && clearedIRs.empty() && activeChangedIRs.empty() && gainedIRs.empty());
     if (irChanged) {
         if (!nextBank) nextBank = std::make_shared<ConvolutionIRBank>(*currentState->irBank);
         auto& nBank = nextBank;
@@ -90,8 +90,17 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
             for (int irIndex : activeChangedIRs) {
                 if (!validateIRIndex(irIndex)) continue;
                 // DBG("Setting IR active state " << irIndex);
-                const auto& active = irManager.getIRSlot(irIndex).active;
+                const bool active = irManager.getIRSlot(irIndex).active;
                 nBank->setIRActive(irIndex, active);
+            }
+        }
+
+        // Set IR gains
+        if (!gainedIRs.empty()) {
+            for (int irIndex : gainedIRs) {
+                if (!validateIRIndex(irIndex)) continue;
+                const float gain = irManager.getIRSlot(irIndex).gain;
+                nBank->setIRGain(irIndex, gain);
             }
         }
 
@@ -170,6 +179,10 @@ void ConvolutionStateBuilder::pushIRUpdate(const IRUpdate& update) {
             activeChangedIRs.push_back(update.irIndex);
             break;
         }
+        case IRUpdate::IR_GAIN_CHANGED: {
+            gainedIRs.push_back(update.irIndex);
+            break;
+        }
     }
 }
 
@@ -177,6 +190,7 @@ void ConvolutionStateBuilder::clearUpdates() {
     setIRs.clear();
     clearedIRs.clear();
     activeChangedIRs.clear();
+    gainedIRs.clear();
 }
 
 void ConvolutionStateBuilder::notifyDecayChanged() { decayChanged = true; }

@@ -13,6 +13,7 @@ private:
 	int numPoints = 0;
 	juce::Colour color = juce::Colours::white;
 	bool active = true;
+	float gain = 1.0f;
 
 	AnimatedValue activeAnim;
 
@@ -28,6 +29,7 @@ public:
 
 	void setNumPoints(int nPoints);
 	void setWaveform(const juce::AudioBuffer<float>* buffer, double sampleRate);
+	void setGain(float nGain = 1.0f);
 	void setDimensions(float nOffsetX = 0.0f, float nOffsetY = 0.0f, float nOffsetWidth = 0.0f, float nHeightScale = 1.0f);
 	void setColor(juce::Colour nColor = juce::Colours::white);
 	void setActive(bool nActive, bool animate = false);

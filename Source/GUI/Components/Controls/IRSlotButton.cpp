@@ -72,10 +72,11 @@ IRSlotButton::IRSlotButton(int index, juce::AnimatorUpdater& updater, GUIState& 
     setTooltip("Select an IR slot by clicking on it. Clicking the indicator in the top left (or double-clicking a slot) will enable/disable the IR.\n\nCan accept audio files via drag-and-drop.");
 }
 
-void IRSlotButton::setWaveform(const juce::AudioBuffer<float>* buffer, double sampleRate) {
+void IRSlotButton::setWaveform(const juce::AudioBuffer<float>* buffer, double sampleRate, float gain) {
     if (!buffer || buffer->getNumSamples() == 0) occupied = false;
     waveformPreview.setNumPoints(WAVEFORM_PREVIEW_POINTS);
     waveformPreview.setWaveform(buffer, sampleRate);
+    waveformPreview.setGain(gain);
     repaint();
 }
 

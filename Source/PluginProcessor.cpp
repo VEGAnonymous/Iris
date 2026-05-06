@@ -12,6 +12,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     const auto percentFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::percent(value, 4); });
     const auto frequencyFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::frequency(value, 4); });
     const auto timeFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::seconds(value, 4); });
+    const auto decibelFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::decibels(value, 4); });
 
     // Global controls
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::globalMix, "Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
@@ -24,11 +25,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::strength, "Strength", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::spread, "Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 1.0f, percentFormat));
 
-    // IR swap controls
+    // IR controls
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        juce::String minID = ParamID::irSwapMin(i);
-        juce::String maxID = ParamID::irSwapMax(i);
-        juce::String activeID = ParamID::irSwapActive(i);
+        const juce::String gainID = ParamID::irGain(i);
+        layout.add(std::make_unique<juce::AudioParameterFloat>(gainID, gainID, juce::NormalisableRange<float>(-12.6f, 12.6f, 0.1f), 0.0f, decibelFormat));
+
+        // Swap controls
+        const juce::String minID = ParamID::irSwapMin(i);
+        const juce::String maxID = ParamID::irSwapMax(i);
+        const juce::String activeID = ParamID::irSwapActive(i);
         layout.add(std::make_unique<juce::AudioParameterFloat>(minID, minID, juce::NormalisableRange<float>(6.2f, 62.1f, 0.1f), 12.6f, timeFormat));
         layout.add(std::make_unique<juce::AudioParameterFloat>(maxID, maxID, juce::NormalisableRange<float>(6.2f, 62.1f, 0.1f), 21.6f, timeFormat));
         layout.add(std::make_unique<juce::AudioParameterBool>(activeID, activeID, false));
@@ -421,7 +426,7 @@ void MareverbAudioProcessor::initState() {
             float windowLength = slotTree.getProperty(PropertyID::IRSlot::Window::length, 1.0f);
 
             EnvelopeType envelopeType = static_cast<EnvelopeType>(
-                static_cast<int>(slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::type, static_cast<int>(EnvelopeType::NONE))));
+                static_cast<int>(slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::type, static_cast<int>(EnvelopeType::HANN))));
             float envelopeAttack = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::attack, 0.0f);
             float envelopeRelease = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::release, 0.0f);
 
@@ -476,12 +481,9 @@ void MareverbAudioProcessor::initState() {
     cmd.directoryFilter = apvts.state.getProperty(PropertyID::directoryFilter);
     irManager.enqueueCommand(cmd);
 
-    DBG("RECALL: Has sampling mode property: " << (int)apvts.state.hasProperty(PropertyID::samplingMode));
-
     cmd.type = IRCommand::SET_SAMPLING_MODE;
     cmd.samplingMode = static_cast<IRSamplingMode>(static_cast<int>(
         apvts.state.getProperty(PropertyID::samplingMode, static_cast<int>(IRSamplingMode::UNIFORM_ACROSS_DIRECTORIES))));;
-    DBG("RECALL: Retrieved sampling mode property: " << (int)cmd.samplingMode);
     irManager.enqueueCommand(cmd);
 
     const int controlRateIndex = apvts.state.getProperty(PropertyID::controlRate, 3 /* 30 Hz */);

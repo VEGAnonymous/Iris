@@ -44,6 +44,7 @@ struct IRSlot {
     juce::AudioBuffer<float> buffer {};
     bool occupied = false;
     bool active = true;
+    float gain = 1.0f;
 
     // Windowing
     Window window;
@@ -61,6 +62,7 @@ struct IRSlotLite { // Extra thread-safe, bufferless
     juce::File file;
     bool occupied = false;
     bool active = true;
+    float gain = 1.0f;
 
     Window window;
     float maxWindowLength = 1.0f;
@@ -115,7 +117,7 @@ struct IRCommand {
 
     float windowStart = 0.0f, windowLength = 0.0f;
 
-    EnvelopeType envelopeType = EnvelopeType::NONE;
+    EnvelopeType envelopeType = EnvelopeType::HANN;
     float envelopeAttack = 0.0f, envelopeRelease = 0.0f;
 
     float swapMinTime = 0.0f, swapMaxTime = 0.0f;
@@ -136,7 +138,8 @@ struct IRUpdate {
     enum Type {
         IR_SET,
         IR_CLEAR,
-        IR_ACTIVE_CHANGED
+        IR_ACTIVE_CHANGED,
+        IR_GAIN_CHANGED
     } type = IR_SET;
 
     int irIndex = 0;
