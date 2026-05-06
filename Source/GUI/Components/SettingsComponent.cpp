@@ -82,6 +82,14 @@ SettingsComponent::SettingsComponent(MareverbAudioProcessor& processor, juce::An
     prepare();
 }
 
+SettingsComponent::~SettingsComponent() {
+    // Clean up callbacks
+    tooltipToggle.control.onStateChange = nullptr;
+    positionIndicatorSelector.control.onChange = nullptr;
+    fieldIndicatorSelector.control.onChange = nullptr;
+    controlRateSelector.control.onChange = nullptr;
+}
+
 void SettingsComponent::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
     const float cornerSize = 12.0f;

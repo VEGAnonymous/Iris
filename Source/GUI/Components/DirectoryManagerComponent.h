@@ -93,7 +93,7 @@ public:
     std::function<void()> onCloseRequested;
 
     DirectoryManagerComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater);
-    ~DirectoryManagerComponent() override = default;
+    ~DirectoryManagerComponent() override;
 
     void paint(juce::Graphics& g) override;
     void resized() override;

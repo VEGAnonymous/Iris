@@ -23,8 +23,8 @@ static constexpr auto N_CHANNELS = 2,
                       MAX_IR_SAMPLES = MAX_IR_PARTITIONS * 512, // ~6s @ 44.1k
                       MAX_IR_FILE_SAMPLES = MAX_IR_SAMPLES * 10; // ~60s @ 44.1k
 
-static constexpr auto SWAP_INTERVAL_MIN = 5.0f,
-                      SWAP_INTERVAL_MAX = 60.0f;
+static constexpr auto SWAP_INTERVAL_MIN = 6.2f,
+                      SWAP_INTERVAL_MAX = 62.1f;
 
 // Control
 // static constexpr auto CONTROL_RATE = 30.0f;
@@ -42,6 +42,8 @@ static constexpr auto WAVEFORM_PREVIEW_POINTS = 126,
 static constexpr auto ACTIVE_ANIMATION_TIME_MS = 60,
                       SELECTION_ANIMATION_TIME_MS = 40,
                       INDICATOR_HOVER_ANIMATION_TIME_MS = 50;
+
+static constexpr auto INFO_TOOLTIP_TIME_MS = 1261;
 
 namespace ParamID {
     static constexpr auto 
@@ -63,12 +65,6 @@ namespace ParamID {
         fieldRate = "Field Rate",
         fieldModA = "Field Mod A",
         fieldModB = "Field Mod B";
-
-    inline juce::String irGain(int i) { return "IR " + juce::String(i) + " Gain"; }
-
-    inline juce::String irSwapMin(int i) { return "IR " + juce::String(i) + " Swap Min"; }
-    inline juce::String irSwapMax(int i) { return "IR " + juce::String(i) + " Swap Max"; }
-    inline juce::String irSwapActive(int i) { return "IR " + juce::String(i) + " Swap Active"; }
 }
 
 namespace PropertyID {
@@ -109,7 +105,8 @@ namespace PropertyID {
         static constexpr auto
             filePath = "IR Slot Filepath",
             occupied = "IR Slot Occupied",
-            active = "IR Slot Active";
+            active = "IR Slot Active",
+            gainDB = "IR Slot Gain";
 
         namespace Window {
             static constexpr auto
@@ -120,8 +117,15 @@ namespace PropertyID {
                 static constexpr auto
                     type = "IR Slot Window Envelope Type",
                     attack = "IR Slot Window Envelope Attack",
-                    release = "IR Slot Window Envelope Attack";
+                    release = "IR Slot Window Envelope Release";
             }
+        }
+
+        namespace AutoSwap {
+            static constexpr auto
+                swapActive = "IR Slot Swap Active",
+                swapMin = "IR Slot Swap Min Time",
+                swapMax = "IR Slot Swap Max Time";
         }
     }
 

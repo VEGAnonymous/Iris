@@ -31,16 +31,6 @@ void MareverbAudioProcessorEditor::parameterChanged(const juce::String& paramete
         if (parameterID == ParamID::fieldPattern)
             audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
     }
-
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        if (parameterID == ParamID::irGain(i)) {
-            audioProcessor.guiState.irChanged.store(true, std::memory_order_release);
-        }
-
-        if (parameterID == ParamID::irSwapActive(i) /*|| parameterID == ParamID::irSwapMin(i) || parameterID == ParamID::irSwapMax(i)*/) {
-            audioProcessor.guiState.swapChanged.store(true, std::memory_order_release);
-        }
-    }
 }
 
 void MareverbAudioProcessorEditor::timerCallback() {
@@ -88,8 +78,20 @@ void MareverbAudioProcessorEditor::timerCallback() {
         updateIRSlot(true);
     }
 
-    if (audioProcessor.guiState.swapChanged.exchange(false, std::memory_order_acquire)) {
-        syncSwap();
+    if (audioProcessor.getIRManager()->getIRLoaded().exchange(false, std::memory_order_acquire)) {
+        int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+        auto slotTree = audioProcessor.apvts.state.getChildWithName(TreeID::irManagerState).getChild(selectedIR);
+        slotTree.setProperty(PropertyID::IRSlot::gainDB, 0.0f, nullptr);
+
+        auto* irControl = selectedIRPanel.getIRControlsComponent()->getIRControl(selectedIR);
+        jassert(irControl);
+        if (irControl) irControl->gainControl.control.setValue(0.0f, juce::dontSendNotification);
+
+        syncIRControls();
+    }
+
+    if (audioProcessor.guiState.irControlsChanged.exchange(false, std::memory_order_acquire)) {
+        syncIRControls();
     }
 
     // Directory manager modal
@@ -114,7 +116,7 @@ void MareverbAudioProcessorEditor::updateIRSlot(bool animate) {
         irSlotButton->setToggleState(i == selectedIR, juce::NotificationType::dontSendNotification);
     }
 
-    selectedIRPanel.updateIRSlot(selectedIR, animate);
+    selectedIRPanel.updateIRSlot(animate);
     audioProcessor.guiState.updateField.store(true, std::memory_order_release);
     DBG("SYNC: IR slot updated");
 };
@@ -266,7 +268,7 @@ void MareverbAudioProcessorEditor::syncField() {
             PolarCoordinate coordinate {};
             {
                 juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
-                const int& selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+                int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
                 if (validateIRIndex(selectedIR)) coordinate = audioProcessor.guiState.fieldCoordinates[selectedIR];
             }
             nModA = fieldModA->convertTo0to1(coordinate.r);
@@ -334,7 +336,10 @@ void MareverbAudioProcessorEditor::syncIRs(bool animate) {
 
             slotButton->setOccupied(slot.occupied);
             slotButton->setActive(slot.active, animate);
-            slotButton->setWaveform(slot.occupied ? waveform.get() : nullptr, audioProcessor.getSampleRate(), slot.gain);
+
+            auto* waveformComponent = slotButton->getWaveformComponent();
+            waveformComponent->setWaveform(slot.occupied ? waveform.get() : nullptr, audioProcessor.getSampleRate());
+            waveformComponent->setGain(slot.gain);
         }
     }
 
@@ -342,10 +347,25 @@ void MareverbAudioProcessorEditor::syncIRs(bool animate) {
     DBG("SYNC: IR sync complete");
 }
 
+void MareverbAudioProcessorEditor::syncIRControls() {
+    int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+    const auto& slot = audioProcessor.getIRManager()->getIRSlot(selectedIR);
+
+    // Sync gains
+    auto* slotButton = irSelectorPanel.getIRSlotButton(selectedIR);
+    auto* waveformComponent = slotButton->getWaveformComponent();
+    if (waveformComponent) waveformComponent->setGain(slot.gain);
+
+    waveformComponent = selectedIRPanel.getIRDisplayComponent()->getWaveformComponent();
+    jassert(waveformComponent);
+    if (waveformComponent) waveformComponent->setGain(slot.gain);
+}
+
 void MareverbAudioProcessorEditor::syncSwap() {
-    audioProcessor.guiState.syncingSwap.store(true, std::memory_order_release);
-    for (int i = 0; i < MAX_IR_COUNT; ++i) selectedIRPanel.getIRControlsComponent()->updateSwapState(i);
-    audioProcessor.guiState.syncingSwap.store(false, std::memory_order_release);
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+        const auto& slot = audioProcessor.getIRManager()->getIRSlot(i);
+        selectedIRPanel.getIRControlsComponent()->updateSwapState(i, slot.autoSwap.active);
+    }
     DBG("SYNC: Swap sync complete");
 }
 
@@ -362,7 +382,8 @@ void MareverbAudioProcessorEditor::syncIndicatorStyles() {
 void MareverbAudioProcessorEditor::syncSettings() {
     const bool tooltipsEnabled = audioProcessor.apvts.state.getProperty(PropertyID::tooltipsEnabled, true);
     tooltipWindow.setAlpha(tooltipsEnabled ? 1.0f : 0.0f);
-    DBG("SYNC: Set tooltips enabled: " << tooltipWindow.getAlpha());
+    tooltipWindow.setMillisecondsBeforeTipAppears(tooltipsEnabled ? INFO_TOOLTIP_TIME_MS : INT_MAX);
+    DBG("SYNC: Set tooltips enabled: " << static_cast<int>(tooltipsEnabled));
 
     const int controlRateIndex = audioProcessor.apvts.state.getProperty(PropertyID::controlRate, 3);
     const float controlRate = controlRates[controlRateIndex - 1].removeCharacters(" Hz").getFloatValue();
@@ -395,15 +416,6 @@ void MareverbAudioProcessorEditor::prepare() {
         }
 
         audioProcessor.apvts.addParameterListener(control.paramID, this);
-    }
-
-    // Attach swap control listeners
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        audioProcessor.apvts.addParameterListener(ParamID::irGain(i), this);
-
-        audioProcessor.apvts.addParameterListener(ParamID::irSwapMin(i), this);
-        audioProcessor.apvts.addParameterListener(ParamID::irSwapMax(i), this);
-        audioProcessor.apvts.addParameterListener(ParamID::irSwapActive(i), this);
     }
 
     // Modals
@@ -459,7 +471,7 @@ void MareverbAudioProcessorEditor::prepare() {
 /* PUBLIC */
 
 MareverbAudioProcessorEditor::MareverbAudioProcessorEditor(MareverbAudioProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p), tooltipWindow(nullptr, 1261),
+    : AudioProcessorEditor(&p), audioProcessor(p), tooltipWindow(nullptr, INFO_TOOLTIP_TIME_MS),
 
     // Attachments
     globalMixControlAttachment(audioProcessor.apvts, ParamID::globalMix, globalMixControl.control),
@@ -532,16 +544,9 @@ MareverbAudioProcessorEditor::~MareverbAudioProcessorEditor() {
 
     // Detach listeners
     for (auto& control : controls) audioProcessor.apvts.removeParameterListener(control.paramID, this);
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        audioProcessor.apvts.removeParameterListener(ParamID::irGain(i), this);
-
-        audioProcessor.apvts.removeParameterListener(ParamID::irSwapMin(i), this);
-        audioProcessor.apvts.removeParameterListener(ParamID::irSwapMax(i), this);
-        audioProcessor.apvts.removeParameterListener(ParamID::irSwapActive(i), this);
-    }
 }
 
-void MareverbAudioProcessorEditor::paint (juce::Graphics& g) {
+void MareverbAudioProcessorEditor::paint(juce::Graphics& g) {
     Bounds totalBounds = getLocalBounds();
 
     // Left panel
@@ -600,6 +605,7 @@ void MareverbAudioProcessorEditor::initState() {
     syncPosition();
     syncField();
     syncIRs(false);
+    syncIRControls();
     syncSwap();
     syncSettings();
     syncIndicatorStyles();

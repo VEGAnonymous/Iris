@@ -60,6 +60,7 @@ IRSlotButton::IRSlotButton(int index, juce::AnimatorUpdater& updater, GUIState& 
     dragHover(*this, updater), waveformPreview(updater),
     juce::Button("IR " + juce::String(index)), irIndex(index) {
     waveformPreview.setDimensions(8.0f, 8.0f, -8.0f, 0.25f);
+    waveformPreview.setNumPoints(WAVEFORM_PREVIEW_POINTS);
     waveformPreview.setColor(Theme::Colors::irSlotColours[index]);
     waveformPreview.setActive(active);
     waveformPreview.setInterceptsMouseClicks(false, false);
@@ -70,14 +71,6 @@ IRSlotButton::IRSlotButton(int index, juce::AnimatorUpdater& updater, GUIState& 
 
     setBufferedToImage(true);
     setTooltip("Select an IR slot by clicking on it. Clicking the indicator in the top left (or double-clicking a slot) will enable/disable the IR.\n\nCan accept audio files via drag-and-drop.");
-}
-
-void IRSlotButton::setWaveform(const juce::AudioBuffer<float>* buffer, double sampleRate, float gain) {
-    if (!buffer || buffer->getNumSamples() == 0) occupied = false;
-    waveformPreview.setNumPoints(WAVEFORM_PREVIEW_POINTS);
-    waveformPreview.setWaveform(buffer, sampleRate);
-    waveformPreview.setGain(gain);
-    repaint();
 }
 
 void IRSlotButton::setOccupied(bool nOccupied) {
@@ -98,3 +91,5 @@ void IRSlotButton::setIndicatorStyle(const juce::Image& iconToTry, const juce::S
 }
 
 int IRSlotButton::getIndex() const { return irIndex; }
+
+WaveformComponent* IRSlotButton::getWaveformComponent() { return &waveformPreview; }

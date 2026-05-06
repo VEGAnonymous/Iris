@@ -20,21 +20,6 @@ void ControlThread::advancePhase(float dt) {
     fieldTime += fieldPhaseIncrement;
 }
 
-// Parameters
-
-void ControlThread::updateIRParameters() {
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        float nGainDB = apvts.getRawParameterValue(ParamID::irGain(i))->load();
-        irManager.setGain(i, nGainDB);
-
-        float nMin = apvts.getRawParameterValue(ParamID::irSwapMin(i))->load();
-        float nMax = apvts.getRawParameterValue(ParamID::irSwapMax(i))->load();
-        bool nActive = apvts.getRawParameterValue(ParamID::irSwapActive(i))->load();
-        irManager.setSwapInterval(i, nMin, nMax);
-        irManager.setSwapActive(i, nActive);
-    }
-}
-
 // Motion state
 
 void ControlThread::updateMotionParameters() {
@@ -214,6 +199,10 @@ void ControlThread::processIRCommands() {
             irManager.setIRActive(cmd.irIndex, cmd.irActiveState);
             break;
         }
+        case IRCommand::IR_SET_GAIN_DB: {
+            irManager.setIRGainDB(cmd.irIndex, cmd.gainDB);
+            break;
+        }
         case IRCommand::IR_SET_WINDOW: {
             irManager.setWindow(cmd.irIndex, cmd.windowStart, cmd.windowLength);
             break;
@@ -298,13 +287,9 @@ void ControlThread::processIRUpdates() {
 
 void ControlThread::runControlCycle(float dt) {
     auto startTime = std::chrono::steady_clock::now();
+    // Advance time
     advancePhase(dt);
-
-    // IRs
-    updateIRParameters();
-    if (!guiState.syncingSwap.load(std::memory_order_acquire)) {
-        irManager.advanceSwapTimers(dt);
-    }
+    irManager.advanceSwapTimers(dt);
 
     // Position + field
     updateMotionParameters();

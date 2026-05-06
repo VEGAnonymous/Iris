@@ -22,11 +22,10 @@ struct GUIState {
 
     std::atomic<bool> indicatorStyleChanged { false };
 
-    std::atomic<bool> swapChanged { false };
-    std::atomic<bool> syncingSwap { false }; // Guard
-
     std::atomic<bool> irChanged { false };
     std::atomic<bool> selectedIRChanged { false };
+
+    std::atomic<bool> irControlsChanged { false };
 
     std::atomic<bool> updateWeights { false }; // Editor forced update
 

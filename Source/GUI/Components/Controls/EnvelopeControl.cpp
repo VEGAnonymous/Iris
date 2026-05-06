@@ -65,33 +65,11 @@ void EnvelopeControl::updateCurve() {
 
 /* PUBLIC */
 
-EnvelopeControl::EnvelopeControl() {
-    /*
-    typeSelector.addItemList(envelopeTypes, 1);
-    typeSelector.setLookAndFeel(&comboBoxLookAndFeel);
-    typeSelector.onChange = [&]() {
-        auto type = static_cast<EnvelopeType>(typeSelector.getSelectedItemIndex());
-        if (type != EnvelopeType::PERC) {
-            envelope.attack = juce::jlimit(0.0f, 0.5f, envelope.attack);
-            envelope.release = juce::jlimit(0.0f, 0.5f, envelope.release);
-        }
-        onEnvelopeChanged(type, envelope.attack, envelope.release);
-        repaint();
-    };
-    addAndMakeVisible(typeSelector);
-    */
-}
+EnvelopeControl::EnvelopeControl() {}
 
-EnvelopeControl::~EnvelopeControl() {
-    typeSelector.setLookAndFeel(nullptr);
-}
-
-void EnvelopeControl::setSlot(const IRSlotLite slot) {
+void EnvelopeControl::setEnvelope(const Envelope nEnvelope) {
     updatingSlot = true; // Block callback while updating
-
-    envelope = slot.window.envelope;
-    typeSelector.setSelectedItemIndex(static_cast<int>(slot.window.envelope.type), juce::dontSendNotification);
-
+    envelope = nEnvelope;
     updatingSlot = false;
     repaint();
 }
@@ -102,9 +80,7 @@ void EnvelopeControl::paint(juce::Graphics& g) {
 }
 
 void EnvelopeControl::resized() {
-    auto bounds = getLocalBounds();
-    curveBounds = bounds.removeFromTop(bounds.getHeight());
-    // typeSelector.setBounds(bounds.withSizeKeepingCentre(static_cast<int>(bounds.getWidth() * 0.7f), bounds.getHeight()));
+    curveBounds = getLocalBounds();
 }
 
 void EnvelopeControl::mouseMove(const juce::MouseEvent& e) {
@@ -120,6 +96,36 @@ void EnvelopeControl::mouseMove(const juce::MouseEvent& e) {
 }
 
 void EnvelopeControl::mouseDown(const juce::MouseEvent& e) {
+    // Right-click envelope selector
+    if (e.mods.isRightButtonDown()) {
+        juce::PopupMenu typeSelector;
+        typeSelector.setLookAndFeel(&comboBoxLookAndFeel);
+
+        for (int i = 0; i < envelopeTypes.size(); ++i)
+            typeSelector.addItem(i + 1, envelopeTypes[i], true, i == static_cast<int>(envelope.type));
+
+        const int menuWidth = 62, menuHeight = 126;
+        juce::Point<int> position = e.getScreenPosition();
+
+        typeSelector.showMenuAsync(juce::PopupMenu::Options()
+            .withTargetComponent(this)
+            .withTargetScreenArea(Bounds(position.x, position.y - menuHeight, menuWidth, menuHeight)),
+            [this, &typeSelector](int result) {
+                const EnvelopeType type = static_cast<EnvelopeType>(juce::jmax(0, result - 1));
+                envelope.type = type;
+                if (type != EnvelopeType::PERC) {
+                    envelope.attack = juce::jlimit(0.0f, 0.5f, envelope.attack);
+                    envelope.release = juce::jlimit(0.0f, 0.5f, envelope.release);
+                }
+
+                if (onEnvelopeChanged) onEnvelopeChanged(type, envelope.attack, envelope.release);
+                repaint();
+            });
+        
+        return;
+    }
+
+    // Left-click
     if (!curveBounds.toFloat().contains(e.position)) return;
     const bool isPerc = (envelope.type == EnvelopeType::PERC);
 
@@ -153,7 +159,7 @@ void EnvelopeControl::mouseDrag(const juce::MouseEvent& e) {
 
 void EnvelopeControl::mouseUp(const juce::MouseEvent& /*e*/) {
     if (dragTarget != DragTarget::NONE && !updatingSlot && onEnvelopeChanged)
-        onEnvelopeChanged(static_cast<EnvelopeType>(typeSelector.getSelectedItemIndex()), envelope.attack, envelope.release);
+        onEnvelopeChanged(envelope.type, envelope.attack, envelope.release);
 
     dragTarget = DragTarget::NONE;
     repaint();
@@ -175,7 +181,7 @@ void EnvelopeControl::mouseDoubleClick(const juce::MouseEvent& e) {
     if (target == DragTarget::ATTACK) envelope.attack = 0.0f;
     else if (target == DragTarget::RELEASE) envelope.release = 0.0f;
 
-    onEnvelopeChanged(static_cast<EnvelopeType>(typeSelector.getSelectedItemIndex()), envelope.attack, envelope.release);
+    onEnvelopeChanged(envelope.type, envelope.attack, envelope.release);
 
     updateValueTooltipText();
     repaint();
@@ -199,8 +205,8 @@ juce::String EnvelopeControl::getValueTooltip() {
         }
     }
 
-    juce::String tooltipText = (envelope.type == EnvelopeType::PERC) 
-        ? Format::dimensionless(juce::jmap(value, 1.26f, 40.0f), 4)
+    juce::String tooltipText = (envelope.type == EnvelopeType::PERC && dragTarget == DragTarget::RELEASE) 
+        ? Format::dimensionless(juce::jmap(value, ENVELOPE_PERC_RELEASE_MIN, ENVELOPE_PERC_RELEASE_MAX), 4)
         : textFromValue(static_cast<double>(value));
     return tooltipText;
 }

@@ -40,6 +40,7 @@ private:
     juce::SpinLock irLock;
     juce::SpinLock dirLock;
     std::atomic<bool> directoryChanged{ false };
+    std::atomic<bool> irLoaded { false };
     std::atomic<bool> busyLoading { false };
     std::atomic<bool> busyCollecting { false };
     std::atomic<bool> collectPending { false };
@@ -83,12 +84,12 @@ public:
 
     void setIRActive(int irIndex, bool nState);
 
+    void setIRGainDB(int irIndex, float gainDB);
+
     bool setWindow(int irIndex, float start, float length);
     void setEnvelope(int irIndex, EnvelopeType type, float attack, float release);
 
     juce::AudioBuffer<float> applyWindow(int irIndex) const;
-
-    void setGain(int irIndex, float gainDB);
 
     void setSwapInterval(int irIndex, float minTime, float maxTime);
     void setSwapActive(int irIndex, bool nActive);
@@ -110,6 +111,7 @@ public:
     std::shared_ptr<std::vector<IRDirectoryFiles>> getIRDirectoryFiles() const;
 
     std::atomic<bool>& getDirectoryChanged();
+    std::atomic<bool>& getIRLoaded();
     std::atomic<bool>& getBusyLoading();
     std::atomic<bool>& getBusyCollecting();
 

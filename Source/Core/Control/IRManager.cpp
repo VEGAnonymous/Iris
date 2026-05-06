@@ -293,6 +293,8 @@ void IRManager::setIR(int irIndex, juce::File irFile, juce::AudioBuffer<float>& 
     irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex });
     irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_ACTIVE_CHANGED, irIndex });
     irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_GAIN_CHANGED, irIndex });
+
+    irLoaded.store(true, std::memory_order_release);
 }
 
 juce::File IRManager::sampleRandomIR() { return sampleRandomIR(samplingMode); }
@@ -356,6 +358,14 @@ void IRManager::setIRActive(int irIndex, bool nState) {
     irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_ACTIVE_CHANGED, irIndex });
 }
 
+void IRManager::setIRGainDB(int irIndex, float gainDB) {
+    const float nGain = juce::Decibels::decibelsToGain(gainDB);
+    if (nGain != irSlots[irIndex].gain) {
+        irSlots[irIndex].gain = nGain;
+        irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_GAIN_CHANGED, irIndex });
+    }
+}
+
 bool IRManager::setWindow(int irIndex, float start, float length) {
     if (!validateIRIndex(irIndex)) return false;
     auto& slot = irSlots[irIndex];
@@ -376,6 +386,8 @@ void IRManager::setEnvelope(int irIndex, EnvelopeType type, float attack, float 
     slot.window.envelope.type = type;
     slot.window.envelope.attack = attack; // Validate these elsewhere
     slot.window.envelope.release = release;
+
+    DBG("IR: Set IR " << irIndex << " envelope type = " << static_cast<int>(type) << ", attack = " << slot.window.envelope.attack << ", release = " << slot.window.envelope.release);
 
     computeEnvelope(slot);
     irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex });
@@ -402,14 +414,6 @@ juce::AudioBuffer<float> IRManager::applyWindow(int irIndex) const {
     }
     
     return out;
-}
-
-void IRManager::setGain(int irIndex, float gainDB) { 
-    const float nGain = juce::Decibels::decibelsToGain(gainDB);
-    if (nGain != irSlots[irIndex].gain) {
-        irSlots[irIndex].gain = nGain;
-        irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_GAIN_CHANGED, irIndex });
-    }
 }
 
 void IRManager::setSwapInterval(int irIndex, float nMin, float nMax) {
@@ -447,6 +451,7 @@ void IRManager::setDirectoryFilter(juce::String nFilter) {
 void IRManager::setSamplingMode(IRSamplingMode nMode) { samplingMode = nMode; }
 
 std::atomic<bool>& IRManager::getDirectoryChanged() { return directoryChanged; }
+std::atomic<bool>& IRManager::getIRLoaded() { return irLoaded; }
 std::atomic<bool>& IRManager::getBusyLoading() { return busyLoading; }
 std::atomic<bool>& IRManager::getBusyCollecting() { return busyCollecting; }
 
@@ -471,6 +476,7 @@ const IRSlotLite IRManager::getIRSlot(int index) const {
         slot.gain,
         slot.window,
         slot.getMaxWindowLength(),
+        slot.autoSwap,
         slot.buffer.getNumSamples()
     };
 }

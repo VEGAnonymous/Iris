@@ -4,7 +4,6 @@
 #include "Core/Control/IRManager.h"
 #include "GUI/API/ValueTooltipClient.h"
 #include "GUI/Theme/Theme.h"
-#include "GUI/Theme/LookAndFeel/ComboBoxLookAndFeel.h"
 
 #include <JuceHeader.h>
 
@@ -14,7 +13,6 @@ private:
     Bounds curveBounds;
     std::vector<float> previewCurve; // downsampled
 
-    juce::ComboBox typeSelector;
     ComboBoxLookAndFeel comboBoxLookAndFeel;
 
     enum class DragTarget { NONE, ATTACK, RELEASE };
@@ -36,9 +34,9 @@ public:
     std::function<void(EnvelopeType, float attackNorm, float releaseNorm)> onEnvelopeChanged;
 
     EnvelopeControl();
-    ~EnvelopeControl() override;
+    ~EnvelopeControl() override = default;
 
-    void setSlot(const IRSlotLite slot);
+    void setEnvelope(const Envelope nEnvelope);
 
     void paint(juce::Graphics& g) override;
     void resized() override;

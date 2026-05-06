@@ -54,7 +54,7 @@ public:
     std::function<void()> onCloseRequested;
 
     SettingsComponent(MareverbAudioProcessor& processor, juce::AnimatorUpdater& updater);
-    ~SettingsComponent() override = default;
+    ~SettingsComponent() override;
 
     void paint(juce::Graphics& g) override;
     void resized() override;

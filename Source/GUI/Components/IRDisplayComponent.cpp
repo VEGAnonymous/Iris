@@ -4,6 +4,7 @@
 
 void IRDisplayComponent::prepare() {
     irWaveformComponent.setDimensions(16.0f, 0.0f, -16.0f, 0.9f);
+    irWaveformComponent.setNumPoints(WAVEFORM_POINTS);
     irWaveformComponent.setColor(Theme::Colors::highlight);
     addAndMakeVisible(irWaveformComponent);
 

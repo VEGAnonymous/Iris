@@ -36,7 +36,11 @@ void IRSelectorPanel::prepare() {
         {
             juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.irWaveformLock);
             const auto& waveform = audioProcessor.guiState.irWaveforms[i];
-            if (slot.occupied) slotButton->setWaveform(waveform.get(), audioProcessor.getSampleRate());
+            if (slot.occupied) {
+                auto* waveformComponent = slotButton->getWaveformComponent();
+                waveformComponent->setWaveform(waveform.get(), audioProcessor.getSampleRate());
+                waveformComponent->setGain(slot.gain);
+            }
         }
         addAndMakeVisible(*slotButton);
 

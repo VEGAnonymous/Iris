@@ -124,6 +124,7 @@ private:
     void syncPosition();
     void syncField();
     void syncIRs(bool animate = true);
+    void syncIRControls();
     void syncSwap();
     void syncIndicatorStyles();
     void syncSettings();

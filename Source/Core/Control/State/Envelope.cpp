@@ -13,7 +13,7 @@ void Envelope::computeEnvelopeCurve(std::vector<float>& curve, int length, Envel
         for (int i = 0; i < length; ++i) {
             float t = static_cast<float>(i) / static_cast<float>(juce::jmax(1, length - 1));
             curve[i] = getEnvelopeValue(t, EnvelopeType::PERC, false,
-                juce::jmap(attack, 0.0f, 0.99f), juce::jmap(release, 1.26f, 40.0f));
+                juce::jmap(attack, 0.0f, 0.99f), juce::jmap(release, ENVELOPE_PERC_RELEASE_MIN, ENVELOPE_PERC_RELEASE_MAX));
         }
         return;
     }
@@ -69,7 +69,6 @@ inline float Envelope::getEnvelopeValue(float t, EnvelopeType type, bool isRelea
             return expf(-release * tDecay); // release parameter = decay factor
         }
     }
-    case EnvelopeType::NONE:
     default:
         return 1.0f;
     }

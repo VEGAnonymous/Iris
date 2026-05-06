@@ -17,28 +17,17 @@
 class IRControlsComponent : public juce::Component {
 private:
     struct IRControl {
-        LabelledControl<Rotary> sendControl;
-        juce::AudioProcessorValueTreeState::SliderAttachment sendControlAttachment;
+        LabelledControl<Rotary> gainControl;
 
-        IRControl(juce::AudioProcessorValueTreeState& apvts, juce::AnimatorUpdater& updater, int i)
-            : sendControl("Send", updater, true /* bipolar */),
-            sendControlAttachment(apvts, ParamID::irGain(i), sendControl.control) {
-        }
+        IRControl(juce::AnimatorUpdater& updater) : gainControl("Gain", updater, true /* bipolar */) {}
     };
 
     struct SwapControl {
         LabelledControl<RangeSlider> swapRangeSlider;
-        RangeSliderAttachment swapRangeAttachment;
-
         LabelledControl<HoverableToggleButton> swapActiveToggle;
-        juce::AudioProcessorValueTreeState::ButtonAttachment swapActiveToggleAttachment;
 
-        SwapControl(juce::AudioProcessorValueTreeState& apvts, juce::AnimatorUpdater& updater, int i)
-            : swapRangeSlider("Auto Swap Time", updater, 2.0f /* hitRadius */),
-            swapRangeAttachment(apvts, ParamID::irSwapMin(i), ParamID::irSwapMax(i), swapRangeSlider.control),
-            swapActiveToggle("Auto Swap", updater),
-            swapActiveToggleAttachment(apvts, ParamID::irSwapActive(i), swapActiveToggle.control) {
-        }
+        SwapControl(juce::AnimatorUpdater& updater) : swapRangeSlider("Auto Swap Time", updater, 2.0f /* hitRadius */),
+            swapActiveToggle("Auto Swap", updater) {}
     };
 
 	MareverbAudioProcessor& audioProcessor;
@@ -53,6 +42,11 @@ private:
 
     std::array<std::unique_ptr<SwapControl>, MAX_IR_COUNT> swapControls;
 
+    void initIRButtons();
+    void initIRControls();
+    void initEnvelopeControl();
+    void initSwapControls();
+
 	void prepare();
 
 public:
@@ -63,7 +57,7 @@ public:
 	void paint(juce::Graphics& g) override;
 	void resized() override;
 
-    void updateSwapState(int irIndex);
+    void updateSwapState(int irIndex, bool nActiveState);
 
     EnvelopeControl* getEnvelopeControl();
 

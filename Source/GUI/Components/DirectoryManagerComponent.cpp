@@ -139,6 +139,25 @@ DirectoryManagerComponent::DirectoryManagerComponent(MareverbAudioProcessor& pro
     prepare();
 }
 
+DirectoryManagerComponent::~DirectoryManagerComponent() {
+    // Clean up callbacks
+    addButton.onClick = nullptr;
+    removeButton.onClick = nullptr;
+    refreshButton.onClick = nullptr;
+
+    fileFilterEditor.control.onTextChange = nullptr;
+    fileFilterEditor.control.onReturnKey = nullptr;
+    fileFilterEditor.control.onEscapeKey = nullptr;
+    fileFilterEditor.control.onFocusLost = nullptr;
+
+    directoryFilterEditor.control.onTextChange = nullptr;
+    directoryFilterEditor.control.onReturnKey = nullptr;
+    directoryFilterEditor.control.onEscapeKey = nullptr;
+    directoryFilterEditor.control.onFocusLost = nullptr;
+
+    samplingModeSelector.control.onChange = nullptr;
+}
+
 void DirectoryManagerComponent::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
     const float cornerSize = 12.0f;

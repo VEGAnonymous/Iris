@@ -40,10 +40,11 @@ public:
     IRSlotButton(int index, juce::AnimatorUpdater& updater, GUIState& gState);
     ~IRSlotButton() override = default;
 
-    void setWaveform(const juce::AudioBuffer<float>* buffer, double sampleRate, float gain = 1.0f);
     void setOccupied(bool nOccupied);
     void setActive(bool nActive, bool animate = true);
     void setIndicatorStyle(const juce::Image& iconToTry, const juce::String nStyle);
 
     int getIndex() const;
+
+    WaveformComponent* getWaveformComponent();
 };

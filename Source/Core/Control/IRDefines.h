@@ -12,10 +12,10 @@ struct Window {
 };
 
 struct RandomTimer {
-    float minTime = SWAP_INTERVAL_MIN; // seconds
-    float maxTime = SWAP_INTERVAL_MAX;
+    float minTime = 12.6f; // seconds
+    float maxTime = 21.6f;
     float countdown = 0.0f;
-    bool active = true;
+    bool active = false;
     std::function<void()> callback;
 
     void advanceTimer(float dt) {
@@ -67,6 +67,8 @@ struct IRSlotLite { // Extra thread-safe, bufferless
     Window window;
     float maxWindowLength = 1.0f;
 
+    RandomTimer autoSwap;
+
     int numSamples = 0;
 };
 
@@ -90,6 +92,7 @@ struct IRCommand {
         IR_CLEAR,
         IR_CLEAR_ALL,
         IR_SET_ACTIVE_STATE,
+        IR_SET_GAIN_DB,
         IR_SET_WINDOW,
         IR_SET_ENVELOPE,
         IR_SET_SWAP_ACTIVE,
@@ -114,6 +117,8 @@ struct IRCommand {
 
     bool irActiveState = false;
     bool irDirectoryActiveState = false;
+
+    float gainDB = 0.0f;
 
     float windowStart = 0.0f, windowLength = 0.0f;
 

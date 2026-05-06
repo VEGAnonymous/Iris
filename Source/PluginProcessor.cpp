@@ -12,7 +12,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     const auto percentFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::percent(value, 4); });
     const auto frequencyFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::frequency(value, 4); });
     const auto timeFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::seconds(value, 4); });
-    const auto decibelFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::decibels(value, 4); });
+    // const auto decibelFormat = juce::AudioParameterFloatAttributes().withStringFromValueFunction([](float value, int) { return Format::decibels(value, 4); });
 
     // Global controls
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::globalMix, "Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
@@ -24,20 +24,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::weightingMode, "Weighting", weightingModes, static_cast<int>(WeightingMode::WEIGHTING_ABSOLUTE)));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::strength, "Strength", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::spread, "Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 1.0f, percentFormat));
-
-    // IR controls
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        const juce::String gainID = ParamID::irGain(i);
-        layout.add(std::make_unique<juce::AudioParameterFloat>(gainID, gainID, juce::NormalisableRange<float>(-12.6f, 12.6f, 0.1f), 0.0f, decibelFormat));
-
-        // Swap controls
-        const juce::String minID = ParamID::irSwapMin(i);
-        const juce::String maxID = ParamID::irSwapMax(i);
-        const juce::String activeID = ParamID::irSwapActive(i);
-        layout.add(std::make_unique<juce::AudioParameterFloat>(minID, minID, juce::NormalisableRange<float>(6.2f, 62.1f, 0.1f), 12.6f, timeFormat));
-        layout.add(std::make_unique<juce::AudioParameterFloat>(maxID, maxID, juce::NormalisableRange<float>(6.2f, 62.1f, 0.1f), 21.6f, timeFormat));
-        layout.add(std::make_unique<juce::AudioParameterBool>(activeID, activeID, false));
-    }
 
     // Position controls
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::positionPattern, "Pattern", positionPatterns, static_cast<int>(PositionPattern::EYES)));
@@ -64,12 +50,6 @@ void MareverbAudioProcessor::updateParameters() {
             if (settings.lowCut != cutProcessor->getLowCutCutoff()) cutProcessor->setLowCutCutoff(settings.lowCut, getSampleRate());
             if (settings.highCut != cutProcessor->getHighCutCutoff()) cutProcessor->setHighCutCutoff(settings.highCut, getSampleRate());
         }
-    }
-
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        float nMin = apvts.getRawParameterValue(ParamID::irSwapMin(i))->load();
-        float nMax = apvts.getRawParameterValue(ParamID::irSwapMax(i))->load();
-        irManager.setSwapInterval(i, nMin, nMax);
     }
 }
 
@@ -308,12 +288,17 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
 
         slotTree.setProperty(PropertyID::IRSlot::occupied, slot.occupied, nullptr);
         slotTree.setProperty(PropertyID::IRSlot::active, slot.active, nullptr);
+        slotTree.setProperty(PropertyID::IRSlot::gainDB, slot.gain, nullptr);
 
         slotTree.setProperty(PropertyID::IRSlot::Window::start, slot.window.start, nullptr);
         slotTree.setProperty(PropertyID::IRSlot::Window::length, slot.window.length, nullptr);
         slotTree.setProperty(PropertyID::IRSlot::Window::Envelope::type, static_cast<int>(slot.window.envelope.type), nullptr);
         slotTree.setProperty(PropertyID::IRSlot::Window::Envelope::attack, slot.window.envelope.attack, nullptr);
         slotTree.setProperty(PropertyID::IRSlot::Window::Envelope::release, slot.window.envelope.release, nullptr);
+
+        slotTree.setProperty(PropertyID::IRSlot::AutoSwap::swapActive, slot.autoSwap.active, nullptr);
+        slotTree.setProperty(PropertyID::IRSlot::AutoSwap::swapMin, slot.autoSwap.minTime, nullptr);
+        slotTree.setProperty(PropertyID::IRSlot::AutoSwap::swapMax, slot.autoSwap.maxTime, nullptr);
 
         irManagerTree.addChild(slotTree, -1, nullptr);
     }
@@ -417,31 +402,45 @@ void MareverbAudioProcessor::initState() {
     auto irManagerTree = tree.getChildWithName(TreeID::irManagerState);
     if (irManagerTree.isValid()) {
         for (int i = 0; i < irManagerTree.getNumChildren(); ++i) {
-            auto slotTree = irManagerTree.getChild(i);
-            auto filePath = slotTree.getProperty(PropertyID::IRSlot::filePath).toString();
-            bool occupied = slotTree.getProperty(PropertyID::IRSlot::occupied, false);
-            bool active = slotTree.getProperty(PropertyID::IRSlot::active, true);
+            const auto& slotTree = irManagerTree.getChild(i);
 
-            float windowStart = slotTree.getProperty(PropertyID::IRSlot::Window::start, 0.0f);
-            float windowLength = slotTree.getProperty(PropertyID::IRSlot::Window::length, 1.0f);
+            // Retrieve values
+            const auto filePath = slotTree.getProperty(PropertyID::IRSlot::filePath).toString();
+            const bool occupied = slotTree.getProperty(PropertyID::IRSlot::occupied, false);
+            const bool active = slotTree.getProperty(PropertyID::IRSlot::active, true);
+            const float gainDB = slotTree.getProperty(PropertyID::IRSlot::gainDB, 1.0f);
 
-            EnvelopeType envelopeType = static_cast<EnvelopeType>(
-                static_cast<int>(slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::type, static_cast<int>(EnvelopeType::HANN))));
-            float envelopeAttack = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::attack, 0.0f);
-            float envelopeRelease = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::release, 0.0f);
+            const float windowStart = slotTree.getProperty(PropertyID::IRSlot::Window::start, 0.0f);
+            const float windowLength = slotTree.getProperty(PropertyID::IRSlot::Window::length, 1.0f);
+
+            const int envelopeIndex = static_cast<int>(slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::type, static_cast<int>(EnvelopeType::HANN)));
+            const EnvelopeType envelopeType = static_cast<EnvelopeType>(juce::jmax(0, envelopeIndex));
+                
+            const float envelopeAttack = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::attack, 0.0f);
+            const float envelopeRelease = slotTree.getProperty(PropertyID::IRSlot::Window::Envelope::release, 0.0f);
+
+            const bool swapActive = slotTree.getProperty(PropertyID::IRSlot::AutoSwap::swapActive, false);
+            const float swapMin = slotTree.getProperty(PropertyID::IRSlot::AutoSwap::swapMin, 12.6f);
+            const float swapMax = slotTree.getProperty(PropertyID::IRSlot::AutoSwap::swapMax, 21.6f);
+
+            // Enqueue commands
+            IRCommand cmd;
 
             if (occupied && filePath.isNotEmpty()) {
-                IRCommand cmd = { IRCommand::IR_LOAD };
+                cmd.type = IRCommand::IR_LOAD;
                 cmd.irIndex = i;
                 cmd.irFile = juce::File(filePath);
                 irManager.enqueueCommand(cmd);
             }
-
-            // Enqueue commands
-            IRCommand cmd;
+ 
             cmd.type = IRCommand::IR_SET_ACTIVE_STATE;
             cmd.irIndex = i;
             cmd.irActiveState = active;
+            irManager.enqueueCommand(cmd);
+
+            cmd.type = IRCommand::IR_SET_GAIN_DB;
+            cmd.irIndex = i;
+            cmd.gainDB = gainDB;
             irManager.enqueueCommand(cmd);
 
             cmd.type = IRCommand::IR_SET_WINDOW;
@@ -459,13 +458,13 @@ void MareverbAudioProcessor::initState() {
 
             cmd.type = IRCommand::IR_SET_SWAP_INTERVAL;
             cmd.irIndex = i;
-            cmd.swapMinTime = apvts.getRawParameterValue(ParamID::irSwapMin(i))->load();
-            cmd.swapMaxTime = apvts.getRawParameterValue(ParamID::irSwapMax(i))->load();
+            cmd.swapMinTime = swapMin;
+            cmd.swapMaxTime = swapMax;
             irManager.enqueueCommand(cmd);
 
             cmd.type = IRCommand::IR_SET_SWAP_ACTIVE;
             cmd.irIndex = i;
-            cmd.swapActiveState = apvts.getRawParameterValue(ParamID::irSwapActive(i))->load();
+            cmd.swapActiveState = swapActive;
             irManager.enqueueCommand(cmd);
         }
     }
@@ -489,7 +488,7 @@ void MareverbAudioProcessor::initState() {
     const int controlRateIndex = apvts.state.getProperty(PropertyID::controlRate, 3 /* 30 Hz */);
     setControlRate(controlRates[controlRateIndex - 1].removeCharacters(" Hz").getFloatValue());
 
-    // Recall style settings
+    // Recall persistent settings
     auto* properties = applicationProperties.getUserSettings();
     if (properties) {
         apvts.state.setProperty(PropertyID::tooltipsEnabled, 

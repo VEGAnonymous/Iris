@@ -23,9 +23,6 @@ private:
 
     void advancePhase(float dt);
 
-    // Parameters
-    void updateIRParameters();
-
     // Motion state
     PolarMap polarMap;
     MotionController motionController;
