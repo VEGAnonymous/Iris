@@ -43,15 +43,40 @@ inline void updateFieldIndicatorStyle(juce::Image& fieldIndicatorIcon, const juc
 }
 
 namespace Paint {
-    inline void irIndicator(juce::Graphics& g, CartesianCoordinate center, float radius, 
+    inline void irIndicator(juce::Graphics& g, CartesianCoordinate center, float radius,
         int irIndex, bool occupied, bool active, bool selected,
-        float indicatorAlpha = -1.0f, float selectionAlpha = -1.0f, 
-        juce::Colour color = juce::Colours::transparentBlack,
+        float indicatorAlpha = -1.0f, float selectionAlpha = -1.0f, juce::Colour color = juce::Colours::transparentBlack, 
+        int glowPasses = 0, float glowStrength = 1.0f,
         juce::Image* mare = nullptr) {
 
         color = (color != juce::Colours::transparentBlack) ? color : Theme::Colors::irSlotColours[irIndex];
         indicatorAlpha = (indicatorAlpha >= 0.0f) ? indicatorAlpha : getIRIndicatorAlpha(occupied, active);
+        selectionAlpha = (selectionAlpha >= 0.0f) ? selectionAlpha : (selected ? 1.0f : 0.0f);
 
+        // Glow
+        const float innerRadius = radius * 1.62f;
+        const float innerAlpha = 0.0621f + (glowStrength * 0.126f);
+        const float outerRadius = radius * 6.21f;
+        const float outerAlpha = 0.0216f + (glowStrength * 0.126f);
+
+        for (int i = 0; i < glowPasses; ++i) {
+            const float glowRadius = innerRadius + (i * ((outerRadius - innerRadius) / glowPasses));
+            const float glowAlpha = juce::jlimit(0.0f, 1.0f,
+                indicatorAlpha
+                * (innerAlpha - (i * ((innerAlpha - outerAlpha) / glowPasses))) 
+                + (indicatorAlpha * selectionAlpha * 0.0621f)
+            );
+
+            juce::ColourGradient glowGradient(
+                color.withAlpha(glowAlpha * 0.8f), center.x, center.y,
+                color.withAlpha(0.0f), center.x + glowRadius, center.y,
+                true
+            );
+            g.setGradientFill(glowGradient);
+            g.fillEllipse(center.x - glowRadius, center.y - glowRadius, glowRadius * 2.0f, glowRadius * 2.0f);
+        }
+
+        // Mare indicator
         if (mare && !mare->isNull()) {
             radius += 4.0f;
             g.setOpacity(indicatorAlpha);
@@ -65,9 +90,9 @@ namespace Paint {
             g.fillEllipse(center.x - radius, center.y - radius, radius * 2.0f, radius * 2.0f);
         }
 
+        // Selection ring
         if (selected) {
             radius *= 1.62f;
-            selectionAlpha = (selectionAlpha >= 0.0f) ? selectionAlpha : (selected ? 1.0f : 0.0f);
             selectionAlpha *= indicatorAlpha;
             g.setColour(color.withAlpha(selectionAlpha));
             g.drawEllipse(center.x - radius, center.y - radius, radius * 2.0f, radius * 2.0f, 1.26f);

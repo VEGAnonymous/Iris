@@ -44,7 +44,12 @@ void EnvelopeControl::drawCurve(juce::Graphics& g, juce::Rectangle<int> area) {
     }
     path.lineTo(bounds.getRight(), bounds.getBottom());
     path.closeSubPath();
-    g.setColour(Theme::Colors::highlight.withAlpha(0.15f));
+    juce::ColourGradient envelopeGradient(
+        Theme::Colors::highlight.withAlpha(0.216f),  bounds.getX(), bounds.getY(),
+        Theme::Colors::highlight.withAlpha(0.0216f), bounds.getX(), bounds.getBottom(),
+        false
+    );
+    g.setGradientFill(envelopeGradient);
     g.fillPath(path);
 
     // Build outline path

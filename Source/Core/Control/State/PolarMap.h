@@ -25,6 +25,8 @@ public:
 	std::vector<PolarCoordinate> getRelatives() const;
 	int getCoordinateCount() const;
 
-	PolarCoordinate computeRelative(PolarCoordinate p1, PolarCoordinate p2, Axis reference = Axis::Y_AXIS, bool computeAngle = true);
+	static PolarCoordinate computeRelative(PolarCoordinate p1, PolarCoordinate p2, Axis reference = Axis::Y_AXIS, bool computeAngle = true);
 	void computeRelatives(Axis reference = Axis::Y_AXIS, bool computeAngles = true);
+	static void computeRelatives(PolarCoordinate& position, std::vector<PolarCoordinate>& coordinates, std::vector<PolarCoordinate>& relatives, 
+		Axis reference = Axis::Y_AXIS, bool computeAngles = true);
 };

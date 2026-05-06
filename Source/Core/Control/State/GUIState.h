@@ -27,6 +27,9 @@ struct GUIState {
 
     std::atomic<bool> irControlsChanged { false };
 
+    juce::SpinLock irWeightsLock;
+    std::array<float, MAX_IR_COUNT> irWeights {};
+    std::atomic<bool> weightsChanged { false };
     std::atomic<bool> updateWeights { false }; // Editor forced update
 
     std::array<std::shared_ptr<const juce::AudioBuffer<float>>, MAX_IR_COUNT> irWaveforms;

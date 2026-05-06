@@ -22,13 +22,13 @@ void WindowOverlayComponent::paint(juce::Graphics& g) {
     float startAlpha = hoverStart.getValue(), endAlpha = hoverEnd.getValue();
 
     // Dim outside window
-    g.setColour(Theme::Colors::background.withAlpha(0.5f));
+    g.setColour(Theme::Colors::background.withAlpha(0.621f));
     if (startX > 0.0f) g.fillRect(bounds.withWidth(startX));
     if (endX < bounds.getRight()) g.fillRect(bounds.withLeft(endX));
 
     // Dragging selection
     if (selecting) {
-        g.setColour(Theme::Colors::highlight.withAlpha(0.15f));
+        g.setColour(Theme::Colors::highlight.withAlpha(0.162f));
         g.fillRect(BoundsF(inverseMap(start), bounds.getY(), inverseMap(end) - inverseMap(start), bounds.getHeight()));
     }
 

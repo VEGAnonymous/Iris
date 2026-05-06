@@ -37,13 +37,13 @@ void InteractionControlsPanel::resized() {
     const float comboBoxWidth = 96.0f, comboBoxHeight = 30.0f;
     const float rotaryWidth = 70.0f, rotaryHeight = 80.0f;
     const float labelHeight = 12.0f;
-    const auto rowItemMargin = juce::FlexItem::Margin(10.0f, 30.0f, 10.0f, 30.0f);
+    const auto rowItemMargin = juce::FlexItem::Margin(10.0f, 30.0f, 12.6f, 30.0f);
 
     // Weighting mode
     auto* weightingControl = interactionControls.weightingControl;
     weightingControl->setLabelDimensions(comboBoxWidth - 16.0f, labelHeight);
     weightingControl->setControlDimensions(comboBoxWidth, comboBoxHeight);
-    weightingControl->setControlMargin(juce::FlexItem::Margin(0.0f, 0.0f, 15.0f, 0.0f));
+    weightingControl->setControlMargin(juce::FlexItem::Margin(0.0f, 0.0f, 17.5f, 0.0f));
     weightingControl->flex.justifyContent = juce::FlexBox::JustifyContent::flexEnd;
     interactionControlRow.items.add(juce::FlexItem(*weightingControl)
         .withFlex(0.0f)

@@ -106,7 +106,7 @@ void TopBarPanel::resized() {
     topBarRow.performLayout(bounds.removeFromLeft(static_cast<int>(w * 0.6f)));
     
     bounds.removeFromRight(10);
-    logo.setBounds(bounds.removeFromRight(80));
+    logo.setBounds(bounds.removeFromRight(80).reduced(6));
 }
 
 void TopBarPanel::paint(juce::Graphics& g) {

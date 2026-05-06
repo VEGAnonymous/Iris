@@ -33,7 +33,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     
     // Field controls
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::fieldPattern, "Pattern", fieldPatterns, static_cast<int>(FieldPattern::RING)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.621f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModA, "Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModB, "Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
 

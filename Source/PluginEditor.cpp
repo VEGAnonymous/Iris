@@ -38,18 +38,17 @@ void MareverbAudioProcessorEditor::timerCallback() {
 
     // Polar map
     if (audioProcessor.guiState.positionPathChanged.exchange(false, std::memory_order_acquire))
-        polarMapPanel.notifyPathChanged();
+        polarMapPanel.updatePath();
 
     if (audioProcessor.guiState.positionChanged.exchange(false, std::memory_order_acquire))
-        polarMapPanel.notifyPositionChanged(audioProcessor.guiState.position.load(std::memory_order_relaxed));
+        polarMapPanel.updatePosition();
 
     if (audioProcessor.guiState.fieldChanged.exchange(false, std::memory_order_acquire)) {
-        std::vector<PolarCoordinate> coordinates;
-        {
-            juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
-            coordinates = audioProcessor.guiState.fieldCoordinates;
-        }
-        polarMapPanel.notifyFieldChanged(std::move(coordinates));
+        polarMapPanel.updateField();
+    }
+
+    if (audioProcessor.guiState.weightsChanged.exchange(false, std::memory_order_acquire)) {
+        polarMapPanel.updateWeights();
     }
 
     if (audioProcessor.guiState.syncingPosition.load(std::memory_order_acquire)) {
@@ -370,7 +369,7 @@ void MareverbAudioProcessorEditor::syncSwap() {
 }
 
 void MareverbAudioProcessorEditor::syncIndicatorStyles() {
-    polarMapPanel.notifyIndicatorStyleChanged();
+    polarMapPanel.updateIndicatorStyle();
     irSelectorPanel.updateIndicatorStyle();
     selectedIRPanel.updateIndicatorStyle();
 
@@ -554,11 +553,14 @@ void MareverbAudioProcessorEditor::paint(juce::Graphics& g) {
     g.setColour(Theme::Colors::background);
     g.fillRect(leftPanel);
 
-    Bounds mapBounds = leftPanel.removeFromTop(621);
-    g.setColour(juce::Colours::black);
-    g.fillRect(mapBounds);
-    g.setColour(juce::Colours::floralwhite.withAlpha(0.4f));
-    g.drawRoundedRectangle(mapBounds.toFloat(), 4.0f, 1.0f);
+    BoundsF mapBounds = leftPanel.removeFromTop(621).toFloat();
+    juce::ColourGradient mapGradient(
+        juce::Colour::fromRGB(26, 40, 48), mapBounds.getCentreX(), mapBounds.getCentreY(),
+        juce::Colour::fromRGB(8, 18, 24), mapBounds.getRight(), mapBounds.getCentreY(),
+        true
+    );
+    g.setGradientFill(mapGradient);
+    g.fillRect(mapBounds.toNearestInt());
 
     // Right panel
     Bounds& rightPanel = totalBounds;
@@ -590,15 +592,15 @@ void MareverbAudioProcessorEditor::resized() {
 
     // Left panel
     Bounds mapBounds = leftBounds.removeFromTop(621);
-    polarMapPanel.setBounds(mapBounds.reduced(static_cast<int>(mapBounds.getWidth() * 0.05f)));
-    positionFieldControlsPanel.setBounds(leftBounds.reduced(PANEL_INSET));
+    polarMapPanel.setBounds(mapBounds);
+    positionFieldControlsPanel.setBounds(leftBounds.toFloat().reduced(PANEL_INSET).toNearestInt());
 
     // Right panel
     topBarPanel.setBounds(rightBounds.removeFromTop(81));
-    irSelectorPanel.setBounds(rightBounds.removeFromTop(160).reduced(PANEL_INSET));
+    irSelectorPanel.setBounds(rightBounds.removeFromTop(160).toFloat().reduced(PANEL_INSET).toNearestInt());
     selectedIRPanel.setBounds(rightBounds.removeFromTop(280));
-    interactionControlsPanel.setBounds(rightBounds.removeFromTop(100).reduced(PANEL_INSET));
-    globalControlsPanel.setBounds(rightBounds.removeFromTop(100).reduced(PANEL_INSET));
+    interactionControlsPanel.setBounds(rightBounds.removeFromTop(100).toFloat().reduced(PANEL_INSET).toNearestInt());
+    globalControlsPanel.setBounds(rightBounds.removeFromTop(100).toFloat().reduced(PANEL_INSET).toNearestInt());
 }
 
 void MareverbAudioProcessorEditor::initState() {
@@ -610,14 +612,10 @@ void MareverbAudioProcessorEditor::initState() {
     syncSettings();
     syncIndicatorStyles();
 
-    polarMapPanel.notifyPathChanged();
-    polarMapPanel.notifyPositionChanged(audioProcessor.guiState.position.load(std::memory_order_relaxed));
-    {
-        std::vector<PolarCoordinate> coordinates;
-        juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
-        coordinates = audioProcessor.guiState.fieldCoordinates;
-        polarMapPanel.notifyFieldChanged(std::move(coordinates), false);
-    }
+    polarMapPanel.updatePath();
+    polarMapPanel.updatePosition();
+    polarMapPanel.updateField();
+    polarMapPanel.updateWeights();
 
     DBG("INIT: Init editor state");
 }

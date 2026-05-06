@@ -32,7 +32,7 @@ static constexpr auto SWAP_INTERVAL_MIN = 6.2f,
 // GUI
 static constexpr auto REFRESH_RATE = 60;
 
-static constexpr auto PANEL_INSET = 1;
+static constexpr auto PANEL_INSET = 1.826f;
 static constexpr auto PANEL_CORNER_SIZE = 4.0f;
 
 static constexpr auto WAVEFORM_PREVIEW_POINTS = 126,

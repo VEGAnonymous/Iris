@@ -30,14 +30,15 @@ BoundsF PolarMapPanel::toBounds(PolarCoordinate p, float radius) const { // Coor
 // Hovering
 
 bool PolarMapPanel::hitPosition(juce::Point<float> p) const {
-    auto center = toBounds(currentPosition, positionRadius).getCentre();
+    auto center = toBounds(polarMap.getPosition(), positionRadius).getCentre();
     return p.getDistanceFrom(center) <= (positionRadius + HIT_RADIUS);
 }
 
 int PolarMapPanel::hitField(juce::Point<float> p) const {
-    for (int ir = 0; ir < fieldCoordinates.size(); ++ir) {
-        auto center = toBounds(fieldCoordinates[ir], coordinateRadius).getCentre();
-        if (p.getDistanceFrom(center) <= (coordinateRadius + HIT_RADIUS)) return ir;
+    const int coordinateCount = polarMap.getCoordinateCount();
+    for (int i = 0; i < coordinateCount; ++i) {
+        auto center = toBounds(polarMap.getCoordinate(i), coordinateRadius).getCentre();
+        if (p.getDistanceFrom(center) <= (coordinateRadius + HIT_RADIUS)) return i;
     }
     return -1;
 }
@@ -152,8 +153,7 @@ PolarMapPanel::PolarMapPanel(MareverbAudioProcessor& processor, juce::AnimatorUp
 void PolarMapPanel::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().reduced(MAP_INSET).toFloat();
 
-    // Background + border
-    g.fillAll(juce::Colours::black);
+    // Border
     g.setColour(Theme::Colors::textLight);
     g.setOpacity(0.621f);
     g.drawEllipse(bounds, 2.61f);
@@ -169,19 +169,25 @@ void PolarMapPanel::paint(juce::Graphics& g) {
     g.setOpacity(1.0f);
 
     // Field indicators
-
-
-    for (int i = 0; i < fieldCoordinates.size(); ++i) {
+    const int glowPasses = 8;
+    const int coordinateCount = polarMap.getCoordinateCount();
+    for (int i = 0; i < coordinateCount; ++i) {
         coordinateRadius = baseCoordinateRadius + juce::jmap(fieldInteractionStates[i].getValue(), 0.0f, 2.0f);
         const int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
-        const auto& coordinate = fieldCoordinates[i];
+        const auto& coordinate = polarMap.getCoordinate(i);
         const float indicatorAlpha = fieldActiveStates[i].getValue();
         const float selectionAlpha = fieldSelectionStates[i].getValue();
-        Paint::irIndicator(g, map(polarToCartesian(coordinate)), coordinateRadius, i, false, false,
+
+        const float glowWeight = juce::jlimit(0.0f, 1.0f, coordinateWeights[i] * weightScale);
+        const float glowStrength = powf(glowWeight, 0.7f);
+
+        Paint::irIndicator(g, map(polarToCartesian(coordinate)), coordinateRadius + (glowStrength * 0.621f), i, false, false,
             (i == selectedIR), 
             indicatorAlpha, 
             selectionAlpha, 
             juce::Colours::transparentBlack,
+            glowPasses,
+            glowStrength,
             &fieldIndicatorIcons[i]
         );
     }
@@ -190,10 +196,10 @@ void PolarMapPanel::paint(juce::Graphics& g) {
     g.setColour(Theme::Colors::textLight);
     positionRadius = basePositionRadius + juce::jmap(positionInteractionState.getValue(), 0.0f, 2.0f);
     if (!positionIndicatorIcon.isNull()) {
-        positionBounds = toBounds(currentPosition, positionRadius + 8.0f);
+        positionBounds = toBounds(polarMap.getPosition(), positionRadius + 8.0f);
         g.drawImage(positionIndicatorIcon, positionBounds, juce::RectanglePlacement::centred);
     } else {
-        positionBounds = toBounds(currentPosition, positionRadius);;
+        positionBounds = toBounds(polarMap.getPosition(), positionRadius);;
         g.fillEllipse(positionBounds);
     }
 }
@@ -290,22 +296,30 @@ void PolarMapPanel::mouseDoubleClick(const juce::MouseEvent& e) {
 
 // Updates
 
-void PolarMapPanel::notifyPathChanged() { 
+void PolarMapPanel::updatePath() { 
     pathChanged = true; 
     repaint(); 
 }
 
-void PolarMapPanel::notifyPositionChanged(PolarCoordinate nPosition) {
-    currentPosition = nPosition;
+void PolarMapPanel::updatePosition() {
+    const PolarCoordinate nPosition = audioProcessor.guiState.position.load(std::memory_order_relaxed);
+    polarMap.setPosition(nPosition);
     repaint(positionBounds.toNearestInt().expanded(10)); // Clear old bounds
     repaint(toBounds(nPosition, positionRadius).toNearestInt().expanded(10)); // Repaint at new bounds
 }
 
-void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates, bool animate) {
-    const float repaintRadius = baseCoordinateRadius + 10.0f;
+void PolarMapPanel::updateField(bool animate) {
+    std::vector<PolarCoordinate> nCoordinates;
+    {
+        juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.fieldLock);
+        nCoordinates = audioProcessor.guiState.fieldCoordinates;
+    }
+
+    const float repaintRadius = (baseCoordinateRadius + 2.0f) * 4.0f;
 
     // Clear old bounds
-    for (const auto& coord : fieldCoordinates) {
+    const auto& coordinates = polarMap.getCoordinates();
+    for (const auto& coord : coordinates) {
         auto oBounds = toBounds(coord, coordinateRadius);
         repaint(oBounds.expanded(repaintRadius).toNearestInt());
     }
@@ -322,14 +336,14 @@ void PolarMapPanel::notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates
     if (dragTarget == DragTarget::NONE && !hitPosition(p)) { applyHoverState(getHoverState(p)); }
 
     // Repaint at new bounds
-    fieldCoordinates = std::move(nCoordinates);
-    for (const auto& coord : fieldCoordinates) {
+    polarMap.setCoordinates(std::move(nCoordinates));
+    for (const auto& coord : coordinates) {
         auto nBounds = toBounds(coord, coordinateRadius);
         repaint(nBounds.expanded(repaintRadius).toNearestInt());
     }
 }
 
-void PolarMapPanel::notifyIndicatorStyleChanged() {
+void PolarMapPanel::updateIndicatorStyle() {
     // Update position indicator style
     const juce::String positionIndicatorStyle =
         audioProcessor.apvts.state.getProperty(PropertyID::positionIndicatorStyle, PositionIndicatorStyle::Anon);
@@ -341,14 +355,34 @@ void PolarMapPanel::notifyIndicatorStyleChanged() {
     }
     positionIndicatorIcon = positionIcon;
 
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
+    std::array<juce::Image, MAX_IR_COUNT> mareIcons;
+    {
         juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.mareLock);
+        mareIcons = audioProcessor.guiState.mareImages;
+    }
+    for (int i = 0; i < MAX_IR_COUNT; ++i) {
         updateFieldIndicatorStyle(
             fieldIndicatorIcons[i],
-            audioProcessor.guiState.mareImages[i],
+            mareIcons[i],
             audioProcessor.apvts.state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful)
         );
     }
+
+    repaint();
+}
+
+void PolarMapPanel::updateWeights() {
+    std::array<float, MAX_IR_COUNT> nWeights;
+    {
+        juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.irWeightsLock);
+        nWeights = audioProcessor.guiState.irWeights;
+    }
+
+    coordinateWeights = std::move(nWeights);
+
+    const WeightingMode weightingMode = static_cast<WeightingMode>(
+        audioProcessor.apvts.getRawParameterValue(ParamID::weightingMode)->load());
+   weightScale = (weightingMode == WeightingMode::WEIGHTING_ABSOLUTE) ? 2.0f : 1.0f;
 }
 
 std::atomic<bool>& PolarMapPanel::getIRSwitched() { return switchedIR; }

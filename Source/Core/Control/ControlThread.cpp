@@ -111,6 +111,11 @@ void ControlThread::updateWeights() {
         }
     }
 
+    {
+        juce::SpinLock::ScopedLockType lock(guiState.irWeightsLock);
+        guiState.irWeights = distanceWeights;
+    }
+    
     processBinaural(distanceWeights, relatives); // Inject binaural cues, mutate irWeights
 }
 
@@ -145,10 +150,11 @@ void ControlThread::processIRCommands() {
             juce::SpinLock::ScopedLockType lock(guiState.irWaveformLock);
             guiState.irWaveforms[irIndex] = std::move(waveformBuffer);
         }
+
+        juce::Image nMare = Theme::Mares::getMare<Theme::Mares::MainMares>(file.getFileNameWithoutExtension());
         {
             juce::SpinLock::ScopedLockType lock(guiState.mareLock);
-            guiState.mareImages[irIndex] =
-                Theme::Mares::getMare<Theme::Mares::MainMares>(file.getFileNameWithoutExtension());
+            guiState.mareImages[irIndex] = std::move(nMare);
         }
 
         guiState.indicatorStyleChanged.store(true, std::memory_order_release);
@@ -322,6 +328,7 @@ void ControlThread::runControlCycle(float dt) {
         polarMap.computeRelatives();
         updateWeights();
         convolutionStateBuilder.notifyWeightsChanged();
+        guiState.weightsChanged.store(true, std::memory_order_release);
     }
 
     // Process IR state

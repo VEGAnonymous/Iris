@@ -12,7 +12,7 @@ class MareverbAudioProcessor;
 
 class PolarMapPanel : public juce::Component {
 private:
-    static constexpr auto MAP_INSET = 18;
+    static constexpr auto MAP_INSET = 62;
     static constexpr auto HIT_RADIUS = 6.0f;
 
     MareverbAudioProcessor& audioProcessor;
@@ -56,18 +56,21 @@ private:
     
     void repaintPath();
 
+    // Polar map
+    PolarMap polarMap;
+
     // Position indicator
-    PolarCoordinate currentPosition {0.0f, 0.0f};
-    const float basePositionRadius = 4.0f;
-    float positionRadius = 4.0f;
+    const float basePositionRadius = 6.0f;
+    float positionRadius = 6.0f;
     BoundsF positionBounds {};
 
     juce::Image positionIndicatorIcon {};
 
     // Field indicators
-    std::vector<PolarCoordinate> fieldCoordinates {};
     const float baseCoordinateRadius = 6.0f;
     float coordinateRadius = 6.0f;
+    std::array<float, MAX_IR_COUNT> coordinateWeights {};
+    float weightScale = 1.0f;
 
     std::array<juce::Image, MAX_IR_COUNT> fieldIndicatorIcons {};
 
@@ -86,10 +89,11 @@ public:
     void mouseDoubleClick(const juce::MouseEvent& e) override;
 
     // Updates
-    void notifyPathChanged();
-    void notifyPositionChanged(PolarCoordinate nPosition);
-    void notifyFieldChanged(std::vector<PolarCoordinate> nCoordinates, bool animate = true);
-    void notifyIndicatorStyleChanged();
+    void updatePath();
+    void updatePosition();
+    void updateField(bool animate = true);
+    void updateIndicatorStyle();
+    void updateWeights();
 
     std::atomic<bool>& getIRSwitched();
 };

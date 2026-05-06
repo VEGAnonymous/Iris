@@ -8,14 +8,18 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
     auto bounds = getLocalBounds().toFloat().reduced(2.0f);
     const bool selected = getToggleState();
 
+    const juce::Colour slotColor = Theme::Colors::irSlotColours[irIndex];
+
     // Background
-    g.setColour(selected ? Theme::Colors::background.brighter(0.126f)
-          : Theme::Colors::background.brighter(0.0612f).interpolatedWith(juce::Colours::transparentBlack, hoverAnim.getValue()));
+    const juce::Colour baseColor = selected
+        ? Theme::Colors::section.interpolatedWith(slotColor, 0.0621f)
+        : Theme::Colors::section.interpolatedWith((Theme::Colors::section).brighter(0.0421f), hoverAnim.getValue());
+    g.setColour(baseColor);
     g.fillRoundedRectangle(bounds, 3.0f);
 
     // Selection ring
-    g.setColour(selected ? Theme::Colors::textLight : juce::Colours::darkgrey);
-    g.drawRoundedRectangle(bounds, 3.0f, selected ? 2.0f : 1.0f);
+    g.setColour(selected ? slotColor.withAlpha(0.821f) : Theme::Colors::outline.withAlpha(0.621f));
+    g.drawRoundedRectangle(bounds, 3.0f, selected ? 1.5f : 0.75f);
 
     // Indicator dot
     const float indicatorX = bounds.getX() + 6.0f;
@@ -25,7 +29,11 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
     float indicatorAlpha = juce::jmap(activeAlpha, occupied ? 0.35f : 0.1f, occupied ? 1.0f : 0.2f);
 
     Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius - (!icon.isNull() ? 2.0f : 0.0f),
-        irIndex, occupied, active, false, indicatorAlpha, -1.0f, juce::Colours::transparentBlack, &icon);
+        irIndex, occupied, active, false, 
+        indicatorAlpha, -1.0f, juce::Colours::transparentBlack, 
+        0, 1.0f,
+        &icon
+    );
 
     // Drag and drop indication
     const float dragAlpha = dragHover.getValue();

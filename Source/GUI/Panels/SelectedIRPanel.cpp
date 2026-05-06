@@ -21,9 +21,9 @@ SelectedIRPanel::SelectedIRPanel(MareverbAudioProcessor& processor, juce::Animat
 
 void SelectedIRPanel::resized() {
     Bounds bounds = getLocalBounds();
-    irHeaderComponent.setBounds(bounds.removeFromTop(40).reduced(PANEL_INSET));
-    irDisplayComponent.setBounds(bounds.removeFromTop(140).reduced(PANEL_INSET));
-    irControlsComponent.setBounds(bounds.removeFromTop(100).reduced(PANEL_INSET));
+    irHeaderComponent.setBounds(bounds.removeFromTop(40).toFloat().reduced(PANEL_INSET).toNearestInt());
+    irDisplayComponent.setBounds(bounds.removeFromTop(140).toFloat().reduced(PANEL_INSET).toNearestInt());
+    irControlsComponent.setBounds(bounds.removeFromTop(100).toFloat().reduced(PANEL_INSET).toNearestInt());
 }
 
 void SelectedIRPanel::updateIRSlot(bool animate) {

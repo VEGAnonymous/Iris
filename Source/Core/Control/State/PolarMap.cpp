@@ -59,6 +59,11 @@ PolarCoordinate PolarMap::computeRelative(PolarCoordinate p1, PolarCoordinate p2
 }
 
 void PolarMap::computeRelatives(Axis reference, bool computeAngles) {
+    computeRelatives(position, coordinates, relatives, reference, computeAngles);
+}
+
+void PolarMap::computeRelatives(PolarCoordinate& position, std::vector<PolarCoordinate>& coordinates, std::vector<PolarCoordinate>& relatives,
+    Axis reference, bool computeAngles) {
     relatives.resize(coordinates.size());
     for (int coord = 0; coord < coordinates.size(); ++coord)
         relatives[coord] = computeRelative(position, coordinates[coord], reference, computeAngles);
