@@ -109,6 +109,7 @@ public:
     
     const std::vector<IRDirectory> getIRDirectories() const;
     std::shared_ptr<std::vector<IRDirectoryFiles>> getIRDirectoryFiles() const;
+    int getIRFileCount();
 
     std::atomic<bool>& getDirectoryChanged();
     std::atomic<bool>& getIRLoaded();

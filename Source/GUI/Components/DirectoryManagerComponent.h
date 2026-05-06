@@ -20,7 +20,7 @@ private:
         BUTTON_COLUMN_WIDTH = 20,
         BUTTON_COLUMN_PADDING = 12,
         DIRECTORY_ROW_HEIGHT = 28,
-        DIRECTORY_LIST_HEIGHT = 240,
+        DIRECTORY_LIST_HEIGHT = 214,
         CONTROL_COLUMN_HEIGHT = 120;
 
     MareverbAudioProcessor& audioProcessor;
@@ -32,6 +32,8 @@ private:
 
     HoverableTextButton addButton, removeButton;
     HoverableImageButton refreshButton;
+
+    juce::Label status;
 
     LabelledControl<HoverableTextEditor> 
         fileFilterEditor { "File Filter", animatorUpdater },

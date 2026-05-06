@@ -71,12 +71,12 @@ private:
         highCutControl      { getParameterName(audioProcessor.apvts, ParamID::highCut),      animatorUpdater },
         strengthControl     { getParameterName(audioProcessor.apvts, ParamID::strength),     animatorUpdater },
         spreadControl       { getParameterName(audioProcessor.apvts, ParamID::spread),       animatorUpdater },
-        positionRateControl { getParameterName(audioProcessor.apvts, ParamID::positionRate), animatorUpdater, true /* bipolar */},
-        positionModAControl { getParameterName(audioProcessor.apvts, ParamID::positionModA), animatorUpdater },
-        positionModBControl { getParameterName(audioProcessor.apvts, ParamID::positionModB), animatorUpdater },
-        fieldRateControl    { getParameterName(audioProcessor.apvts, ParamID::fieldRate),    animatorUpdater, true /* bipolar */},
-        fieldModAControl    { getParameterName(audioProcessor.apvts, ParamID::fieldModA),    animatorUpdater },
-        fieldModBControl    { getParameterName(audioProcessor.apvts, ParamID::fieldModB),    animatorUpdater };
+        positionRateControl { "Rate",                                                        animatorUpdater, true /* bipolar */},
+        positionModAControl { "Mod A",                                                       animatorUpdater },
+        positionModBControl { "Mod B",                                                       animatorUpdater},
+        fieldRateControl    { "Rate",                                                        animatorUpdater, true /* bipolar */},
+        fieldModAControl    { "Mod A",                                                       animatorUpdater},
+        fieldModBControl    { " Mod B",                                                      animatorUpdater};
 
     SliderAttachment
         globalMixControlAttachment, 

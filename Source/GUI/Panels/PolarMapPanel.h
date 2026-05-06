@@ -60,8 +60,8 @@ private:
     PolarMap polarMap;
 
     // Position indicator
-    const float basePositionRadius = 6.0f;
-    float positionRadius = 6.0f;
+    const float basePositionRadius = 8.0f;
+    float positionRadius = 8.0f;
     BoundsF positionBounds {};
 
     juce::Image positionIndicatorIcon {};

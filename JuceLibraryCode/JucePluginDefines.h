@@ -44,7 +44,7 @@
  #define JucePlugin_Name                   "Mareverb"
 #endif
 #ifndef  JucePlugin_Desc
- #define JucePlugin_Desc                   "Mareverb"
+ #define JucePlugin_Desc                   "Convolution reverb with a mareschizophrenic twist"
 #endif
 #ifndef  JucePlugin_Manufacturer
  #define JucePlugin_Manufacturer           "Eponymous DSP"
@@ -77,13 +77,13 @@
  #define JucePlugin_EditorRequiresKeyboardFocus  0
 #endif
 #ifndef  JucePlugin_Version
- #define JucePlugin_Version                0.6.2.1
+ #define JucePlugin_Version                1.1.2.6
 #endif
 #ifndef  JucePlugin_VersionCode
- #define JucePlugin_VersionCode            0x60201
+ #define JucePlugin_VersionCode            0x1010206
 #endif
 #ifndef  JucePlugin_VersionString
- #define JucePlugin_VersionString          "0.6.2.1"
+ #define JucePlugin_VersionString          "1.1.2.6"
 #endif
 #ifndef  JucePlugin_VSTUniqueID
  #define JucePlugin_VSTUniqueID            JucePlugin_PluginCode

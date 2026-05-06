@@ -196,7 +196,7 @@ void PolarMapPanel::paint(juce::Graphics& g) {
     g.setColour(Theme::Colors::textLight);
     positionRadius = basePositionRadius + juce::jmap(positionInteractionState.getValue(), 0.0f, 2.0f);
     if (!positionIndicatorIcon.isNull()) {
-        positionBounds = toBounds(polarMap.getPosition(), positionRadius + 8.0f);
+        positionBounds = toBounds(polarMap.getPosition(), positionRadius + 5.62f);
         g.drawImage(positionIndicatorIcon, positionBounds, juce::RectanglePlacement::centred);
     } else {
         positionBounds = toBounds(polarMap.getPosition(), positionRadius);;

@@ -58,6 +58,20 @@ void DirectoryManagerComponent::prepare() {
     refreshButton.setTooltip("Retrieves the directory list state and collects all valid IRs.\nCan be used to synchronize changes made from another Mareverb instance as well as changes to the directory contents themselves.");
     addAndMakeVisible(refreshButton);
 
+    // Status
+    bool busyCollecting = audioProcessor.getIRManager()->getBusyCollecting().load(std::memory_order_acquire);
+    const juce::String fileCount = juce::String(audioProcessor.getIRManager()->getIRFileCount());
+    status.setText(busyCollecting
+        ? "Collecting IRs..."
+        : "Found " + fileCount + " active results",
+        juce::dontSendNotification
+    );
+    status.setColour(juce::Label::ColourIds::textColourId, Theme::Colors::highlight);
+    status.setFont(Theme::Fonts::getEquestriaNeueFont(juce::FontOptions(12.0f).withKerningFactor(0.06f)));
+    status.setJustificationType(juce::Justification::centredTop);
+    status.setMinimumHorizontalScale(1.0f);
+    addAndMakeVisible(status);
+
     // File / directory filter editors
     auto setFileFilter = [this, irManager]() {
         if (fileFilterChanged) {
@@ -188,7 +202,7 @@ void DirectoryManagerComponent::resized() {
     bounds.removeFromTop(TITLE_ROW_HEIGHT - titleLabelHeight);
 
     auto buttonBounds = bounds
-        .removeFromRight(BUTTON_COLUMN_WIDTH)
+        .withTrimmedLeft(bounds.getWidth() - BUTTON_COLUMN_WIDTH)
         .withHeight(DIRECTORY_LIST_HEIGHT);
 
     const float buttonHeight = 70, buttonMargin = 2.0f;
@@ -215,11 +229,15 @@ void DirectoryManagerComponent::resized() {
 
     auto listBounds = bounds
         .removeFromTop(DIRECTORY_LIST_HEIGHT)
-        .withTrimmedRight(BUTTON_COLUMN_PADDING);
+        .withTrimmedRight(BUTTON_COLUMN_WIDTH + BUTTON_COLUMN_PADDING);
 
     directoryList.setBounds(listBounds);
 
     bounds.removeFromTop(20);
+
+    status.setBounds(bounds.removeFromTop(16));
+
+    bounds.removeFromTop(10);
 
     juce::FlexBox controlColumn(juce::FlexBox::JustifyContent::center);
     controlColumn.flexDirection = juce::FlexBox::Direction::column;
@@ -293,7 +311,7 @@ juce::Component* DirectoryManagerComponent::refreshComponentForRow(int rowNumber
 }
 
 void DirectoryManagerComponent::refresh() {
-    bool busyCollecting = audioProcessor.getIRManager()->getBusyCollecting().load(std::memory_order_acquire);
+    const bool busyCollecting = audioProcessor.getIRManager()->getBusyCollecting().load(std::memory_order_acquire);
 
     refreshButton.setEnabled(!busyCollecting);
     fileFilterEditor.setEnabled(!busyCollecting);
@@ -303,6 +321,13 @@ void DirectoryManagerComponent::refresh() {
     refreshButton.setAlpha(busyCollecting ? busyAlpha : 1.0f);
     fileFilterEditor.setAlpha(busyCollecting ? busyAlpha : 1.0f);
     directoryFilterEditor.setAlpha(busyCollecting ? busyAlpha : 1.0f);
+
+    const juce::String fileCount = juce::String(audioProcessor.getIRManager()->getIRFileCount());
+    status.setText(busyCollecting 
+        ? "Collecting IRs..."
+        : "Found " + fileCount + " active results",
+        juce::dontSendNotification
+    );
 
     directoryList.updateContent();
     repaint();

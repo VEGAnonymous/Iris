@@ -484,4 +484,14 @@ const IRSlotLite IRManager::getIRSlot(int index) const {
 const std::vector<IRDirectory> IRManager::getIRDirectories() const { return irDirectories; };
 std::shared_ptr<std::vector<IRDirectoryFiles>> IRManager::getIRDirectoryFiles () const { return irDirectoryFiles; };
 
+int IRManager::getIRFileCount() {
+    int fileCount = 0;
+
+    juce::SpinLock::ScopedLockType lock(dirLock);
+    for (auto& directoryFiles : *irDirectoryFiles)
+        fileCount += directoryFiles.files.size();
+
+    return fileCount;
+}
+
 juce::AudioFormatManager* IRManager::getFormatManager() { return &formatManager; }

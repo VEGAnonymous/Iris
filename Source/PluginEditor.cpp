@@ -381,7 +381,9 @@ void MareverbAudioProcessorEditor::syncIndicatorStyles() {
 void MareverbAudioProcessorEditor::syncSettings() {
     const bool tooltipsEnabled = audioProcessor.apvts.state.getProperty(PropertyID::tooltipsEnabled, true);
     tooltipWindow.setAlpha(tooltipsEnabled ? 1.0f : 0.0f);
-    tooltipWindow.setMillisecondsBeforeTipAppears(tooltipsEnabled ? INFO_TOOLTIP_TIME_MS : INT_MAX);
+    tooltipWindow.setVisible(tooltipsEnabled);
+    tooltipWindow.setMillisecondsBeforeTipAppears(tooltipsEnabled ? INFO_TOOLTIP_TIME_MS : 621621621);
+    tooltipWindow.repaint();
     DBG("SYNC: Set tooltips enabled: " << static_cast<int>(tooltipsEnabled));
 
     const int controlRateIndex = audioProcessor.apvts.state.getProperty(PropertyID::controlRate, 3);
@@ -614,7 +616,7 @@ void MareverbAudioProcessorEditor::initState() {
 
     polarMapPanel.updatePath();
     polarMapPanel.updatePosition();
-    polarMapPanel.updateField();
+    polarMapPanel.updateField(false);
     polarMapPanel.updateWeights();
 
     DBG("INIT: Init editor state");

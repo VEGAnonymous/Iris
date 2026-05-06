@@ -45,7 +45,7 @@ namespace ProjectInfo
 {
     const char* const  projectName    = "Mareverb";
     const char* const  companyName    = "Eponymous DSP";
-    const char* const  versionString  = "0.6.2.1";
-    const int          versionNumber  = 0x60201;
+    const char* const  versionString  = "1.1.2.6";
+    const int          versionNumber  = 0x1010206;
 }
 #endif

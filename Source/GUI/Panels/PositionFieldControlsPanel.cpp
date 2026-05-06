@@ -45,7 +45,8 @@ void PositionFieldControlsPanel::prepare() {
         audioProcessor.guiState.syncingField.store(true, std::memory_order_release);
     };
 
-    selectTab(static_cast<ControlTabID>(static_cast<int>(audioProcessor.apvts.state.getProperty(PropertyID::selectedControlTab))));
+    selectTab(static_cast<ControlTabID>(juce::jmax(0, 
+        static_cast<int>(audioProcessor.apvts.state.getProperty(PropertyID::selectedControlTab)))));
 
     // Pattern combo boxes
     auto* positionPatternControl = controlTabs[ControlTabID::POSITION].pattern;
