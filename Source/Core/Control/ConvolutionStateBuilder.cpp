@@ -133,7 +133,7 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
 }
 
 void ConvolutionStateBuilder::updateMixState(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState, 
-    bool irChanged, float decay, const std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS>& irWeights) {
+    bool irChanged, float decay, const std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& irWeights) {
 
     auto& nextMixState = nextState->mixState;
 
@@ -197,7 +197,7 @@ void ConvolutionStateBuilder::notifyDecayChanged() { decayChanged = true; }
 void ConvolutionStateBuilder::notifyWeightsChanged() { weightsChanged = true; }
 
 std::shared_ptr<ConvolutionState> ConvolutionStateBuilder::build(const std::shared_ptr<ConvolutionState>& currentState,
-    float decay, const std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS>& irWeights) {
+    float decay, const std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& irWeights) {
 
     jassert(currentState && currentState->irBank);
 

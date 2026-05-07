@@ -5,6 +5,7 @@
 /* VALIDATION */
 
 inline bool validateIRIndex(int irIndex) { return irIndex >= 0 && irIndex < MAX_IR_COUNT; }
+inline bool validateIRBankIndex(int irIndex) { return irIndex >= 0 && irIndex < MAX_IR_BANK_SLOTS; }
 inline bool validateSwapInterval(float minTime, float maxTime) { return minTime >= SWAP_INTERVAL_MIN && 
 																	    maxTime <= SWAP_INTERVAL_MAX && 
                                                                         maxTime > SWAP_INTERVAL_MIN &&

@@ -43,7 +43,7 @@ private:
     // Build stages
     bool updateIRBank(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState);
     void updateMixState(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState,
-        bool irChanged, float decay, const std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS>& irWeights);
+        bool irChanged, float decay, const std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& irWeights);
 
 public:
     ConvolutionStateBuilder(IRManager& irManager, GUIState& guiState);
@@ -58,5 +58,5 @@ public:
     void notifyWeightsChanged();
 
     std::shared_ptr<ConvolutionState> build(const std::shared_ptr<ConvolutionState>& currentState,
-        float decay, const std::array<std::array<float, MAX_IR_COUNT>, N_CHANNELS>& irWeights);
+        float decay, const std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& irWeights);
 };

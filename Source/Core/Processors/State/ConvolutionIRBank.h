@@ -9,12 +9,12 @@ class ConvolutionIRBank {
 private:
     juce::dsp::FFT fft;
 
-    std::array<std::shared_ptr<SpectraData>, MAX_IR_COUNT> irSpectra;
-    std::array<bool, MAX_IR_COUNT> irActiveStates {true};
-    std::array<float, MAX_IR_COUNT> irGains {};
+    std::array<std::shared_ptr<SpectraData>, MAX_IR_BANK_SLOTS> irSpectra;
+    std::array<bool, MAX_IR_BANK_SLOTS> irActiveStates {true};
+    std::array<float, MAX_IR_BANK_SLOTS> irGains {};
 
-    std::array<int, MAX_IR_COUNT> irPartitionCounts {};
-    std::array<int, MAX_IR_COUNT> irChannelCounts {};
+    std::array<int, MAX_IR_BANK_SLOTS> irPartitionCounts {};
+    std::array<int, MAX_IR_BANK_SLOTS> irChannelCounts {};
 
     int maxPartitionCount = 0;
 

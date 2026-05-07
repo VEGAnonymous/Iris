@@ -7,7 +7,7 @@ ConvolutionIRBank::ConvolutionIRBank() : fft(FFT_ORDER) {
 	irGains.fill(1.0f);
 
 	// Preallocate spectra storage
-	for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
+	for (int ir = 0; ir < MAX_IR_BANK_SLOTS; ++ir) {
 		irSpectra[ir] = std::make_shared<SpectraData>();
 		for (int channel = 0; channel < N_CHANNELS; ++channel)
 			(*irSpectra[ir])[channel].resize(MAX_IR_PARTITIONS);
@@ -33,7 +33,7 @@ void ConvolutionIRBank::updateMaxPartitionCount() {
 }
 
 void ConvolutionIRBank::setIR(int irIndex, const juce::AudioBuffer<float>& irBuffer) {
-	if (!validateIRIndex(irIndex)) return;
+	if (!validateIRBankIndex(irIndex)) return;
 
 	DBG("CONV: Begin updating FFT for buffer " << irIndex);
 
@@ -73,45 +73,45 @@ void ConvolutionIRBank::setIR(int irIndex, const juce::AudioBuffer<float>& irBuf
 }
 
 void ConvolutionIRBank::clearIR(int irIndex) {
-	if (!validateIRIndex(irIndex)) return;
+	if (!validateIRBankIndex(irIndex)) return;
 	irPartitionCounts[irIndex] = 0;
 	irChannelCounts[irIndex] = 0;
 }
 
 void ConvolutionIRBank::setIRActive(int irIndex, bool nState) {
-	if (!validateIRIndex(irIndex)) return;
+	if (!validateIRBankIndex(irIndex)) return;
 	irActiveStates[irIndex] = nState;
 }
 
 void ConvolutionIRBank::setIRGain(int irIndex, float nGain) {
-	if (!validateIRIndex(irIndex)) return;
+	if (!validateIRBankIndex(irIndex)) return;
 	irGains[irIndex] = nGain;
 	DBG("CONV: Set IR gain " << irIndex << " to " << nGain);
 }
 
 const SpectraData& ConvolutionIRBank::getSpectra(int irIndex) const { 
-	jassert(validateIRIndex(irIndex)); 
+	jassert(validateIRBankIndex(irIndex));
 	return *irSpectra[irIndex];
 }
 
 int ConvolutionIRBank::getMaxPartitionCount() const { return maxPartitionCount; }
 
 int ConvolutionIRBank::getPartitionCount(int irIndex) const {
-	jassert(validateIRIndex(irIndex));
+	jassert(validateIRBankIndex(irIndex));
 	return irPartitionCounts[irIndex];
 }
 
 int ConvolutionIRBank::getChannelCount(int irIndex) const {
-	jassert(validateIRIndex(irIndex));
+	jassert(validateIRBankIndex(irIndex));
 	return irChannelCounts[irIndex];
 }
 
 bool ConvolutionIRBank::isActive(int irIndex) const {
-	if (!validateIRIndex(irIndex)) return false;
+	if (!validateIRBankIndex(irIndex)) return false;
 	return irActiveStates[irIndex];
 }
 
 float ConvolutionIRBank::getGain(int irIndex) const {
-	if (!validateIRIndex(irIndex)) return 1.0f;
+	if (!validateIRBankIndex(irIndex)) return 1.0f;
 	return irGains[irIndex];
 }
