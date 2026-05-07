@@ -76,7 +76,7 @@ private:
         positionModBControl { "Mod B",                                                       animatorUpdater},
         fieldRateControl    { "Rate",                                                        animatorUpdater, true /* bipolar */},
         fieldModAControl    { "Mod A",                                                       animatorUpdater},
-        fieldModBControl    { " Mod B",                                                      animatorUpdater};
+        fieldModBControl    { "Mod B",                                                       animatorUpdater};
 
     SliderAttachment
         globalMixControlAttachment, 
@@ -94,9 +94,9 @@ private:
 
     // ComboBoxes
     LabelledControl<juce::ComboBox> 
-        weightingModeControl   { getParameterName(audioProcessor.apvts, ParamID::weightingMode) },
-        positionPatternControl { getParameterName(audioProcessor.apvts, ParamID::positionPattern) },
-        fieldPatternControl    { getParameterName(audioProcessor.apvts, ParamID::fieldPattern) };
+        weightingModeControl   { "Weighting" },
+        positionPatternControl { "Pattern" },
+        fieldPatternControl    { "Pattern" };
     juce::AudioProcessorValueTreeState::ComboBoxAttachment 
         weightingModeControlAttachment, 
         positionPatternControlAttachment, 
