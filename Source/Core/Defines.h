@@ -19,7 +19,7 @@ static constexpr auto L = 1024,
 // Meta
 static constexpr auto N_CHANNELS = 2,
                       MAX_IR_COUNT = 8,
-                      MAX_IR_BANK_SLOTS = MAX_IR_COUNT * 2,
+                      MAX_IR_BANK_SLOTS = MAX_IR_COUNT * 2, // Lower half = current, upper half = incoming (staged)
                       MAX_IR_PARTITIONS = 512,
                       MAX_IR_SAMPLES = MAX_IR_PARTITIONS * 512, // ~6s @ 44.1k
                       MAX_IR_FILE_SAMPLES = MAX_IR_SAMPLES * 10; // ~60s @ 44.1k

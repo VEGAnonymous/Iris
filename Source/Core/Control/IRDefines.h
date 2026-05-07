@@ -149,3 +149,33 @@ struct IRUpdate {
 
     int irIndex = 0;
 };
+
+struct CrossfadeSlot {
+    bool active = false;
+    float progress = 0.0f; // 0 -> 1.0f
+    float duration = 0.0f; // seconds
+
+    void start(float durationSeconds) {
+        active = true;
+        progress = 0.0f;
+        duration = durationSeconds;
+    }
+
+    bool advance(float dt) {
+        if (!active) return false;
+        if (duration <= 0.0f) {
+            progress = 1.0f;
+            active = false;
+            return true; 
+        }
+
+        progress = juce::jmin(1.0f, (progress + dt) / duration);
+        if (progress >= 1.0f) { 
+            active = false;
+            return true;
+        } else return false;
+    }
+
+    float getTargetGain() const { return progress; }
+    float getCurrentGain() const { return 1.0f - progress; }
+};

@@ -122,8 +122,9 @@ void ControlThread::updateWeights() {
 // Convolution state
 
 void ControlThread::updateConvolutionState() {
+    const float crossfadeTime = apvts.getRawParameterValue(ParamID::crossfadeTime)->load();
     auto currentState = std::atomic_load(&convolutionState->state);
-    auto nextState = convolutionStateBuilder.build(currentState, decay, irWeights);
+    auto nextState = convolutionStateBuilder.build(currentState, decay, irWeights, crossfadeTime);
     std::atomic_store(&convolutionState->state, nextState);
 }
 
@@ -296,6 +297,7 @@ void ControlThread::runControlCycle(float dt) {
     // Advance time
     advancePhase(dt);
     irManager.advanceSwapTimers(dt);
+    convolutionStateBuilder.advanceCrossfades(dt);
 
     // Position + field
     updateMotionParameters();

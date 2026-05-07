@@ -115,3 +115,12 @@ float ConvolutionIRBank::getGain(int irIndex) const {
 	if (!validateIRBankIndex(irIndex)) return 1.0f;
 	return irGains[irIndex];
 }
+
+void ConvolutionIRBank::copySlot(int sourceIndex, int destinationIndex) {
+	if (!validateIRBankIndex(sourceIndex) || !validateIRBankIndex(destinationIndex)) return;
+	irSpectra[destinationIndex] = irSpectra[sourceIndex];
+	irActiveStates[destinationIndex] = irActiveStates[sourceIndex];
+	irGains[destinationIndex] = irGains[sourceIndex];
+	irPartitionCounts[destinationIndex] = irPartitionCounts[sourceIndex];
+	irChannelCounts[destinationIndex] = irChannelCounts[sourceIndex];
+}

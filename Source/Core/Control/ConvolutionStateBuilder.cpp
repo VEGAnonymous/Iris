@@ -27,9 +27,12 @@ public:
 
 /* PRIVATE */
 
-bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState) {
+bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState, 
+    float crossfadeTime) {
+
     std::shared_ptr<const ConvolutionIRBank> irBank = currentState->irBank;
     bool irChanged = !(setIRs.empty() && clearedIRs.empty() && activeChangedIRs.empty() && gainedIRs.empty());
+
     if (irChanged) {
         if (!nextBank) nextBank = std::make_shared<ConvolutionIRBank>(*currentState->irBank);
         auto& nBank = nextBank;
@@ -65,6 +68,9 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
                     if (jobPending) continue;
                 }
 
+                nBank->copySlot(irIndex, MAX_IR_COUNT + irIndex); // Stage new IR in top half (incoming IRs) of slot array
+                crossfadeSlots[irIndex].start(crossfadeTime);
+
                 auto* job = new IRFFTJob(nBank, irManager, irIndex);
                 {
                     juce::SpinLock::ScopedLockType lock(fftJobLock);
@@ -80,6 +86,10 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
             for (int irIndex : clearedIRs) {
                 if (!validateIRIndex(irIndex)) continue;
                 // DBG("Clearing IR " << irIndex);
+
+                nBank->copySlot(irIndex, MAX_IR_COUNT + irIndex);
+                crossfadeSlots[irIndex].start(crossfadeTime);
+
                 nBank->clearIR(irIndex);
                 nBank->updateMaxPartitionCount();
             }
@@ -92,6 +102,7 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
                 // DBG("Setting IR active state " << irIndex);
                 const bool active = irManager.getIRSlot(irIndex).active;
                 nBank->setIRActive(irIndex, active);
+                nBank->setIRActive(MAX_IR_COUNT + irIndex, active);
             }
         }
 
@@ -101,6 +112,7 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
                 if (!validateIRIndex(irIndex)) continue;
                 const float gain = irManager.getIRSlot(irIndex).gain;
                 nBank->setIRGain(irIndex, gain);
+                nBank->setIRGain(MAX_IR_COUNT + irIndex, gain);
             }
         }
 
@@ -196,18 +208,27 @@ void ConvolutionStateBuilder::clearUpdates() {
 void ConvolutionStateBuilder::notifyDecayChanged() { decayChanged = true; }
 void ConvolutionStateBuilder::notifyWeightsChanged() { weightsChanged = true; }
 
+void ConvolutionStateBuilder::advanceCrossfades(float dt) {
+    for (int i = 0; i < MAX_IR_COUNT; ++i) crossfadeSlots[i].advance(dt);
+}
+
 std::shared_ptr<ConvolutionState> ConvolutionStateBuilder::build(const std::shared_ptr<ConvolutionState>& currentState,
-    float decay, const std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& irWeights) {
+    float decay, const std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& irWeights, float crossfadeTime) {
 
     jassert(currentState && currentState->irBank);
 
     auto& nextState = statePool[stateIndex];
     stateIndex ^= 1; // (stateIndex + 1) % 2
 
-    bool irChanged = updateIRBank(currentState, nextState);
+    bool irChanged = updateIRBank(currentState, nextState, crossfadeTime);
     jassert(nextState->irBank);
     nextState->prepare();
     updateMixState(currentState, nextState, irChanged, decay, irWeights);
 
     return nextState;
+}
+
+const CrossfadeSlot& ConvolutionStateBuilder::getCrossfadeSlot(int index) const {
+    jassert(validateIRIndex(index));
+    return crossfadeSlots[index];
 }

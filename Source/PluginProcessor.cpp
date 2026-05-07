@@ -20,7 +20,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::crossfadeTime, "Crossfade", juce::NormalisableRange<float>(0.0f, 10.0f, 1e-2f, 0.5f), 1.0f, timeFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::lowCut, "Low Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20.0f, frequencyFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::highCut, "High Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20000.0f, frequencyFormat));
-
+    
     // Interaction controls
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::weightingMode, "Weighting Mode", weightingModes, static_cast<int>(WeightingMode::WEIGHTING_ABSOLUTE)));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::strength, "Strength", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));

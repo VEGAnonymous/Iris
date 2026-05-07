@@ -35,4 +35,6 @@ public:
     int getChannelCount(int irIndex) const;
     bool isActive(int irIndex) const;
     float getGain(int irIndex) const;
+
+    void copySlot(int sourceIndex, int destinationIndex);
 };
