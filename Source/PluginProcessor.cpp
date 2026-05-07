@@ -17,6 +17,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
     // Global controls
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::globalMix, "Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::decay, "Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::crossfadeTime, "Crossfade", juce::NormalisableRange<float>(0.0f, 10.0f, 1e-2f, 0.5f), 1.0f, timeFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::lowCut, "Low Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20.0f, frequencyFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::highCut, "High Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.1f, 0.3f), 20000.0f, frequencyFormat));
 
@@ -86,7 +87,7 @@ MareverbAudioProcessor::MareverbAudioProcessor()
 
     // Init properties
     juce::PropertiesFile::Options options;
-    options.applicationName = "Mareverb";
+    options.applicationName = ProjectInfo::projectName;
     options.filenameSuffix = ".amre";
     options.osxLibrarySubFolder = "Application Support";
     applicationProperties.setStorageParameters(options);
@@ -214,7 +215,7 @@ void MareverbAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     mixer.mixWetSamples(buffer);
 }
 
-juce::AudioProcessorEditor* MareverbAudioProcessor::createEditor() { return new MareverbAudioProcessorEditor (*this); }
+juce::AudioProcessorEditor* MareverbAudioProcessor::createEditor() { return new MareverbAudioProcessorEditor(*this); }
 
 void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) { 
     auto state = apvts.copyState();
@@ -314,7 +315,6 @@ void MareverbAudioProcessor::getStateInformation (juce::MemoryBlock& destData) {
 }
 
 void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
-    auto startTime = std::chrono::steady_clock::now();
     auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
     if (!tree.isValid()) return;
 
@@ -502,6 +502,8 @@ void MareverbAudioProcessor::initState() {
     }
 
     profileTime("RECALL: Restored general settings: ", startTime);
+
+    DBG("RECALL: State recall complete");
 }
 
 IRManager* MareverbAudioProcessor::getIRManager() { return &irManager; }

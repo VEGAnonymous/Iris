@@ -49,6 +49,7 @@ namespace ParamID {
     static constexpr auto 
         globalMix = "Global Mix",
         decay = "Decay",
+        crossfadeTime = "Crossfade",
         lowCut = "Low Cut",
         highCut = "High Cut",
 

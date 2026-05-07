@@ -5,14 +5,14 @@
 #include <JuceHeader.h>
 
 struct ParameterSettings {
-    float globalMix, decay, lowCut, highCut;
+    float globalMix, decay, crossfadeTime, lowCut, highCut;
     WeightingMode weightingMode; float strength, spread;
     PositionPattern positionPattern;
     float positionRate, positionModA, positionModB;
     FieldPattern fieldPattern;
     float fieldRate, fieldModA, fieldModB;
 
-    ParameterSettings() : globalMix(0.5f), decay(0.5f), lowCut(20.0f), highCut(20000.0f),
+    ParameterSettings() : globalMix(0.5f), decay(0.5f), crossfadeTime(1.0f), lowCut(20.0f), highCut(20000.0f),
 
         weightingMode(WeightingMode::WEIGHTING_ABSOLUTE), strength(0.5f), spread(1.0f),
 
@@ -29,6 +29,7 @@ inline ParameterSettings getParameterSettings(const juce::AudioProcessorValueTre
 
     settings.globalMix = parameters.getRawParameterValue(ParamID::globalMix)->load();
     settings.decay = parameters.getRawParameterValue(ParamID::decay)->load();
+    settings.crossfadeTime = parameters.getRawParameterValue(ParamID::crossfadeTime)->load();
     settings.lowCut = parameters.getRawParameterValue(ParamID::lowCut)->load();
     settings.highCut = parameters.getRawParameterValue(ParamID::highCut)->load();
 

@@ -477,6 +477,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor(MareverbAudioProcesso
     // Attachments
     globalMixControlAttachment(audioProcessor.apvts, ParamID::globalMix, globalMixControl.control),
     decayControlAttachment(audioProcessor.apvts, ParamID::decay, decayControl.control),
+    crossfadeControlAttachment(audioProcessor.apvts, ParamID::crossfadeTime, crossfadeControl.control),
     lowCutControlAttachment(audioProcessor.apvts, ParamID::lowCut, lowCutControl.control),
     highCutControlAttachment(audioProcessor.apvts, ParamID::highCut, highCutControl.control),
 
@@ -514,7 +515,7 @@ MareverbAudioProcessorEditor::MareverbAudioProcessorEditor(MareverbAudioProcesso
     ),
     globalControlsPanel(
         GlobalControlsPanel::GlobalRow
-        { { &lowCutControl, &highCutControl, &decayControl, &globalMixControl } }
+        { { &lowCutControl, &highCutControl, &crossfadeControl, &decayControl, &globalMixControl } }
     ) {
 
     // Init

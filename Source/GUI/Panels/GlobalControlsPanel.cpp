@@ -24,7 +24,7 @@ void GlobalControlsPanel::resized() {
     juce::FlexBox globalControlRow(juce::FlexBox::JustifyContent::center);
     globalControlRow.alignItems = juce::FlexBox::AlignItems::center;
 
-    const auto rowItemMargin = juce::FlexItem::Margin(10.0f, 20.0f, 10.0f, 20.0f);
+    const auto rowItemMargin = juce::FlexItem::Margin(10.0f, 10.0f, 10.0f, 10.0f);
     const float labelHeight = 12.0f;
     const float rotaryWidth = 70.0f, rotaryHeight = 80.0f;
     

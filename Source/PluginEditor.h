@@ -43,6 +43,7 @@ private:
        // ParamID                   Component                Slider (opt)                  
         { ParamID::globalMix,       &globalMixControl,       &globalMixControl.control    },
         { ParamID::decay,           &decayControl,           &decayControl.control        },
+        { ParamID::crossfadeTime,   &crossfadeControl,       &crossfadeControl.control    },
         { ParamID::lowCut,          &lowCutControl,          &lowCutControl .control      },
         { ParamID::highCut,         &highCutControl,         &highCutControl.control      },
         { ParamID::weightingMode,   &weightingModeControl,   nullptr                      },
@@ -65,22 +66,24 @@ private:
 
     // Knobs
     LabelledControl<Rotary>
-        globalMixControl    { getParameterName(audioProcessor.apvts, ParamID::globalMix),    animatorUpdater },
-        decayControl        { getParameterName(audioProcessor.apvts, ParamID::decay),        animatorUpdater },
-        lowCutControl       { getParameterName(audioProcessor.apvts, ParamID::lowCut),       animatorUpdater },
-        highCutControl      { getParameterName(audioProcessor.apvts, ParamID::highCut),      animatorUpdater },
-        strengthControl     { getParameterName(audioProcessor.apvts, ParamID::strength),     animatorUpdater },
-        spreadControl       { getParameterName(audioProcessor.apvts, ParamID::spread),       animatorUpdater },
-        positionRateControl { "Rate",                                                        animatorUpdater, true /* bipolar */},
-        positionModAControl { "Mod A",                                                       animatorUpdater },
-        positionModBControl { "Mod B",                                                       animatorUpdater},
-        fieldRateControl    { "Rate",                                                        animatorUpdater, true /* bipolar */},
-        fieldModAControl    { "Mod A",                                                       animatorUpdater},
-        fieldModBControl    { "Mod B",                                                       animatorUpdater};
-
+        globalMixControl    { getParameterName(audioProcessor.apvts, ParamID::globalMix),     animatorUpdater },
+        decayControl        { getParameterName(audioProcessor.apvts, ParamID::decay),         animatorUpdater },
+        crossfadeControl    { getParameterName(audioProcessor.apvts, ParamID::crossfadeTime), animatorUpdater },
+        lowCutControl       { getParameterName(audioProcessor.apvts, ParamID::lowCut),        animatorUpdater },
+        highCutControl      { getParameterName(audioProcessor.apvts, ParamID::highCut),       animatorUpdater },
+        strengthControl     { getParameterName(audioProcessor.apvts, ParamID::strength),      animatorUpdater },
+        spreadControl       { getParameterName(audioProcessor.apvts, ParamID::spread),        animatorUpdater },
+        positionRateControl { "Rate",                                                         animatorUpdater, true /* bipolar */},
+        positionModAControl { "Mod A",                                                        animatorUpdater },
+        positionModBControl { "Mod B",                                                        animatorUpdater},
+        fieldRateControl    { "Rate",                                                         animatorUpdater, true /* bipolar */},
+        fieldModAControl    { "Mod A",                                                        animatorUpdater},
+        fieldModBControl    { "Mod B",                                                        animatorUpdater};
+    
     SliderAttachment
         globalMixControlAttachment, 
         decayControlAttachment, 
+        crossfadeControlAttachment,
         lowCutControlAttachment,
         highCutControlAttachment,
         strengthControlAttachment, 
