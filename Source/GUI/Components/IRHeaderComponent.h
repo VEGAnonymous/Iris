@@ -15,7 +15,9 @@ private:
 	int currentIndex = 0;
 	IRSlotLite currentIR {};
 	juce::String currentPath = "";
-	juce::Image currentIndicator {};
+
+	juce::Image incomingIcon, outgoingIcon, stagedIcon;
+	bool crossfadeWasActive = false;
 
 	juce::String indicatorStyle;
 

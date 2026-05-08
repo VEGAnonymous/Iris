@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Defines.h"
+#include "Core/Utilities.h"
 #include "GUI/Theme/Theme.h"
 
 #include <JuceHeader.h>
@@ -42,16 +43,46 @@ inline void updateFieldIndicatorStyle(juce::Image& fieldIndicatorIcon, const juc
     fieldIndicatorIcon = fieldIcon;
 }
 
+inline void updateIconCrossfade(
+    juce::Image& incomingIcon, juce::Image& outgoingIcon, juce::Image& stagedIcon, // Icon buffers
+    juce::Image& mareIcon, // Icon to try
+    juce::Image*& oldMare, juce::Image*& newMare, // Icons to display
+    const bool crossfadeActive, bool& crossfadeWasActive, const juce::String& indicatorStyle) {
+
+    if (crossfadeActive) stagedIcon = outgoingIcon; // Stage old mare
+    else if (crossfadeWasActive) { // Finished crossfade
+        outgoingIcon = incomingIcon; // Commit new mare
+        stagedIcon = juce::Image(); // Clear staging
+    }
+
+    crossfadeWasActive = crossfadeActive;
+    if (crossfadeActive) {
+        updateFieldIndicatorStyle(incomingIcon, mareIcon, indicatorStyle);
+        oldMare = &stagedIcon;
+        newMare = &incomingIcon;
+    }
+    else newMare = &outgoingIcon;
+}
+
 namespace Paint {
+    // HACK: God function but I don't care
     inline void irIndicator(juce::Graphics& g, CartesianCoordinate center, float radius,
         int irIndex, bool occupied, bool active, bool selected,
         float indicatorAlpha = -1.0f, float selectionAlpha = -1.0f, juce::Colour color = juce::Colours::transparentBlack, 
         int glowPasses = 0, float glowStrength = 1.0f,
-        juce::Image* mare = nullptr) {
+        juce::Image* oldMare = nullptr, juce::Image* newMare = nullptr, float crossfadeProgress = 1.0f) {
 
         color = (color != juce::Colours::transparentBlack) ? color : Theme::Colors::irSlotColours[irIndex];
         indicatorAlpha = (indicatorAlpha >= 0.0f) ? indicatorAlpha : getIRIndicatorAlpha(occupied, active);
         selectionAlpha = (selectionAlpha >= 0.0f) ? selectionAlpha : (selected ? 1.0f : 0.0f);
+
+        const bool newMareExists = newMare && !newMare->isNull();
+        const bool oldMareExists = oldMare && !oldMare->isNull();
+        const float totalAlpha = (!newMareExists && crossfadeProgress < 1.0f) 
+            ? indicatorAlpha * crossfadeProgress
+            : (!newMareExists && oldMareExists && crossfadeProgress < 1.0f)
+                ? indicatorAlpha * (1.0f - crossfadeProgress)
+                : indicatorAlpha;
 
         // Glow
         const float innerRadius = radius * 1.62f;
@@ -64,7 +95,7 @@ namespace Paint {
             const float glowAlpha = juce::jlimit(0.0f, 1.0f,
                 indicatorAlpha
                 * (innerAlpha - (i * ((innerAlpha - outerAlpha) / glowPasses))) 
-                + (indicatorAlpha * selectionAlpha * 0.0621f)
+                + (totalAlpha * selectionAlpha * 0.0621f)
             );
 
             juce::ColourGradient glowGradient(
@@ -77,23 +108,40 @@ namespace Paint {
         }
 
         // Mare indicator
-        if (mare && !mare->isNull()) {
-            radius += 4.0f;
-            g.setOpacity(indicatorAlpha);
-            g.drawImage(*mare, 
-                static_cast<int>(center.x - radius), static_cast<int>(center.y - radius), 
-                static_cast<int>(radius * 2.0f), static_cast<int>(radius * 2.0f),
-                0, 0, mare->getWidth(), mare->getHeight()
+        const float circleRadius = radius;
+        const float mareRadius = radius + 4.0f;
+        if (oldMareExists) {
+            // DBG("GUI: Painting old mare");
+            radius = mareRadius;
+            g.setOpacity(indicatorAlpha * (1.0f - crossfadeProgress));
+            g.drawImage(*oldMare,
+                static_cast<int>(center.x - mareRadius), static_cast<int>(center.y - mareRadius),
+                static_cast<int>(mareRadius * 2.0f), static_cast<int>(mareRadius * 2.0f),
+                0, 0, oldMare->getWidth(), oldMare->getHeight()
             );
-        } else {
-            g.setColour(color.withAlpha(indicatorAlpha));
-            g.fillEllipse(center.x - radius, center.y - radius, radius * 2.0f, radius * 2.0f);
+        } else if (crossfadeProgress < 1.0f) { // Circle
+            g.setColour(color.withAlpha(indicatorAlpha * (1.0f - crossfadeProgress)));
+            g.fillEllipse(center.x - circleRadius, center.y - circleRadius, circleRadius * 2.0f, circleRadius * 2.0f);
+        }
+
+        if (newMareExists) {
+            // DBG("GUI: Painting new mare");
+            radius = mareRadius;
+            g.setOpacity(indicatorAlpha * crossfadeProgress);
+            g.drawImage(*newMare,
+                static_cast<int>(center.x - mareRadius), static_cast<int>(center.y - mareRadius),
+                static_cast<int>(mareRadius * 2.0f), static_cast<int>(mareRadius * 2.0f),
+                0, 0, newMare->getWidth(), newMare->getHeight()
+            );
+        } else { // Circle
+            g.setColour(color.withAlpha(indicatorAlpha * crossfadeProgress));
+            g.fillEllipse(center.x - circleRadius, center.y - circleRadius, circleRadius * 2.0f, circleRadius * 2.0f);
         }
 
         // Selection ring
         if (selected) {
             radius *= 1.62f;
-            selectionAlpha *= indicatorAlpha;
+            selectionAlpha *= totalAlpha;
             g.setColour(color.withAlpha(selectionAlpha));
             g.drawEllipse(center.x - radius, center.y - radius, radius * 2.0f, radius * 2.0f, 1.26f);
         }

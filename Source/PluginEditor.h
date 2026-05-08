@@ -123,13 +123,15 @@ private:
     void timerCallback() override;
 
     // GUI state
-    void updateIRSlot(bool animate = false);
+    void updateSelectedIR(bool animate = false);
     void syncPosition();
     void syncField();
+    void syncIRSlot(int irIndex, bool animate = true);
     void syncIRs(bool animate = true);
     void syncIRControls();
     void syncSwap();
-    void syncIndicatorStyles();
+    void syncIndicators();
+    void syncCrossfade(int irIndex);
     void syncSettings();
 
     // Initialization

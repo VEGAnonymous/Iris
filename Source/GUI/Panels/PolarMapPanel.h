@@ -31,6 +31,8 @@ private:
 
     std::vector<AnimatedValue> fieldSelectionStates;
 
+    std::array<bool, MAX_IR_COUNT> lastCrossfadeActives {};
+
     // Hovering
     struct HoverState {
         bool hoveringPosition = false;
@@ -65,6 +67,7 @@ private:
     BoundsF positionBounds {};
 
     juce::Image positionIndicatorIcon {};
+    juce::String positionIndicatorStyle;
 
     // Field indicators
     const float baseCoordinateRadius = 6.0f;
@@ -72,7 +75,9 @@ private:
     std::array<float, MAX_IR_COUNT> coordinateWeights {};
     float weightScale = 1.0f;
 
-    std::array<juce::Image, MAX_IR_COUNT> fieldIndicatorIcons {};
+    std::array<juce::Image, MAX_IR_COUNT> incomingMares {}; // Incoming mares
+    std::array<juce::Image, MAX_IR_SLOT_PAIRS> fieldIndicatorIcons {}; // Outgoing mares
+    juce::String fieldIndicatorStyle;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PolarMapPanel)
 
@@ -92,8 +97,14 @@ public:
     void updatePath();
     void updatePosition();
     void updateField(bool animate = true);
-    void updateIndicatorStyle();
+    void setIndicatorStyle();
+
+    void updatePositionIndicator();
+    void updateFieldIndicator(int irIndex);
+    void updateIndicators();
     void updateWeights();
+    void syncCrossfade(int irIndex, bool crossfadeActive, bool crossfadeWasActive);
+
 
     std::atomic<bool>& getIRSwitched();
 };

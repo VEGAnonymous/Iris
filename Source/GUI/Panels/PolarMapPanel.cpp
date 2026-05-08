@@ -171,9 +171,16 @@ void PolarMapPanel::paint(juce::Graphics& g) {
     // Field indicators
     const int glowPasses = 8;
     const int coordinateCount = polarMap.getCoordinateCount();
+    const int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
+
+    std::array<juce::Image, MAX_IR_COUNT> mareIcons;
+    {
+        juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.mareLock);
+        mareIcons = audioProcessor.guiState.mareImages;
+    }
+
     for (int i = 0; i < coordinateCount; ++i) {
         coordinateRadius = baseCoordinateRadius + juce::jmap(fieldInteractionStates[i].getValue(), 0.0f, 2.0f);
-        const int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
         const auto& coordinate = polarMap.getCoordinate(i);
         const float indicatorAlpha = fieldActiveStates[i].getValue();
         const float selectionAlpha = fieldSelectionStates[i].getValue();
@@ -181,6 +188,27 @@ void PolarMapPanel::paint(juce::Graphics& g) {
         const float glowWeight = juce::jlimit(0.0f, 1.0f, coordinateWeights[i] * weightScale);
         const float glowStrength = powf(glowWeight, 0.7f);
 
+        // Poll crossfade state
+        const float crossfadeProgress = audioProcessor.guiState.crossfadeStates[i].load(std::memory_order_acquire);
+        const bool crossfadeActive = audioProcessor.guiState.crossfadeActives[i].load(std::memory_order_acquire);
+
+        juce::Image* oldMare = nullptr;
+        juce::Image* newMare = nullptr;
+
+        auto& stagedIcon = fieldIndicatorIcons[MAX_IR_COUNT + i];
+        auto& incomingIcon = incomingMares[i];
+        auto& outgoingIcon = fieldIndicatorIcons[i];
+        auto& mareIcon = mareIcons[i];
+        auto& crossfadeWasActive = lastCrossfadeActives[i];
+
+        updateIconCrossfade(
+            incomingIcon, outgoingIcon, stagedIcon, 
+            mareIcon,
+            oldMare, newMare,
+            crossfadeActive, crossfadeWasActive, fieldIndicatorStyle
+        );
+
+        // Paint indicator
         Paint::irIndicator(g, map(polarToCartesian(coordinate)), coordinateRadius + (glowStrength * 0.621f), i, false, false,
             (i == selectedIR), 
             indicatorAlpha, 
@@ -188,7 +216,9 @@ void PolarMapPanel::paint(juce::Graphics& g) {
             juce::Colours::transparentBlack,
             glowPasses,
             glowStrength,
-            &fieldIndicatorIcons[i]
+            oldMare,
+            newMare,
+            crossfadeActive ? crossfadeProgress : 1.0f
         );
     }
 
@@ -343,31 +373,41 @@ void PolarMapPanel::updateField(bool animate) {
     }
 }
 
-void PolarMapPanel::updateIndicatorStyle() {
+void PolarMapPanel::setIndicatorStyle() {
     // Update position indicator style
-    const juce::String positionIndicatorStyle =
-        audioProcessor.apvts.state.getProperty(PropertyID::positionIndicatorStyle, PositionIndicatorStyle::Anon);
+    positionIndicatorStyle = audioProcessor.apvts.state.getProperty(PropertyID::positionIndicatorStyle, PositionIndicatorStyle::Anon);
+    fieldIndicatorStyle = audioProcessor.apvts.state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful);
+    updateIndicators();
+}
 
-    juce::Image positionIcon {};
+void PolarMapPanel::updatePositionIndicator() {
+    juce::Image positionIcon{};
     if (positionIndicatorStyle != PositionIndicatorStyle::Mareless) {
         if (positionIndicatorStyle == PositionIndicatorStyle::Anon) positionIcon = Theme::Icons::getAnon();
         else positionIcon = Theme::Mares::getMare<Theme::Mares::AltMares>(positionIndicatorStyle);
     }
     positionIndicatorIcon = positionIcon;
+}
 
-    std::array<juce::Image, MAX_IR_COUNT> mareIcons;
+void PolarMapPanel::updateFieldIndicator(int irIndex) {
+    if (!validateIRIndex(irIndex)) return;
+
+    juce::Image mareIcon;
     {
         juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.mareLock);
-        mareIcons = audioProcessor.guiState.mareImages;
+        mareIcon = audioProcessor.guiState.mareImages[irIndex];
     }
-    for (int i = 0; i < MAX_IR_COUNT; ++i) {
-        updateFieldIndicatorStyle(
-            fieldIndicatorIcons[i],
-            mareIcons[i],
-            audioProcessor.apvts.state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful)
-        );
-    }
+    updateFieldIndicatorStyle(fieldIndicatorIcons[irIndex], mareIcon, fieldIndicatorStyle);
 
+    auto& oldMare = fieldIndicatorIcons[MAX_IR_COUNT];
+    auto& newMare = fieldIndicatorIcons[MAX_IR_COUNT + irIndex];
+
+    DBG("MAP: Updated field indicator " << irIndex << "; old mare exists = " << (int)!oldMare.isNull() << ", new mare exists = " << (int)!newMare.isNull());
+}
+
+void PolarMapPanel::updateIndicators() {
+    updatePositionIndicator();
+    for (int i = 0; i < MAX_IR_COUNT; ++i) updateFieldIndicator(i);
     repaint();
 }
 

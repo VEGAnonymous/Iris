@@ -37,7 +37,7 @@ private:
     LabelledControl<juce::ComboBox> fieldIndicatorSelector { "Field Indicators" };
     const juce::StringArray fieldIndicatorStyles { 
         FieldIndicatorStyle::Mareless, 
-        FieldIndicatorStyle::Half_Mared, 
+        // FieldIndicatorStyle::Half_Mared, // Kind of broken and no one will use it anyways
         FieldIndicatorStyle::Mareful 
     };
 

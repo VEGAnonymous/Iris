@@ -16,7 +16,11 @@ private:
     int irIndex;
     bool occupied = false;
     bool active = false;
-    juce::Image icon;
+
+    juce::Image incomingIcon, outgoingIcon, stagedIcon;
+    bool crossfadeWasActive = false;
+
+    juce::String indicatorStyle;
 
     AnimatedValue hoverAnim, indicatorActiveAnim;
 
@@ -42,7 +46,8 @@ public:
 
     void setOccupied(bool nOccupied);
     void setActive(bool nActive, bool animate = true);
-    void setIndicatorStyle(const juce::Image& iconToTry, const juce::String nStyle);
+    void setIndicatorStyle(const juce::String nStyle);
+    void updateIndicator();
 
     int getIndex() const;
 

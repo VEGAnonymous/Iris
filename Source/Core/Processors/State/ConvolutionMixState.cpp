@@ -11,7 +11,7 @@ void ConvolutionMixState::resize(int partitionCount) {
 	irEnvelopes.resize(partitionCount);
 }
 
-void ConvolutionMixState::setWeights(std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS> weights) { 
+void ConvolutionMixState::setWeights(std::array<std::array<float, MAX_IR_SLOT_PAIRS>, N_CHANNELS> weights) { 
 	irWeights = weights; 
 }
 
@@ -44,7 +44,7 @@ void ConvolutionMixState::mixSpectrum(const ConvolutionIRBank& irBank) {
 			float envelope = irEnvelopes[partition];
 
 			// Each IR
-			for (int ir = 0; ir < MAX_IR_BANK_SLOTS; ++ir) {
+			for (int ir = 0; ir < MAX_IR_SLOT_PAIRS; ++ir) {
 				// Use only existing + active IRs, channels, and partitions
 				if (!irBank.isActive(ir)) continue;
 

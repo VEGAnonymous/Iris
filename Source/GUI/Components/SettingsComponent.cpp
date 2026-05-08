@@ -34,7 +34,7 @@ void SettingsComponent::prepare() {
 
     // Position indicator selector
     positionIndicatorSelector.control.addItemList(positionIndicatorStyles, 1);
-    positionIndicatorSelector.control.setSelectedId(juce::jmax(1, positionIndicatorStyles.indexOf(
+    positionIndicatorSelector.control.setSelectedId(juce::jlimit(1, positionIndicatorStyles.size(), positionIndicatorStyles.indexOf(
         juce::StringRef(state.getProperty(PropertyID::positionIndicatorStyle, PositionIndicatorStyle::Anon))) + 1), juce::dontSendNotification);
     positionIndicatorSelector.control.onChange = [this]() {
         const int selectedID = positionIndicatorSelector.control.getSelectedId();
@@ -42,14 +42,14 @@ void SettingsComponent::prepare() {
         if (selectedID <= 0 || selectedID > positionIndicatorStyles.size()) return;
 
         audioProcessor.apvts.state.setProperty(PropertyID::positionIndicatorStyle, positionIndicatorStyles[selectedID - 1], nullptr);
-        audioProcessor.guiState.indicatorStyleChanged.store(true, std::memory_order_release);
+        audioProcessor.guiState.indicatorChanged.store(true, std::memory_order_release);
     };
     positionIndicatorSelector.control.setTooltip("Choose your fighter!");
     addAndMakeVisible(positionIndicatorSelector);
 
     // Field indicator selector
     fieldIndicatorSelector.control.addItemList(fieldIndicatorStyles, 1);
-    fieldIndicatorSelector.control.setSelectedId(juce::jmax(1, fieldIndicatorStyles.indexOf(
+    fieldIndicatorSelector.control.setSelectedId(juce::jlimit(1, fieldIndicatorStyles.size(), fieldIndicatorStyles.indexOf(
         juce::StringRef(state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful))) + 1), juce::dontSendNotification);
     fieldIndicatorSelector.control.onChange = [this]() {
         const int selectedID = fieldIndicatorSelector.control.getSelectedId();
@@ -57,9 +57,9 @@ void SettingsComponent::prepare() {
         if (selectedID <= 0 || selectedID > positionIndicatorStyles.size()) return;
 
         audioProcessor.apvts.state.setProperty(PropertyID::fieldIndicatorStyle, fieldIndicatorStyles[selectedID - 1], nullptr);
-        audioProcessor.guiState.indicatorStyleChanged.store(true, std::memory_order_release);
+        audioProcessor.guiState.indicatorChanged.store(true, std::memory_order_release);
     };
-    fieldIndicatorSelector.control.setTooltip("How much mare do you want?\n\nMareful will attempt to match the filename of each IR to a mare (optimized for Clipper's file naming system) and fall back to Anonfilly if none match.\n\nHalf-Mared will attempt the same but fall back to lame dot indicators.\n\n>Mareless\nDYKWYA?");
+    fieldIndicatorSelector.control.setTooltip("Mareful will attempt to match the filename of each IR to a mare (optimized for Clipper's file naming system) and fall back to Anonfilly if none match.\n\n>Mareless\nDYKWYA?");
     addAndMakeVisible(fieldIndicatorSelector);
 
     // Control rate selector

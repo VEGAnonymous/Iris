@@ -21,18 +21,44 @@ void IRSlotButton::paintButton(juce::Graphics& g, bool /*isMouseOver*/, bool /*i
     g.setColour(selected ? slotColor.withAlpha(0.821f) : Theme::Colors::outline.withAlpha(0.621f));
     g.drawRoundedRectangle(bounds, 3.0f, selected ? 1.5f : 0.75f);
 
-    // Indicator dot
+    // Indicator
     const float indicatorX = bounds.getX() + 6.0f;
     const float indicatorY = bounds.getY() + 6.0f;
 
     float activeAlpha = indicatorActiveAnim.getValue();
     float indicatorAlpha = juce::jmap(activeAlpha, occupied ? 0.35f : 0.1f, occupied ? 1.0f : 0.2f);
 
-    Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, indicatorRadius - (!icon.isNull() ? 2.0f : 0.0f),
+    juce::Image mareIcon;
+    {
+        juce::SpinLock::ScopedLockType lock(guiState.mareLock);
+        mareIcon = guiState.mareImages[irIndex];
+    }
+
+    // Poll crossfade state
+    const float crossfadeProgress = guiState.crossfadeStates[irIndex].load(std::memory_order_acquire);
+    const bool crossfadeActive = guiState.crossfadeActives[irIndex].load(std::memory_order_acquire);
+
+    juce::Image* oldMare = nullptr;
+    juce::Image* newMare = nullptr;
+
+    updateIconCrossfade(
+        incomingIcon, outgoingIcon, stagedIcon, 
+        mareIcon,
+        oldMare, newMare,
+        crossfadeActive, crossfadeWasActive, indicatorStyle
+    );
+
+    Paint::irIndicator(g, CartesianCoordinate{indicatorX, indicatorY}, 
+        indicatorRadius,
         irIndex, occupied, active, false, 
-        indicatorAlpha, -1.0f, juce::Colours::transparentBlack, 
-        0, 1.0f,
-        &icon
+        indicatorAlpha, 
+        -1.0f, 
+        juce::Colours::transparentBlack, 
+        0, 
+        1.0f,
+        oldMare, 
+        newMare,
+        crossfadeActive ? crossfadeProgress : 1.0f
     );
 
     // Drag and drop indication
@@ -93,8 +119,19 @@ void IRSlotButton::setActive(bool nActive, bool animate) {
     repaint();
 }
 
-void IRSlotButton::setIndicatorStyle(const juce::Image& iconToTry, const juce::String nStyle) {
-    updateFieldIndicatorStyle(icon, iconToTry, nStyle);
+void IRSlotButton::setIndicatorStyle(const juce::String nStyle) {
+    indicatorStyle = nStyle;
+    updateIndicator();
+}
+
+void IRSlotButton::updateIndicator() {
+    juce::Image mareIcon;
+    {
+        juce::SpinLock::ScopedLockType lock(guiState.mareLock);
+        mareIcon = guiState.mareImages[irIndex];
+    }
+
+    updateFieldIndicatorStyle(outgoingIcon, mareIcon, indicatorStyle);
     repaint();
 }
 

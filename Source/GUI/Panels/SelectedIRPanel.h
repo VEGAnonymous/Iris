@@ -29,9 +29,10 @@ public:
 
     void resized() override;
 
-    void updateIRSlot(bool animate);
-    void updateIndicatorStyle();
+    void setIRSlot(bool animate);
+    void setIndicatorStyle();
 
+    IRHeaderComponent* getIRHeaderComponent();
     IRDisplayComponent* getIRDisplayComponent();
     IRControlsComponent* getIRControlsComponent();
 };

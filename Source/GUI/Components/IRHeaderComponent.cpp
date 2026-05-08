@@ -68,7 +68,7 @@ void IRHeaderComponent::updateIndicator() {
     }
 
     updateFieldIndicatorStyle(
-        currentIndicator,
+        outgoingIcon,
         mareIcon,
         indicatorStyle
     );
@@ -87,11 +87,36 @@ void IRHeaderComponent::paint(juce::Graphics& g) {
     float activeAlpha = indicatorActiveAnim.getValue();
     float indicatorAlpha = juce::jmap(activeAlpha, currentIR.occupied ? 0.35f : 0.1f, currentIR.occupied ? 1.0f : 0.2f);
 
-    Paint::irIndicator(g, { indicatorX, indicatorY }, indicatorRadius - (!currentIndicator.isNull() ? 1.0f : 0.0f),
-        currentIndex, currentIR.occupied, currentIR.active, false, 
-        indicatorAlpha, -1.0f, juce::Colours::transparentBlack, 
-        0, 1.0f,
-        &currentIndicator
+    juce::Image mareIcon;
+    {
+        juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.mareLock);
+        mareIcon = audioProcessor.guiState.mareImages[currentIndex];
+    }
+
+    // Poll crossfade state
+    const float crossfadeProgress = audioProcessor.guiState.crossfadeStates[currentIndex].load(std::memory_order_acquire);
+    const bool crossfadeActive = audioProcessor.guiState.crossfadeActives[currentIndex].load(std::memory_order_acquire);
+
+    juce::Image* oldMare = nullptr;
+    juce::Image* newMare = nullptr;
+
+    updateIconCrossfade(
+        incomingIcon, outgoingIcon, stagedIcon,
+        mareIcon,
+        oldMare, newMare,
+        crossfadeActive, crossfadeWasActive, indicatorStyle
+    );
+
+    Paint::irIndicator(g, { indicatorX, indicatorY }, indicatorRadius,
+        currentIndex, currentIR.occupied, currentIR.active, false,
+        indicatorAlpha,
+        -1.0f,
+        juce::Colours::transparentBlack,
+        0,
+        1.0f,
+        oldMare,
+        newMare,
+        crossfadeActive ? crossfadeProgress : 1.0f
     );
 
     // IR #

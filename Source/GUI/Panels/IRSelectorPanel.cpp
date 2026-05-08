@@ -98,16 +98,9 @@ void IRSelectorPanel::paint(juce::Graphics& g) {
     g.fillRect(getLocalBounds());
 }
 
-void IRSelectorPanel::updateIndicatorStyle() {
-    std::array<juce::Image, MAX_IR_COUNT> mareIcons;
-    {
-        juce::SpinLock::ScopedLockType lock(audioProcessor.guiState.mareLock);
-        mareIcons = audioProcessor.guiState.mareImages;
-    }
-
+void IRSelectorPanel::setIndicatorStyle() {
     for (int i = 0; i < MAX_IR_COUNT; ++i) {
         irSlotButtons[i]->setIndicatorStyle(
-            mareIcons[i],
             audioProcessor.apvts.state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful)
         );
     }

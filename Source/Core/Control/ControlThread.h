@@ -31,7 +31,7 @@ private:
 
     // Weights
     float decay = -1.0f;
-    std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS> irWeights{}; // Local copy
+    std::array<std::array<float, MAX_IR_SLOT_PAIRS>, N_CHANNELS> irWeights {}; // Local copy
 
     void processBinaural(const std::array<float, MAX_IR_COUNT>& rawWeights, const std::vector<PolarCoordinate>& relatives);
     void processCrossfade();

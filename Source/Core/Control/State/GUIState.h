@@ -3,7 +3,6 @@
 #include "Core/Defines.h"
 
 #include <atomic>
-#include <mutex>
 #include <vector>
 
 struct GUIState {
@@ -20,9 +19,9 @@ struct GUIState {
     std::atomic<bool> updateField { false }; // Editor forced update
     std::atomic<bool> syncingField { false }; // Guard
 
-    std::atomic<bool> indicatorStyleChanged { false };
+    std::atomic<bool> indicatorChanged { false };
 
-    std::atomic<bool> irChanged { false };
+    std::array<std::atomic<bool>, MAX_IR_COUNT> irSlotChanged {};
     std::atomic<bool> selectedIRChanged { false };
 
     std::atomic<bool> irControlsChanged { false };
@@ -38,5 +37,16 @@ struct GUIState {
     std::array<juce::Image, MAX_IR_COUNT> mareImages;
     juce::SpinLock mareLock;
 
+    std::array<std::atomic<float>, MAX_IR_COUNT> crossfadeStates;
+    std::array<std::atomic<bool>, MAX_IR_COUNT> crossfadeActives;
+
     std::atomic<bool> tooltipsEnabledChanged { false };
+
+    GUIState() {
+        for (int i = 0; i < MAX_IR_COUNT; ++i) {
+            irSlotChanged[i].store(false);
+            crossfadeStates[i].store(0.0f);
+            crossfadeActives[i].store(false);
+        }
+    }
 };

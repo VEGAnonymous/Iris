@@ -26,7 +26,7 @@ void SelectedIRPanel::resized() {
     irControlsComponent.setBounds(bounds.removeFromTop(100).toFloat().reduced(PANEL_INSET).toNearestInt());
 }
 
-void SelectedIRPanel::updateIRSlot(bool animate) {
+void SelectedIRPanel::setIRSlot(bool animate) {
     int selectedIR = audioProcessor.apvts.state.getProperty(PropertyID::selectedIR);
     if (validateIRIndex(selectedIR)) {
         // IR display
@@ -37,7 +37,7 @@ void SelectedIRPanel::updateIRSlot(bool animate) {
 
             irHeaderComponent.setActive(slot.active, animate);
             irHeaderComponent.setSlot(selectedIR, slot);
-            irHeaderComponent.updateIndicator();
+            if (!animate) irHeaderComponent.updateIndicator();
 
             auto* waveformComponent = irDisplayComponent.getWaveformComponent();
             jassert(waveformComponent);
@@ -88,10 +88,11 @@ void SelectedIRPanel::updateIRSlot(bool animate) {
     }
 }
 
-void SelectedIRPanel::updateIndicatorStyle() {
+void SelectedIRPanel::setIndicatorStyle() {
     irHeaderComponent.setIndicatorStyle(
         audioProcessor.apvts.state.getProperty(PropertyID::fieldIndicatorStyle, FieldIndicatorStyle::Mareful));
 }
 
+IRHeaderComponent* SelectedIRPanel::getIRHeaderComponent() { return &irHeaderComponent; }
 IRDisplayComponent* SelectedIRPanel::getIRDisplayComponent() { return &irDisplayComponent; }
 IRControlsComponent* SelectedIRPanel::getIRControlsComponent() { return &irControlsComponent; }

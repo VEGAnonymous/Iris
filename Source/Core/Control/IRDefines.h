@@ -159,10 +159,10 @@ struct CrossfadeSlot {
     float progress = 0.0f; // 0 -> 1.0f
     float duration = 0.0f; // seconds
 
-    void start(float durationSeconds) {
+    void start(float durationSeconds, float initialProgress = 0.0f) {
         DBG("FADE: Crossfade started with duration " << durationSeconds);
         active = true;
-        progress = 0.0f;
+        progress = initialProgress;
         duration = durationSeconds;
     }
 
