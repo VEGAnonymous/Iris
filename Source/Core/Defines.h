@@ -75,6 +75,10 @@ namespace ParamID {
 
 namespace PropertyID {
     static constexpr auto
+        outdated = "Outdated",
+        lastNotified = "Last Notified";
+
+    static constexpr auto
         selectedIR = "Selected IR",
         selectedControlTab = "Selected Control Tab",
 

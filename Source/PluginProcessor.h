@@ -2,6 +2,7 @@
 
 #include "Core/Defines.h"
 #include "Core/Utilities.h"
+#include "Core/VersionChecker.h"
 #include "Core/Processors/ConvolutionReverbAudioProcessor.h"
 #include "Core/Processors/CutFilterAudioProcessor.h"
 #include "Core/Control/ControlThread.h"
@@ -17,6 +18,8 @@
 
 class MareverbAudioProcessor : public juce::AudioProcessor {
 private:
+    VersionChecker versionChecker;
+
     // Properties
     juce::ApplicationProperties applicationProperties;
 

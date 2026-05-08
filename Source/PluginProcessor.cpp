@@ -1,4 +1,5 @@
 #include "Core/Utilities.h"
+#include "GUI/API/MareAlert.h"
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
@@ -81,8 +82,6 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     mixer(PARTITION_SIZE),
     irManager(&applicationProperties) {
 
-    DBG("INIT: Found " << juce::SystemStats::getNumCpus() << " cores");
-
     auto startTime = std::chrono::steady_clock::now();
 
     // Init properties
@@ -91,6 +90,28 @@ MareverbAudioProcessor::MareverbAudioProcessor()
     options.filenameSuffix = ".amre";
     options.osxLibrarySubFolder = "Application Support";
     applicationProperties.setStorageParameters(options);
+
+    // Check version
+    versionChecker.outdatedCallback = [this](const juce::String& /*currentVersion*/, const juce::String& latestVersion) {
+        auto* properties = applicationProperties.getUserSettings();
+        if (!properties) return;
+
+        const juce::String lastNotified = properties->getValue(PropertyID::lastNotified);
+        if (lastNotified != latestVersion) {
+            guiState.outdated.store(true, std::memory_order_release);
+            properties->setValue(PropertyID::lastNotified, latestVersion);
+            DBG("VERSION: Notifying for " << latestVersion);
+            return;
+        }
+        DBG("VERSION: Already notified about " << latestVersion);
+    };
+    versionChecker.upToDateCallback = [this](const juce::String& currentVersion) {
+        auto* properties = applicationProperties.getUserSettings();
+        if (properties) properties->setValue(PropertyID::lastNotified, currentVersion);
+        DBG("VERSION: Up to date!");
+    };
+
+    juce::Thread::launch([this] { versionChecker.checkForUpdates(ProjectInfo::projectName); });
 
     // Init IR manager
     irManager.prepare();

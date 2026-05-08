@@ -6,6 +6,8 @@
 #include <vector>
 
 struct GUIState {
+    std::atomic<bool> outdated { false };
+
     std::atomic<PolarCoordinate> position { {0.0f, 0.0f} };
     juce::SpinLock positionLock;
     std::atomic<bool> positionPathChanged { false };

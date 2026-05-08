@@ -398,11 +398,6 @@ void PolarMapPanel::updateFieldIndicator(int irIndex) {
         mareIcon = audioProcessor.guiState.mareImages[irIndex];
     }
     updateFieldIndicatorStyle(fieldIndicatorIcons[irIndex], mareIcon, fieldIndicatorStyle);
-
-    auto& oldMare = fieldIndicatorIcons[MAX_IR_COUNT];
-    auto& newMare = fieldIndicatorIcons[MAX_IR_COUNT + irIndex];
-
-    DBG("MAP: Updated field indicator " << irIndex << "; old mare exists = " << (int)!oldMare.isNull() << ", new mare exists = " << (int)!newMare.isNull());
 }
 
 void PolarMapPanel::updateIndicators() {

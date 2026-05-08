@@ -4,7 +4,7 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" defines="JUCE_USE_FLAC=1&#10;JUCE_USE_MP3AUDIOFORMAT=1&#10;JUCE_USE_OGGVORBIS=1"
               bundleIdentifier="lyra.mare.Mareverb" companyEmail="lyranonymous@protonmail.com"
               companyName="Eponymous DSP" pluginManufacturerCode="Mare" headerPath="..\..\Source&#10;..\..\lib"
-              version="1.1.2.6" companyWebsite="TBD" pluginAUIsSandboxSafe="1"
+              version="1.2.1.6" companyWebsite="TBD" pluginAUIsSandboxSafe="1"
               userNotes="I love them!" companyCopyright="TBD" pluginDesc="Convolution reverb with a mareschizophrenic twist">
   <MAINGROUP id="uSBxoM" name="Mareverb">
     <GROUP id="{52C29717-2BB5-4F62-25D3-FC09807A17AA}" name="Source">
@@ -65,6 +65,10 @@
         </GROUP>
         <FILE id="TYdiZh" name="Defines.h" compile="0" resource="0" file="Source/Core/Defines.h"/>
         <FILE id="Nzbb5r" name="Utilities.h" compile="0" resource="0" file="Source/Core/Utilities.h"/>
+        <FILE id="ZJXSQD" name="VersionChecker.cpp" compile="1" resource="0"
+              file="Source/Core/VersionChecker.cpp"/>
+        <FILE id="coZeFK" name="VersionChecker.h" compile="0" resource="0"
+              file="Source/Core/VersionChecker.h"/>
       </GROUP>
       <GROUP id="{0020543F-18A4-A177-2507-1186AC105CC3}" name="GUI">
         <GROUP id="{20F60DF1-DA86-3271-0296-2888AADD19FE}" name="API">

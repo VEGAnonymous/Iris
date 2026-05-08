@@ -36,6 +36,13 @@ void MareverbAudioProcessorEditor::parameterChanged(const juce::String& paramete
 void MareverbAudioProcessorEditor::timerCallback() {
     animatorUpdater.update();
 
+    if (audioProcessor.guiState.outdated.exchange(false, std::memory_order_acquire)) {
+        MareAlert::show(animatorUpdater, &mainLookAndFeel,
+            "Wow!",
+            "A newer version of this plugin exists!",
+            "https://github.com/LYRAnonymous/Mareverb/releases", "Muffin?"); 
+    }
+
     // Polar map
     if (audioProcessor.guiState.positionPathChanged.exchange(false, std::memory_order_acquire))
         polarMapPanel.updatePath();
