@@ -84,6 +84,7 @@ public:
     GUIState guiState;
     PatternState patternState;
 
+    void initParameters();
     void storePersistentState();
     void initState();
 

@@ -29,13 +29,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout MareverbAudioProcessor::crea
 
     // Position controls
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::positionPattern, "Position Pattern", positionPatterns, static_cast<int>(PositionPattern::EYES)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Position Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionRate, "Position Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.0f, percentFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModA, "Position Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::positionModB, "Position Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
     
     // Field controls
     layout.add(std::make_unique<juce::AudioParameterChoice>(ParamID::fieldPattern, "Field Pattern", fieldPatterns, static_cast<int>(FieldPattern::RING)));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Field Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.5f, percentFormat));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldRate, "Field Rate", juce::NormalisableRange<float>(-1.0f, 1.0f, 1e-5f, 1.0f), 0.0f, percentFormat));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModA, "Field Mod A", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(ParamID::fieldModB, "Field Mod B", juce::NormalisableRange<float>(0.0f, 1.0f, 1e-3f, 1.0f), 0.5f));
 
@@ -137,6 +137,7 @@ MareverbAudioProcessor::MareverbAudioProcessor()
         };
 
     // Init everything
+    initParameters();
     initState();
 
     profileTime("INIT: Initialized pattern states; ", startTime);
@@ -341,6 +342,17 @@ void MareverbAudioProcessor::setStateInformation(const void* data, int sizeInByt
 
     apvts.replaceState(tree);
     initState();
+}
+
+void MareverbAudioProcessor::initParameters() {
+    auto init = [&](const juce::String& paramID, float initValue) { 
+        auto* parameter = apvts.getParameter(paramID);
+        if (parameter) parameter->setValueNotifyingHost(parameter->convertTo0to1(initValue)); 
+        DBG("Init parameter " << paramID << " to " << apvts.getRawParameterValue(paramID)->load()); };
+
+    init(ParamID::positionRate, 0.5f);
+    init(ParamID::fieldRate, 0.5f);
+    init(ParamID::positionModA, 0.621f);
 }
 
 void MareverbAudioProcessor::storePersistentState() {
