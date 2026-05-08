@@ -155,7 +155,7 @@
  #define JucePlugin_ARAFactoryID           "com.EponymousDSP.Mareverb.factory"
 #endif
 #ifndef  JucePlugin_ARADocumentArchiveID
- #define JucePlugin_ARADocumentArchiveID   "com.EponymousDSP.Mareverb.aradocumentarchive.1.1.2.6"
+ #define JucePlugin_ARADocumentArchiveID   "com.EponymousDSP.Mareverb.aradocumentarchive.1.2.1.6"
 #endif
 #ifndef  JucePlugin_ARACompatibleArchiveIDs
  #define JucePlugin_ARACompatibleArchiveIDs  ""

@@ -47,8 +47,10 @@ void MareverbAudioProcessorEditor::timerCallback() {
     if (audioProcessor.guiState.positionPathChanged.exchange(false, std::memory_order_acquire))
         polarMapPanel.updatePath();
 
-    if (audioProcessor.guiState.positionChanged.exchange(false, std::memory_order_acquire))
+    if (audioProcessor.guiState.positionChanged.exchange(false, std::memory_order_acquire)) {
         polarMapPanel.updatePosition();
+        polarMapPanel.updateField();
+    }
 
     if (audioProcessor.guiState.fieldChanged.exchange(false, std::memory_order_acquire)) {
         polarMapPanel.updateField();
