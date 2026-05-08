@@ -290,9 +290,10 @@ void IRManager::setIR(int irIndex, juce::File irFile, juce::AudioBuffer<float>& 
     slot.window.start = 0.0f;
     slot.window.length = juce::jlimit(0.0f, 1.0f, static_cast<float>(MAX_IR_SAMPLES) / static_cast<float>(numSamples));
 
-    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex });
-    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_ACTIVE_CHANGED, irIndex });
-    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_GAIN_CHANGED, irIndex });
+    // Enqueued by controller
+    // irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex }); 
+    // irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_ACTIVE_CHANGED, irIndex });
+    // irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_GAIN_CHANGED, irIndex });
 
     irLoaded.store(true, std::memory_order_release);
 }
@@ -375,7 +376,7 @@ bool IRManager::setWindow(int irIndex, float start, float length) {
     slot.window.length = juce::jlimit(0.0f, 1.0f - slot.window.start, length);
 
     computeEnvelope(slot);
-    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex });
+    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex, false });
     return true;
 }
 
@@ -387,10 +388,10 @@ void IRManager::setEnvelope(int irIndex, EnvelopeType type, float attack, float 
     slot.window.envelope.attack = attack; // Validate these elsewhere
     slot.window.envelope.release = release;
 
-    DBG("IR: Set IR " << irIndex << " envelope type = " << static_cast<int>(type) << ", attack = " << slot.window.envelope.attack << ", release = " << slot.window.envelope.release);
+    // DBG("IR: Set IR " << irIndex << " envelope type = " << static_cast<int>(type) << ", attack = " << slot.window.envelope.attack << ", release = " << slot.window.envelope.release);
 
     computeEnvelope(slot);
-    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex });
+    irUpdateQueue.enqueue(IRUpdate{ IRUpdate::IR_SET, irIndex, false });
 }
 
 juce::AudioBuffer<float> IRManager::applyWindow(int irIndex) const {

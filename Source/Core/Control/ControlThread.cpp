@@ -68,6 +68,30 @@ void ControlThread::processBinaural(const std::array<float, MAX_IR_COUNT>& rawWe
     }
 }
 
+void ControlThread::processCrossfade() {
+    for (int ir = 0; ir < MAX_IR_COUNT; ++ir) {
+        const auto& crossfadeSlot = convolutionStateBuilder.getCrossfadeSlot(ir);
+        const int stagingIndex = MAX_IR_COUNT + ir;
+
+        if (crossfadeSlot.active) {
+            const float oldGain = crossfadeSlot.getOldGain();
+            const float newGain = crossfadeSlot.getNewGain();
+
+            // Outgoing IR
+            irWeights[0][stagingIndex] = irWeights[0][ir] * oldGain;
+            irWeights[1][stagingIndex] = irWeights[1][ir] * oldGain;
+
+            // Incoming IR
+            irWeights[0][ir] *= newGain;
+            irWeights[1][ir] *= newGain;
+
+        } else {
+            irWeights[0][stagingIndex] = 0.0f;
+            irWeights[1][stagingIndex] = 0.0f;
+        }
+    }
+}
+
 void ControlThread::updateWeights() {
     std::array<float, MAX_IR_COUNT> distanceWeights{};
 
@@ -116,15 +140,19 @@ void ControlThread::updateWeights() {
         guiState.irWeights = distanceWeights;
     }
     
-    processBinaural(distanceWeights, relatives); // Inject binaural cues, mutate irWeights
+    // Mutate irWeights
+    processBinaural(distanceWeights, relatives); // Inject binaural cues
+    processCrossfade(); // Crossfade weights of current IR with any incoming IRs
 }
 
 // Convolution state
 
 void ControlThread::updateConvolutionState() {
     const float crossfadeTime = apvts.getRawParameterValue(ParamID::crossfadeTime)->load();
+    convolutionStateBuilder.setCrossfadeTime(crossfadeTime);
+
     auto currentState = std::atomic_load(&convolutionState->state);
-    auto nextState = convolutionStateBuilder.build(currentState, decay, irWeights, crossfadeTime);
+    auto nextState = convolutionStateBuilder.build(currentState, decay, irWeights);
     std::atomic_store(&convolutionState->state, nextState);
 }
 
@@ -143,7 +171,7 @@ void ControlThread::processIRCommands() {
         return anyLoadable;
     };
 
-    auto loadIR = [this](int irIndex, const juce::File file) {
+    auto loadIR = [this](int irIndex, const juce::File file, bool shouldCrossfade) {
         juce::AudioBuffer<float> irBuffer = irManager.readIR(file);
 
         auto waveformBuffer = std::make_shared<juce::AudioBuffer<float>>(irBuffer);
@@ -160,7 +188,7 @@ void ControlThread::processIRCommands() {
 
         guiState.indicatorStyleChanged.store(true, std::memory_order_release);
         irManager.getResultQueue()->enqueue(
-            IRResult{ irIndex, file, std::move(irBuffer) }
+            IRResult{ irIndex, file, std::move(irBuffer), shouldCrossfade }
         );
     };
 
@@ -172,15 +200,17 @@ void ControlThread::processIRCommands() {
         case IRCommand::IR_LOAD: {
             const int irIndex = cmd.irIndex;
             const juce::File file = cmd.irFile;
-            irManager.irThreadPool.addJob([this, loadIR, irIndex, file]() { loadIR(irIndex, file); });
+            const bool shouldCrossfade = cmd.shouldCrossfade;
+            irManager.irThreadPool.addJob([this, loadIR, irIndex, file, shouldCrossfade]() { loadIR(irIndex, file, shouldCrossfade); });
             break;
         }
         case IRCommand::IR_LOAD_RANDOM: {
             if (!canLoad()) return;
             const int irIndex = cmd.irIndex;
             const auto randomFile = irManager.sampleRandomIR();
+            const bool shouldCrossfade = cmd.shouldCrossfade;
             if (!randomFile.existsAsFile()) return;
-            irManager.irThreadPool.addJob([this, loadIR, irIndex, randomFile]() { loadIR(irIndex, randomFile); });
+            irManager.irThreadPool.addJob([this, loadIR, irIndex, randomFile, shouldCrossfade]() { loadIR(irIndex, randomFile, shouldCrossfade); });
             break;
         }
         case IRCommand::IR_LOAD_RANDOM_ALL: {
@@ -188,9 +218,10 @@ void ControlThread::processIRCommands() {
             for (int i = 0; i < MAX_IR_COUNT; ++i) {
                 const int irIndex = i;
                 const auto randomFile = irManager.sampleRandomIR();
+                const bool shouldCrossfade = cmd.shouldCrossfade;
                 if (!randomFile.existsAsFile()) return;
                 irManager.getBusyLoading().store(true, std::memory_order_release);
-                irManager.irThreadPool.addJob([this, loadIR, irIndex, randomFile]() { loadIR(irIndex, randomFile); });
+                irManager.irThreadPool.addJob([this, loadIR, irIndex, randomFile, shouldCrossfade]() { loadIR(irIndex, randomFile, shouldCrossfade); });
             }
             break;
         }
@@ -276,6 +307,11 @@ void ControlThread::processIRResults() {
 
     while (resultQueue->try_dequeue(result)) {
         irManager.setIR(result.irIndex, result.file, result.buffer);
+
+        irManager.getUpdateQueue()->enqueue(IRUpdate{ IRUpdate::IR_SET, result.irIndex, result.shouldCrossfade });
+        irManager.getUpdateQueue()->enqueue(IRUpdate{ IRUpdate::IR_ACTIVE_CHANGED, result.irIndex });
+        irManager.getUpdateQueue()->enqueue(IRUpdate{ IRUpdate::IR_GAIN_CHANGED, result.irIndex });
+
         if ((std::chrono::steady_clock::now() - startTime) > std::chrono::milliseconds(deadlineMs)) break;
     }
 }
@@ -297,7 +333,7 @@ void ControlThread::runControlCycle(float dt) {
     // Advance time
     advancePhase(dt);
     irManager.advanceSwapTimers(dt);
-    convolutionStateBuilder.advanceCrossfades(dt);
+    const bool crossfadeActive = convolutionStateBuilder.advanceCrossfades(dt);
 
     // Position + field
     updateMotionParameters();
@@ -325,6 +361,7 @@ void ControlThread::runControlCycle(float dt) {
 
     // Weights
     if (motionController.hasPositionUpdated() || motionController.hasFieldUpdated() 
+        || crossfadeActive
         || guiState.updateWeights.exchange(false, std::memory_order_acquire)) {
 
         polarMap.computeRelatives();

@@ -34,6 +34,7 @@ private:
     std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS> irWeights{}; // Local copy
 
     void processBinaural(const std::array<float, MAX_IR_COUNT>& rawWeights, const std::vector<PolarCoordinate>& relatives);
+    void processCrossfade();
     void updateWeights();
 
     // Convolution state

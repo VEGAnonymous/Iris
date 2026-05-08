@@ -452,6 +452,7 @@ void MareverbAudioProcessorEditor::prepare() {
     tooltipWindow.setAlwaysOnTop(true);
     globalMixControl.control.setTooltip("The blend between the dry input signal and the wet mares signal.");
     decayControl.control.setTooltip("The reverb decay as a percentage of the current longest active IR's duration.");
+    crossfadeControl.control.setTooltip("The amount of time it takes for the convolution engine to transition each slot to a newly-loaded IR.");
     lowCutControl.control.setTooltip("The cutoff frequency of the 12 dB/oct low-cut filter applied to the wet signal.");
     highCutControl.control.setTooltip("The cutoff frequency of the 12 dB/oct high-cut filter applied to the wet signal.");
 

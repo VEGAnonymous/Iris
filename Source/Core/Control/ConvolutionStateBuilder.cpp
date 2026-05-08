@@ -27,12 +27,26 @@ public:
 
 /* PRIVATE */
 
-bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState, 
-    float crossfadeTime) {
+// Crossfade
+
+// HACK: Crossfade weights are one cycle too late unless we force it here
+void ConvolutionStateBuilder::initCrossfadeWeights(std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& weights) {
+    for (int ir : crossfadesStarted) {
+        const int stagingIndex = MAX_IR_COUNT + ir;
+        for (int ch = 0; ch < N_CHANNELS; ++ch) {
+            weights[ch][stagingIndex] = weights[ch][ir];
+            weights[ch][ir] = 0.0f;
+        }
+    }
+    crossfadesStarted.clear();
+}
+
+// Build stages
+
+bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState) {
 
     std::shared_ptr<const ConvolutionIRBank> irBank = currentState->irBank;
     bool irChanged = !(setIRs.empty() && clearedIRs.empty() && activeChangedIRs.empty() && gainedIRs.empty());
-
     if (irChanged) {
         if (!nextBank) nextBank = std::make_shared<ConvolutionIRBank>(*currentState->irBank);
         auto& nBank = nextBank;
@@ -41,7 +55,7 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
         {
             juce::SpinLock::ScopedLockType lock(fftJobLock);
             for (auto& fftJob : pendingJobs) {
-                for (int irIndex : setIRs) {
+                for (const auto& [irIndex, shouldCrossfade] : setIRs) {
                     if (fftJob.irIndex == irIndex) fftThreadPool.removeJob(fftJob.job, true, 0);
                 }
             }
@@ -57,7 +71,7 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
 
         // Load IRs
         if (!setIRs.empty()) {
-            for (int irIndex : setIRs) {
+            for (const auto& [irIndex, shouldCrossfade] : setIRs) {
                 if (!validateIRIndex(irIndex)) continue;
                 // DBG("Setting IR " << irIndex);
                 {
@@ -68,8 +82,10 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
                     if (jobPending) continue;
                 }
 
-                nBank->copySlot(irIndex, MAX_IR_COUNT + irIndex); // Stage new IR in top half (incoming IRs) of slot array
-                crossfadeSlots[irIndex].start(crossfadeTime);
+                if (shouldCrossfade) {
+                    nBank->copySlot(irIndex, MAX_IR_COUNT + irIndex); // Stage new IR in top half (incoming IRs) of slot array
+                    pendingCrossfades.push_back(irIndex);
+                }
 
                 auto* job = new IRFFTJob(nBank, irManager, irIndex);
                 {
@@ -135,8 +151,17 @@ bool ConvolutionStateBuilder::updateIRBank(const std::shared_ptr<ConvolutionStat
         irBank = nextBank;
         nextBank = nullptr;
 
+        // And start crossfades
+        for (int irIndex : pendingCrossfades) {
+            if (validateIRIndex(irIndex)) {
+                crossfadeSlots[irIndex].start(crossfadeTime);
+                crossfadesStarted.push_back(irIndex);
+            }
+        }
+        pendingCrossfades.clear();
+
         jobsPending = false;
-        irChanged = true; // And allow mixing
+        irChanged = true; // And allow mixing (but only if no crossfades are starting)
         irManager.getBusyLoading().store(false, std::memory_order_release); // And allow pressing that Celestia-forsaken button again
     }
 
@@ -164,7 +189,8 @@ void ConvolutionStateBuilder::updateMixState(const std::shared_ptr<ConvolutionSt
 
 /* PUBLIC */
 
-ConvolutionStateBuilder::ConvolutionStateBuilder(IRManager& irManager, GUIState& guiState) : irManager(irManager), guiState(guiState) {}
+ConvolutionStateBuilder::ConvolutionStateBuilder(IRManager& irManager, GUIState& guiState) : 
+    irManager(irManager), guiState(guiState) {}
 
 ConvolutionStateBuilder::~ConvolutionStateBuilder() { 
     fftThreadPool.removeAllJobs(false, 1000); 
@@ -180,7 +206,7 @@ void ConvolutionStateBuilder::prepare() {
 void ConvolutionStateBuilder::pushIRUpdate(const IRUpdate& update) {
     switch (update.type) {
         case IRUpdate::IR_SET: {
-            setIRs.push_back(update.irIndex);
+            setIRs.push_back({ update.irIndex, update.shouldCrossfade });
             break;
         }
         case IRUpdate::IR_CLEAR: {
@@ -208,22 +234,37 @@ void ConvolutionStateBuilder::clearUpdates() {
 void ConvolutionStateBuilder::notifyDecayChanged() { decayChanged = true; }
 void ConvolutionStateBuilder::notifyWeightsChanged() { weightsChanged = true; }
 
-void ConvolutionStateBuilder::advanceCrossfades(float dt) {
-    for (int i = 0; i < MAX_IR_COUNT; ++i) crossfadeSlots[i].advance(dt);
+void ConvolutionStateBuilder::setCrossfadeTime(float nTime) {
+    crossfadeTime = juce::jmax(0.0f, nTime);
+    for (int i = 0; i < MAX_IR_COUNT; ++i) crossfadeSlots[i].duration = crossfadeTime;
+}
+
+bool ConvolutionStateBuilder::advanceCrossfades(float dt) {
+    bool crossfadeActive = !(crossfadesStarted.empty()); // Start cycles force weight update
+    for (int i = 0; i < MAX_IR_COUNT; ++i) crossfadeActive |= crossfadeSlots[i].advance(dt);
+    return crossfadeActive;
 }
 
 std::shared_ptr<ConvolutionState> ConvolutionStateBuilder::build(const std::shared_ptr<ConvolutionState>& currentState,
-    float decay, const std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& irWeights, float crossfadeTime) {
+    float decay, const std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& irWeights) {
 
     jassert(currentState && currentState->irBank);
 
     auto& nextState = statePool[stateIndex];
     stateIndex ^= 1; // (stateIndex + 1) % 2
 
-    bool irChanged = updateIRBank(currentState, nextState, crossfadeTime);
+    bool irChanged = updateIRBank(currentState, nextState);
     jassert(nextState->irBank);
     nextState->prepare();
-    updateMixState(currentState, nextState, irChanged, decay, irWeights);
+
+    if (!crossfadesStarted.empty()) {
+        auto crossfadeWeights = irWeights; // Copy
+        initCrossfadeWeights(crossfadeWeights);
+        weightsChanged = true;
+        updateMixState(currentState, nextState, irChanged, decay, crossfadeWeights);
+    } else {
+        updateMixState(currentState, nextState, irChanged, decay, irWeights);
+    }
 
     return nextState;
 }

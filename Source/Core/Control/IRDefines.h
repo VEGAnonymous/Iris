@@ -131,12 +131,15 @@ struct IRCommand {
     juce::String fileFilter, directoryFilter;
 
     IRSamplingMode samplingMode = IRSamplingMode::UNIFORM_ACROSS_ALL_FILES;
+
+    bool shouldCrossfade = true;
 };
 
 struct IRResult {
     int irIndex = 0;
     juce::File file;
     juce::AudioBuffer<float> buffer{};
+    bool shouldCrossfade = true;
 };
 
 struct IRUpdate {
@@ -148,6 +151,7 @@ struct IRUpdate {
     } type = IR_SET;
 
     int irIndex = 0;
+    bool shouldCrossfade = true;
 };
 
 struct CrossfadeSlot {
@@ -156,6 +160,7 @@ struct CrossfadeSlot {
     float duration = 0.0f; // seconds
 
     void start(float durationSeconds) {
+        DBG("FADE: Crossfade started with duration " << durationSeconds);
         active = true;
         progress = 0.0f;
         duration = durationSeconds;
@@ -163,19 +168,13 @@ struct CrossfadeSlot {
 
     bool advance(float dt) {
         if (!active) return false;
-        if (duration <= 0.0f) {
-            progress = 1.0f;
-            active = false;
-            return true; 
-        }
-
-        progress = juce::jmin(1.0f, (progress + dt) / duration);
-        if (progress >= 1.0f) { 
-            active = false;
-            return true;
-        } else return false;
+        if (duration <= 0.0f) { progress = 1.0f; active = false; return true; }
+        progress = juce::jmin(1.0f, progress + (dt / duration));
+        // DBG("FADE: duration = " << duration << ", dt = " << dt << ", progress = " << progress);
+        if (progress >= 1.0f) { active = false; /* DBG("FADE: Crossfade complete"); */ }
+        return true;
     }
 
-    float getTargetGain() const { return progress; }
-    float getCurrentGain() const { return 1.0f - progress; }
+    float getNewGain() const { return progress; } // Incoming IR
+    float getOldGain() const { return 1.0f - progress; } // Outgoing IR
 };

@@ -21,7 +21,8 @@ private:
     bool decayChanged = false;
     bool weightsChanged = false;
 
-    std::vector<int> setIRs;
+    struct IRSet { int irIndex; bool shouldCrossfade = true; };
+    std::vector<IRSet> setIRs;
     std::vector<int> clearedIRs;
     std::vector<int> activeChangedIRs;
     std::vector<int> gainedIRs;
@@ -42,9 +43,14 @@ private:
 
     // Crossfade
     std::array<CrossfadeSlot, MAX_IR_COUNT> crossfadeSlots {};
+    std::vector<int> pendingCrossfades;
+    std::vector<int> crossfadesStarted;
+    float crossfadeTime = 0.0f;
+
+    void initCrossfadeWeights(std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& weights);
 
     // Build stages
-    bool updateIRBank(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState, float crossfadeTime);
+    bool updateIRBank(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState);
     void updateMixState(const std::shared_ptr<ConvolutionState>& currentState, std::shared_ptr<ConvolutionState>& nextState,
         bool irChanged, float decay, const std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& irWeights);
 
@@ -60,10 +66,11 @@ public:
     void notifyDecayChanged();
     void notifyWeightsChanged();
 
-    void advanceCrossfades(float dt);
+    void setCrossfadeTime(float nTime);
+    bool advanceCrossfades(float dt);
 
     std::shared_ptr<ConvolutionState> build(const std::shared_ptr<ConvolutionState>& currentState,
-        float decay, const std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& irWeights, float crossfadeTime);
+        float decay, const std::array<std::array<float, MAX_IR_BANK_SLOTS>, N_CHANNELS>& irWeights);
 
     const CrossfadeSlot& getCrossfadeSlot(int index) const;
 };
