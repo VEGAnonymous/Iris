@@ -1,6 +1,6 @@
 # **Mareverb**
 
-![Mareverb GUI](https://u.pone.rs/qmfftudr.PNG "Mareverb GUI")
+![Mareverb GUI](https://u.pone.rs/xnbttvlj.png "Mareverb GUI")
 
 🎵 *"Mares in my mind"* 🦄
 
@@ -11,7 +11,7 @@
 - Explore the space with a variety of motion patterns for both (You) and the amres
 - Load random IRs from a directory list with filtering so you can overdose on just your waifu's voice
 - Enjoy automatic mare detection, designed with [Clipper's master files](https://mega.nz/folder/jkwimSTa#_xk0VnR30C8Ljsy4RCGSig) in mind *(highly recommended)*
-- Enable auto-swap to allow new mares to surprise you at random intervals
+- Enable auto-swap to allow new mares to surprise you at random intervals, with crossfading
 
 ---
 
