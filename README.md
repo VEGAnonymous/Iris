@@ -4,7 +4,7 @@
 
 ## Overview
 
-**Iris** is a dynamic convolution reverb that blends up to eight impulse responses simultaneously in real time, with per-source weights driven by a position indicator on an interactive 2D spatial map. As you move through the space, the reverb character morphs smoothly between the surrounding IRs. To achieve time-variant, artifact-free IR switching at low latency, Iris implements **TVOLAP (Time-Variant Overlap-Add in Partitions)**, a fast convolution algorithm that supports seamless mid-block IR coefficient updates. See [Jaeger et al. (2023)](https://arxiv.org/pdf/2310.00319) for the underlying paper.
+**Iris** is a dynamic convolution reverb that blends up to eight impulse responses simultaneously in real time, driven by the position of a point listener on an interactive 2D spatial map. As you move through the space, the reverb character morphs smoothly between the surrounding IRs, weighted by proximity. To achieve time-variant, artifact-free IR switching at low latency, Iris implements **TVOLAP (Time-Variant Overlap-Add in Partitions)**, a fast convolution algorithm that supports seamless mid-block IR coefficient updates. See [Jaeger et al. (2023)](https://arxiv.org/pdf/2310.00319) for the underlying paper.
 
 ## Features
 
