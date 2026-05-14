@@ -43,8 +43,8 @@
 #if ! JUCE_DONT_DECLARE_PROJECTINFO
 namespace ProjectInfo
 {
-    const char* const  projectName    = "Mareverb";
-    const char* const  companyName    = "Eponymous DSP";
+    const char* const  projectName    = "Iris";
+    const char* const  companyName    = "Anonymous DSP";
     const char* const  versionString  = "1.2.1.6";
     const int          versionNumber  = 0x1020106;
 }
